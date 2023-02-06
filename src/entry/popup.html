@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset='utf-8'>
+	<meta name='viewport' content='width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no'>
+	<meta name='HandheldFriendly' content='true'>
+
+	<title>StarShell Wallet</title>
+
+	<!-- ses -->
+
+	<link rel="icon" type="image/svg+xml" href="/media/vendor/logo.svg">
+	<link rel="icon" type="image/png" href="/media/vendor/icon_128.png">
+
+	<link data-meta="global" rel='stylesheet' href='../style/global.less'>
+
+	<script type="module" src="./factory-reset.ts"></script>
+	<script type="module" src="./popup.ts"></script>
+</head>
+<body class="recovery">
+	<style>
+		body.recovery {
+			background-color: #0f1317;
+			color: #f7f7f7;
+		}
+
+		#dom-log {
+			font-family: Poppins;
+			padding: 1.25em 0.75em;
+		}
+
+		#dom-log button {
+			padding: 0.5em 1em;
+			border: 2px solid white;
+			background-color: rgba(0, 0, 0, 0.8);
+			border-radius: 4px;
+			margin: 0.5em;
+			font-family: monospace;
+			color: white;
+		}
+
+		#dom-log button[disabled] {
+			opacity: 0.5;
+		}
+
+		#dom-log button#reload {
+			border-color: #23af00;
+		}
+
+		#dom-log button#factory-reset {
+			border-color: #f85931;
+		}
+
+		#dom-log .small-title {
+			margin-top: 0.75em;
+			font-size: 13px;
+		}
+
+		#dom-log ol {
+			margin-left: -1em;
+		}
+	</style>
+	<section id="dom-log">
+		<h3 class="fallback-title">StarShell Emergency Fallback</h3>
+		<div class="recovery">
+			<div class="small-title">
+				Recovery Options:
+			</div>
+			<div class="actions">
+				<button id="reload">Reload</button>
+				<button id="factory-reset" disabled>Factory reset</button>
+			</div>
+		</div>
+		<div class="small-title">
+			Startup Log:
+		</div>
+		<ol id="dom-log-list">
+			<li>
+				<pre>Loading StarShell popup script...</pre>
+			</li>
+		</ol>
+	</section>
+	<div id="terminus">&nbsp;</div>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+	<style type="text/css">
+		.s2r-checked-circle-fg {
+			fill: var(--svg-color-fg, currentColor);
+		}
+		.s2r-checked-circle-bg {
+			fill: var(--svg-color-bg, black);
+		}
+	</style>
+	<circle class="s2r-checked-circle-bg" cx="10" cy="10" r="8" />
+	<path class="s2r-checked-circle-fg" d="M10.0003 1.6665C5.40033 1.6665 1.66699 5.39984 1.66699 9.99984C1.66699 14.5998 5.40033 18.3332 10.0003 18.3332C14.6003 18.3332 18.3337 14.5998 18.3337 9.99984C18.3337 5.39984 14.6003 1.6665 10.0003 1.6665ZM8.33366 14.1665L4.16699 9.99984L5.34199 8.82484L8.33366 11.8082L14.6587 5.48317L15.8337 6.6665L8.33366 14.1665Z" />
+</svg>

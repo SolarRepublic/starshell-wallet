@@ -1,0 +1,82 @@
+{
+	// extend the basic configuration for svelte projects
+	"extends": "@tsconfig/svelte/tsconfig.json",
+
+	// custom options for this project
+	"compilerOptions": {
+		// downleveling ES features can have very nasty side effects
+		"target": "es2022",
+		"module": "es2022",
+		"lib": ["ES2022", "WebWorker", "DOM"],
+		// "sourceMap": true,
+
+		// for explicit posterity, this is true anyway with "es2022
+		"useDefineForClassFields": true,
+
+		// ensure certain coding styles are not mishandled by compiler
+		"exactOptionalPropertyTypes": true,
+		"noPropertyAccessFromIndexSignature": false,
+
+		// type checking and type safety
+		"noImplicitOverride": true,
+		"strictNullChecks": true,
+		// "suppressExcessPropertyErrors": true,
+		// "noStrictGenericChecks": true,
+
+		// ensure consistent build outputs for code hashes
+		"newLine": "lf",
+		"removeComments": true,
+
+ 		// convenient preferences for development sake
+		"allowSyntheticDefaultImports": true,
+		"resolveJsonModule": true,
+
+		// 
+		"isolatedModules": false,
+
+		// define convenient "home" path alias to src directory
+		"baseUrl": ".",
+		"paths": {
+			"#/*": [
+				"src/*"
+			],
+			"##/*": [
+				"src/app/*"
+			],
+			"$/*": [
+				"public/*"
+			]
+		},
+
+		// anywhere js is used/imported, perform type checking on it
+		"allowJs": true,
+		"checkJs": true,
+
+		// "types": [
+		// 	"chrome",
+		// 	"DOM"
+		// // 	// "vite/client"
+		// ],
+		// "typeRoots": []
+
+		// "skipLibCheck": true,
+		// "types": [],
+	},
+
+	// 
+	"include": [
+		"src/**/*.d.ts",
+		"src/**/*.ts",
+		"src/**/*.js",
+		"src/**/*.svelte",
+		"plugins/**/*.ts",
+		"vite.config.ts",
+		"svelte.config.js",
+		".eslintrc.cjs"
+	],
+
+	"exclude": [
+		"node_modules",
+		"scripts"
+	]
+}

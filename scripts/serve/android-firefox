@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+APK=${1:-org.mozilla.firefox}
+DEVICE=${2:-emulator-5554}
+
+echo "Starting $APK on $DEVICE..."
+web-ext run -t firefox-android \
+  --android-device=$DEVICE \
+  --adb-remove-old-artifacts \
+  --firefox-apk=$APK \
+  --source-dir ./dist/firefox

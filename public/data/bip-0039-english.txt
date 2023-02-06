@@ -1,0 +1,1 @@
+../../submodules/bips/bip-0039/english.txt

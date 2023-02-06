@@ -1,0 +1,16 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<style>
+		.s2r-svg-pop-out.stroke {
+			stroke: var(--svg-color-fg, currentColor);
+		}
+		.s2r-svg-pop-out.fill {
+			fill: var(--svg-color-fg, currentColor);
+		}
+	</style>
+	<mask id="inner" fill="white">
+		<rect x="8" y="3" width="12" height="16" rx="1"/>
+	</mask>
+	<rect class="s2r-svg-pop-out stroke" x="8" y="3" width="12" height="16" rx="1" stroke-width="4" mask="url(#inner)"/>
+	<path class="s2r-svg-pop-out fill" fill-rule="evenodd" clip-rule="evenodd" d="M5 9C4.44772 9 4 9.44772 4 10V22C4 22.5523 4.44772 23 5 23H6H13C13.5523 23 14 22.5523 14 22V21H6V9H5Z"/>
+	<rect class="s2r-svg-pop-out fill" x="8" y="7" width="10" height="2"/>
+</svg>

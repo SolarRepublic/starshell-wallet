@@ -1,0 +1,12 @@
+[submodule "submodules/publicsuffix-list"]
+	path = submodules/publicsuffix-list
+	url = https://github.com/publicsuffix/list
+[submodule "submodules/bips"]
+	path = submodules/bips
+	url = https://github.com/bitcoin/bips
+[submodule "submodules/wordlists-de"]
+	path = submodules/wordlists-de
+	url = https://github.com/dys2p/wordlists-de
+[submodule "submodules/trezor-python-mnemonic"]
+	path = submodules/trezor-python-mnemonic
+	url = https://github.com/trezor/python-mnemonic

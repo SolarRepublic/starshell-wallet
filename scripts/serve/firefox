@@ -1,0 +1,10 @@
+#!/bin/bash
+set -e
+
+BIN=${1:-firefox}
+
+echo "Starting $BIN..."
+web-ext run -t firefox-desktop \
+  --firefox=$BIN \
+  --start-url "about:debugging#/runtime/this-firefox" \
+  --source-dir ./dist/firefox
