@@ -12,8 +12,13 @@ git submodule update --init
 yarn install
 ```
 
+### 2. Install Deno
 
-### 2. Prepare your environment
+[https://deno.land/manual@v1.30.3/getting_started/installation](https://deno.land/manual@v1.30.3/getting_started/installation)
+
+Deno is used during the final stage of the build process when performing security checks and running security tests.
+
+### 3. Prepare your environment
 
 Building requires more heap memory than the default node instance allocates due to the use of some custom inline requires to generate nested bundles when targetting the various browser extensions.
 
@@ -22,7 +27,7 @@ You will need to manually increase the amount of heap memory allocated to node b
 export NODE_OPTIONS='--max_old_space_size=8192'
 ```
 
-### 3. Run the build command
+### 4. Run the build command
 
 For Chrome:
 ```shell

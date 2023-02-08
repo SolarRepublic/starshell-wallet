@@ -61,8 +61,11 @@ find dist/$ENGINE/* -name "*.html" -exec sed -i -e 's:<!-- @ses -->:'"$sx_script
 find dist/$ENGINE/* -name "background.html" -exec sed -i -e 's:<meta charset="UTF-8" />:<meta charset="utf-8" />'"$sx_scripts_root"':g' {} \;
 
 # merge and prepend lockdown to service-worker script
-sx_merged=$(cat "${a_scripts_cwd[@]}")
-find dist/$ENGINE/* -name "serviceWorker.js" -exec sed -i -e '1s:^:'"$sx_merged"':' {} \;
+p_service="dist/$ENGINE/serviceWorker.js"
+if [[ -f $p_service ]]; then
+	sx_merged=$(cat "${a_scripts_cwd[@]}")
+	echo $sx_merged | cat - $p_service > "$p_service.tmp" && mv "$p_service.tmp" $p_service
+fi
 
 # verify that the scripts were injected into the HTML files at the appropriate places
 deno run --allow-read scripts/build/verify-entry-pages.ts $ENGINE
