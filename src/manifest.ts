@@ -203,6 +203,7 @@ export function buildBrowserManifest(b_prod=false) {
 		'src/script/mcs-keplr.ts',
 		'src/script/mcs-pwa.ts',
 		'src/entry/flow.html',
+		'src/entry/navigation.html',
 
 		// allow content scripts to load the word list
 		'data/bip-0039-english.txt',

@@ -370,12 +370,27 @@
 				<IconEditor intent='person' name={s_name}
 					bind:pfpPath={p_pfp}
 					on:upload={(d_event) => {
-						b_pfp_custom = 1;
 						p_pfp = d_event.detail;
+
+						// user uploaded new pfp
+						if(p_pfp) {
+							b_pfp_custom = 1;
+						}
+						// user cleared custom pfp
+						else {
+							b_pfp_custom = 0;
+						}
+
+						// update account struct in memory
 						g_account.extra = {
 							...g_account.extra,
-							customPfp: 1,
+							customPfp: b_pfp_custom,
 						};
+
+						// replace with generated pfp
+						if(!p_pfp) {
+							pfpg_updated();
+						}
 					}}
 				/>
 			</div>

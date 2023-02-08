@@ -159,6 +159,11 @@
 
 	function clear() {
 		pfpPath = '';
+
+		// clear file input
+		dm_input.value = '';
+
+		dispatch('upload', pfpPath);
 	}
 
 	function drop_handler(d_event) {

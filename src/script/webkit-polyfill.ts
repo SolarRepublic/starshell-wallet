@@ -159,6 +159,12 @@ export function do_webkit_polyfill(f_debug?: typeof debug, g_extend?: Partial<ty
 	const k_opener = new WebKitMessenger('opener', true);
 	globalThis.opener_handler = k_opener;
 
+	// communication with the view host
+	if(location.pathname.endsWith('/navigation.html')) {
+		const k_navigation = new WebKitMessenger('navigation', true);
+		globalThis.navigation_handler = k_navigation;
+	}
+
 	const kl_storage_changed = new Listener<chrome.storage.StorageChangedEvent>('storage.change');
 
 	const G_LOCAL = {

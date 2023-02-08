@@ -121,6 +121,7 @@ if(B_LOCALHOST) {
 								'assets/src/script/ics-witness.42bc51f9.js',
 								'assets/src/script/mcs-keplr.470c30c6.js',
 								'src/entry/flow.html',
+								'src/entry/navigation.html',
 								'media/*',
 							],
 							matches: [

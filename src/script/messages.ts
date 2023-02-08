@@ -1125,6 +1125,19 @@ export namespace ExtToNative {
 		};
 	}>;
 
+
+	/**
+	 * Vocab for navigation commands
+	 */
+	export type NavigationVocab = Vocab.New<{
+		/**
+		 * Set the display mode for the navigation bar
+		 */
+		mode: {
+			value: 'expanded' | 'collapsed';
+		};
+	}>;
+
 	export type NotificationVocab = Vocab.New<{
 		create: {
 			value: {

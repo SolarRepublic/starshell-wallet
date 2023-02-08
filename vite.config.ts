@@ -20,8 +20,8 @@ import {
 
 const H_REPLACEMENTS_ENGINE = {
 	firefox: {
-		'chrome.': 'browser.',
-		'typeof chrome': 'typeof browser',
+		'chrome.': 'globalShield.browser.',
+		'typeof chrome': 'typeof globalShield.browser',
 	},
 };
 

@@ -24,6 +24,8 @@ export type WebKitMessageHandlerRegsitry = {
 
 	session: Vocab.Message<ExtToNative.StorageVocab>;
 
+	navigation: Vocab.Message<ExtToNative.NavigationVocab>;
+
 	notification: Vocab.Message<ExtToNative.NotificationVocab>;
 
 	runtime: {

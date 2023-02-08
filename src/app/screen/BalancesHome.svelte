@@ -351,7 +351,11 @@
 						}, 5e3);
 
 						if(k_page === $yw_navigator.activePage) {
-							$yw_popup = PopupSolver;
+							// $yw_popup = PopupSolver;
+							void open_window(chrome.runtime.getURL('src/entry/navigation.html'), {
+								popout: true,
+								height: 75 + 26,
+							});
 						}
 					}
 
