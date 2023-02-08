@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+set -e
+
+CWD=$(dirname "$0")
+"$CWD/_base.sh" chrome
+
+cd dist
+	rm -f chrome.zip
+	zip -r chrome.zip chrome
+	mkdir -p qa
+	rm -rf qa/chrome
+	unzip chrome.zip -d qa
+	s_archive="qa/chrome.v$(node -p -e 'require("../package.json").version.replace(/\./g, "_")').zip"
+	rm -f $s_archive
+	cp chrome.zip $s_archive
+cd ..

@@ -32,6 +32,7 @@ import {
 	SI_STORE_WEB_APIS,
 	SI_STORE_WEB_RESOURCES,
 	SI_STORE_CONTRACTS,
+	B_RELEASE_BETA,
 } from '#/share/constants';
 
 import {fold, ode, oderac, oderom} from '#/util/belt';
@@ -80,101 +81,103 @@ const S_SNIP20_GAS_LIMIT_MORE = `${175_000n}` as const;
 
 
 export const H_STORE_INIT_CHAINS = type_check<typeof SI_STORE_CHAINS>({
-	'/family.cosmos/chain.secret-4': {
-		name: 'Secret Network',
-		pfp: H_LOOKUP_PFP['/media/token/scrt.svg'],
-		namespace: 'cosmos',
-		reference: 'secret-4',
-		bech32s: cosmos_bech32s('secret'),
-		slip44s: [
-			{
-				coinType: 529,
-			},
-			{
-				coinType: 118,
-			},
-		],
-		coins: {
-			SCRT: {
-				decimals: 6,
-				denom: 'uscrt',
-				name: 'Secret',
-				pfp: H_LOOKUP_PFP['/media/token/scrt.svg'],
-				extra: {
-					coingeckoId: 'secret',
-					nativeBech32: 'secret1k0jntykt7e4g3y88ltc60czgjuqdy4c9e8fzek',
+	...!B_RELEASE_BETA? {
+		'/family.cosmos/chain.secret-4': {
+			name: 'Secret Network',
+			pfp: H_LOOKUP_PFP['/media/token/scrt.svg'],
+			namespace: 'cosmos',
+			reference: 'secret-4',
+			bech32s: cosmos_bech32s('secret'),
+			slip44s: [
+				{
+					coinType: 529,
 				},
-			},
-		},
-		gasPrices: {
-			default: 0.1,
-			steps: [
-				0.0125,
-				0.1,
-				0.25,
+				{
+					coinType: 118,
+				},
 			],
-		},
-		features: {
-			'secretwasm': {
-				consensusIoPubkey: `m.d(S*[F9klRKRy5I7qK#';VOtCg2jX*b),Y:pIA`,
-				gasPadding: {
-					stepSize: `${10_000n}`,
-				},
-				interfaceSchemas: {
-					snip20: {
-						name: TokenInterfaceRuntimeSchema.String,
-						symbol: TokenInterfaceRuntimeSchema.TokenSymbol,
-						decimals: TokenInterfaceRuntimeSchema.NaturalNumber,
+			coins: {
+				SCRT: {
+					decimals: 6,
+					denom: 'uscrt',
+					name: 'Secret',
+					pfp: H_LOOKUP_PFP['/media/token/scrt.svg'],
+					extra: {
+						coingeckoId: 'secret',
+						nativeBech32: 'secret1k0jntykt7e4g3y88ltc60czgjuqdy4c9e8fzek',
 					},
-					snip21: {},
-					snip22: {},
-					snip23: {},
-					snip24: {},
-					snip721: {
-						name: TokenInterfaceRuntimeSchema.String,
-						symbol: TokenInterfaceRuntimeSchema.String,
-					},
-					snip722: {},
-				},
-				snip20GasLimits: {
-					transfer: `${180_000n}`,
-					send: S_SNIP20_GAS_LIMIT_MORE,
-					register_receive: S_SNIP20_GAS_LIMIT_LOW,
-					create_viewing_key: S_SNIP20_GAS_LIMIT_MORE,  // 175k
-					set_viewing_key: S_SNIP20_GAS_LIMIT_MORE,  // 175k
-					increase_allowance: S_SNIP20_GAS_LIMIT_LOW,
-					decrease_allowance: S_SNIP20_GAS_LIMIT_LOW,
-					transfer_from: S_SNIP20_GAS_LIMIT_LOW,
-					send_from: S_SNIP20_GAS_LIMIT_MORE,
-					mint: S_SNIP20_GAS_LIMIT_LOW,
-					set_minters: S_SNIP20_GAS_LIMIT_LOW,
-					burn: S_SNIP20_GAS_LIMIT_LOW,
-					burn_from: S_SNIP20_GAS_LIMIT_LOW,
-					deposit: S_SNIP20_GAS_LIMIT_LOW,  // 150k
-					redeem: S_SNIP20_GAS_LIMIT_LOW,
-					revoke_permit: S_SNIP20_GAS_LIMIT_LOW,
 				},
 			},
-			'ibc-go': {},
-			'ibc-transfer': {},
-		},
-		fungibleTokenInterfaces: ['snip20', 'snip21', 'snip22', 'snip23', 'snip24'],
-		nonFungibleTokenInterfaces: ['snip721', 'snip722'],
-		blockExplorer: {
-			base: 'https://secretnodes.com/{chain_prefix}',
-			block: '/blocks/{height}',
-			account: '/accounts/{address}',
-			contract: '/contracts/{address}',
-			validator: '/validators/{address}',
-			transaction: '/transactions/{hash}#overview',
-		},
-		mainnet: {
-			feegrants: {
-				'https://faucet.starshell.net/': {},
+			gasPrices: {
+				default: 0.1,
+				steps: [
+					0.0125,
+					0.1,
+					0.25,
+				],
 			},
+			features: {
+				'secretwasm': {
+					consensusIoPubkey: `m.d(S*[F9klRKRy5I7qK#';VOtCg2jX*b),Y:pIA`,
+					gasPadding: {
+						stepSize: `${10_000n}`,
+					},
+					interfaceSchemas: {
+						snip20: {
+							name: TokenInterfaceRuntimeSchema.String,
+							symbol: TokenInterfaceRuntimeSchema.TokenSymbol,
+							decimals: TokenInterfaceRuntimeSchema.NaturalNumber,
+						},
+						snip21: {},
+						snip22: {},
+						snip23: {},
+						snip24: {},
+						snip721: {
+							name: TokenInterfaceRuntimeSchema.String,
+							symbol: TokenInterfaceRuntimeSchema.String,
+						},
+						snip722: {},
+					},
+					snip20GasLimits: {
+						transfer: `${180_000n}`,
+						send: S_SNIP20_GAS_LIMIT_MORE,
+						register_receive: S_SNIP20_GAS_LIMIT_LOW,
+						create_viewing_key: S_SNIP20_GAS_LIMIT_MORE,  // 175k
+						set_viewing_key: S_SNIP20_GAS_LIMIT_MORE,  // 175k
+						increase_allowance: S_SNIP20_GAS_LIMIT_LOW,
+						decrease_allowance: S_SNIP20_GAS_LIMIT_LOW,
+						transfer_from: S_SNIP20_GAS_LIMIT_LOW,
+						send_from: S_SNIP20_GAS_LIMIT_MORE,
+						mint: S_SNIP20_GAS_LIMIT_LOW,
+						set_minters: S_SNIP20_GAS_LIMIT_LOW,
+						burn: S_SNIP20_GAS_LIMIT_LOW,
+						burn_from: S_SNIP20_GAS_LIMIT_LOW,
+						deposit: S_SNIP20_GAS_LIMIT_LOW,  // 150k
+						redeem: S_SNIP20_GAS_LIMIT_LOW,
+						revoke_permit: S_SNIP20_GAS_LIMIT_LOW,
+					},
+				},
+				'ibc-go': {},
+				'ibc-transfer': {},
+			},
+			fungibleTokenInterfaces: ['snip20', 'snip21', 'snip22', 'snip23', 'snip24'],
+			nonFungibleTokenInterfaces: ['snip721', 'snip722'],
+			blockExplorer: {
+				base: 'https://secretnodes.com/{chain_prefix}',
+				block: '/blocks/{height}',
+				account: '/accounts/{address}',
+				contract: '/contracts/{address}',
+				validator: '/validators/{address}',
+				transaction: '/transactions/{hash}#overview',
+			},
+			mainnet: {
+				feegrants: {
+					'https://faucet.starshell.net/': {},
+				},
+			},
+			providers: [],
 		},
-		providers: [],
-	},
+	}: {},
 	'/family.cosmos/chain.pulsar-2': {
 		name: 'Secret Pulsar',
 		pfp: H_LOOKUP_PFP['/media/token/scrt.svg'],
@@ -330,34 +333,38 @@ export const H_STORE_INIT_CHAINS = type_check<typeof SI_STORE_CHAINS>({
 export const H_STORE_INIT_CONTRACTS = type_check<typeof SI_STORE_CONTRACTS>(fold([
 	...F_CONTRACTS_PULSAR_NATIVE(H_LOOKUP_PFP),
 
-	...F_CONTRACTS_SECRET_NATIVE(H_LOOKUP_PFP),
-	...F_CONTRACTS_SECRET_GEN(H_LOOKUP_PFP),
+	...!B_RELEASE_BETA? [
+		...F_CONTRACTS_SECRET_NATIVE(H_LOOKUP_PFP),
+		...F_CONTRACTS_SECRET_GEN(H_LOOKUP_PFP),
+	]: [],
 ], g_each => ({
 	[`${g_each.chain}/bech32.${g_each.bech32}/as.contract`]: g_each,
 })));
 
 export const H_STORE_INIT_PROVIDERS = type_check<typeof SI_STORE_PROVIDERS>(fold([
-	// mainnet primary
-	{
-		name: 'StarShell Secret Mainnet: Ajax',
-		pfp: H_LOOKUP_PFP['/media/vendor/logo.svg'],
-		chain: '/family.cosmos/chain.secret-4',
-		grpcWebUrl: 'https://grpc-web.secret.ajax.starshell.net',
-		rpcHost: 'rpc.secret.ajax.starshell.net',
-		healthCheckPath: '/health',
-		on: 1,
-	},
+	...!B_RELEASE_BETA? [
+		// mainnet primary
+		{
+			name: 'StarShell Secret Mainnet: Ajax',
+			pfp: H_LOOKUP_PFP['/media/vendor/logo.svg'],
+			chain: '/family.cosmos/chain.secret-4',
+			grpcWebUrl: 'https://grpc-web.secret.ajax.starshell.net',
+			rpcHost: 'rpc.secret.ajax.starshell.net',
+			healthCheckPath: '/health',
+			on: 1,
+		},
 
-	// mainnet fallback
-	{
-		name: 'StarShell Secret Mainnet: Brynn',
-		pfp: H_LOOKUP_PFP['/media/vendor/logo.svg'],
-		chain: '/family.cosmos/chain.secret-4',
-		grpcWebUrl: 'https://grpc-web.secret.brynn.starshell.net',
-		rpcHost: 'rpc.secret.brynn.starshell.net',
-		healthCheckPath: '/health',
-		on: 1,
-	},
+		// mainnet fallback
+		{
+			name: 'StarShell Secret Mainnet: Brynn',
+			pfp: H_LOOKUP_PFP['/media/vendor/logo.svg'],
+			chain: '/family.cosmos/chain.secret-4',
+			grpcWebUrl: 'https://grpc-web.secret.brynn.starshell.net',
+			rpcHost: 'rpc.secret.brynn.starshell.net',
+			healthCheckPath: '/health',
+			on: 1,
+		},
+	]: [],
 
 	// testnet
 	{
@@ -408,29 +415,31 @@ export const H_STORE_INIT_APPS = type_check<typeof SI_STORE_APPS>(fold([
 
 
 export const H_STORE_INIT_AGENTS = type_check<typeof SI_STORE_AGENTS>(fold([
-	{
-		namespace: 'cosmos',
-		chains: ['/family.cosmos/chain.secret-4'],
-		agentType: ContactAgentType.ROBOT,
-		addressSpace: 'acc',
-		addressData: '3220hzfrxxd6zrdl5qm78xm4aacvyvls',
-		origin: 'built-in',
-		name: 'StarShell Courtesy Feegrant',
-		pfp: H_LOOKUP_PFP['/media/vendor/logo.svg'],
-		notes: '',
-	} as ContactStruct,
+	...!B_RELEASE_BETA? [
+		{
+			namespace: 'cosmos',
+			chains: ['/family.cosmos/chain.secret-4'],
+			agentType: ContactAgentType.ROBOT,
+			addressSpace: 'acc',
+			addressData: '3220hzfrxxd6zrdl5qm78xm4aacvyvls',
+			origin: 'built-in',
+			name: 'StarShell Courtesy Feegrant',
+			pfp: H_LOOKUP_PFP['/media/vendor/logo.svg'],
+			notes: '',
+		} as ContactStruct,
 
-	{
-		namespace: 'cosmos',
-		chains: ['/family.cosmos/chain.secret-4'],
-		agentType: ContactAgentType.ROBOT,
-		addressSpace: 'acc',
-		addressData: 'tq6y8waegggp4fv2fcxk3zmpsmlfadyc',
-		origin: 'built-in',
-		name: 'Secret Network Faucet',
-		pfp: H_LOOKUP_PFP['/media/token/scrt.svg'],
-		notes: '',
-	} as ContactStruct,
+		{
+			namespace: 'cosmos',
+			chains: ['/family.cosmos/chain.secret-4'],
+			agentType: ContactAgentType.ROBOT,
+			addressSpace: 'acc',
+			addressData: 'tq6y8waegggp4fv2fcxk3zmpsmlfadyc',
+			origin: 'built-in',
+			name: 'Secret Network Faucet',
+			pfp: H_LOOKUP_PFP['/media/token/scrt.svg'],
+			notes: '',
+		} as ContactStruct,
+	]: [],
 
 	{
 		namespace: 'cosmos',

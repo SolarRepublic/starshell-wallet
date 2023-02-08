@@ -1,7 +1,7 @@
 # build files
 **/node_modules/
-**/dist/
-**/build/
+/dist/
+/build/
 
 # private
 **/*.env

@@ -25,6 +25,7 @@
     "build": "scripty",
     "build:chrome": "SCRIPTY_PARALLEL=true scripty",
     "build:firefox": "SCRIPTY_PARALLEL=true scripty",
+    "build:firefox-beta": "SCRIPTY_PARALLEL=true scripty",
     "build:safari": "SCRIPTY_PARALLEL=true scripty",
     "watch:chrome": "ENGINE=chrome vite build --mode development --watch",
     "watch:firefox": "ENGINE=firefox vite build --mode development --watch",

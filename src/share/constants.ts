@@ -75,6 +75,7 @@ export const B_CHROME_SESSION_CAPABLE = 'Chrome' === G_USERAGENT.browser.name &&
 export const B_LOCALHOST = 'object' === typeof location && 'localhost' === location.hostname;
 const H_ENV = import.meta.env;
 export const B_DEVELOPMENT = 'development' === H_ENV?.MODE;
+export const B_RELEASE_BETA = 'beta' === H_ENV?.MODE;
 
 export const N_FIREFOX_ANDROID_BETA_VERSION = 104;
 export const N_FIREFOX_ANDROID_NIGHTLY_ABOVE = N_FIREFOX_ANDROID_BETA_VERSION;

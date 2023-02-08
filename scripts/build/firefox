@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+set -e
+
+CWD=$(dirname "$0")
+"$CWD/_base.sh" firefox
+
+"$CWD/package-firefox.sh"
