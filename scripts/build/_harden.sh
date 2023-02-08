@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/bash
 set -e
 
 ENGINE=$1
@@ -55,17 +55,14 @@ for s_script in "${a_scripts_entry[@]}"; do
 done
 
 # portable sed command create injection target
-find dist/$ENGINE/* -name "*.html" -exec sed -i '.ignore' -e 's:<!-- @ses -->:'"$sx_scripts_root"':g' {} \;
+find dist/$ENGINE/* -name "*.html" -exec sed -i -e 's:<!-- @ses -->:'"$sx_scripts_root"':g' {} \;
 
 # special replacement for firefox's background.html until PR for web-extension plugin is made
-find dist/$ENGINE/* -name "background.html" -exec sed -i '.ignore' -e 's:<meta charset="UTF-8" />:<meta charset="utf-8" />'"$sx_scripts_root"':g' {} \;
+find dist/$ENGINE/* -name "background.html" -exec sed -i -e 's:<meta charset="UTF-8" />:<meta charset="utf-8" />'"$sx_scripts_root"':g' {} \;
 
 # merge and prepend lockdown to service-worker script
 sx_merged=$(cat "${a_scripts_cwd[@]}")
-find dist/$ENGINE/* -name "serviceWorker.js" -exec sed -i '.ignore' -e '1s:^:'"$sx_merged"':' {} \;
-
-# delete backup files created by sed
-find dist/$ENGINE/* -name "*.ignore" -exec rm -f {} \;
+find dist/$ENGINE/* -name "serviceWorker.js" -exec sed -i -e '1s:^:'"$sx_merged"':' {} \;
 
 # verify that the scripts were injected into the HTML files at the appropriate places
 deno run --allow-read scripts/build/verify-entry-pages.ts $ENGINE
