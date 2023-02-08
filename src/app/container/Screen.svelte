@@ -397,10 +397,7 @@
 		class:curtained={$yw_curtain}
 		data-s2-exit={si_exit}
 		bind:this={dm_screen}
-		on:submit={(d_event) => {
-			void d_event.preventDefault();
-			// qs(dm_screen, 'button.primary')?.click();
-		}}
+		on:submit|preventDefault={() => false}
 		on:submit
 		style="{style}"
 		autocomplete="off"

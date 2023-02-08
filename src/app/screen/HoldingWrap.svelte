@@ -128,6 +128,7 @@
 
 <Screen form slides on:submit={(d_submit) => {
 	d_submit.preventDefault();
+	return false;
 }}>
 	<Header pops
 		title={'Wrapping'}

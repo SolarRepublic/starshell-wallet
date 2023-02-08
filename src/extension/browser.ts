@@ -141,6 +141,16 @@ export interface OpenWindowConfig extends JsonObject {
 	 * If set to non-zero integer, describes the tab id to open a popover above
 	 */
 	popover?: PageInfo | undefined;
+
+	/**
+	 * Overrides the width of the standalone popout window to create
+	 */
+	width?: number;
+
+	/**
+	 * Overrides the height of the standalone popout window to create
+	 */
+	height?: number;
 }
 
 /**
@@ -289,8 +299,8 @@ export async function open_window(p_url: string, gc_open?: OpenWindowConfig): Pr
 		p_url = d_url.toString();
 
 		// set dimensinos
-		const n_px_width = N_PX_WIDTH_POPOUT;
-		const n_px_height = N_PX_HEIGHT_POPOUT;
+		const n_px_width = gc_open?.width || N_PX_WIDTH_POPOUT;
+		const n_px_height = gc_open?.height || N_PX_HEIGHT_POPOUT;
 
 		// whether position should be centered
 		const b_centered = true === g_window_position.centered;

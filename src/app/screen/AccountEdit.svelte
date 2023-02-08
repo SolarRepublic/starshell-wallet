@@ -81,6 +81,9 @@
 		// propagate custom pfp
 		b_pfp_custom = g_account?.extra?.['customPfp'] || 0;
 
+		// load account pfp
+		p_pfp = g_account.pfp;
+
 		// copy out art key
 		await utility_key_child(g_account, 'walletSecurity', 'antiPhishingArt', atu8 => atu8_art_seed = atu8.slice());
 
@@ -244,7 +247,6 @@
 			p_pfp = `svg:data:image/svg+xml;base64,${text_to_base64(dm_svg_clone.outerHTML)}`;
 		}
 	}
-
 
 	let b_tooltip_showing = false;
 

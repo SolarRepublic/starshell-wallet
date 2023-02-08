@@ -636,9 +636,7 @@
 					<span class={`cluster global_cluster-mode_${s_cluster_mode}`}>
 						<!-- current app -->
 						{#if (b_network || b_account) && g_cause?.app}
-							<span class="app" on:click={(d_event) => {
-								d_event.stopPropagation();
-
+							<span class="app" on:click|stopPropagation={() => {
 								if(b_starshell_muted) {
 									k_page.push({
 										creator: Unmute,
@@ -788,8 +786,7 @@
 
 						<!-- account switcher -->
 						{#if b_account}
-							<span class="account" on:click={(d_event) => {
-								d_event.stopPropagation();
+							<span class="account" on:click|stopPropagation={() => {
 								$yw_overlay_account = !$yw_overlay_account;
 							}}>
 								{#key $yw_account}
@@ -845,8 +842,7 @@
 
 						<!-- network switcher -->
 						{#if b_network}
-							<span class="network" on:click={(d_event) => {
-								d_event.stopPropagation();
+							<span class="network" on:click|stopPropagation={() => {
 								$yw_overlay_network = !$yw_overlay_network;
 							}}>
 								{#key $yw_chain}

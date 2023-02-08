@@ -3,7 +3,7 @@
   "displayName": "StarShell Wallet",
   "private": true,
   "type": "module",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "A privacy-preserving, free and open-source Web3 wallet built for the Secret Network and broader Cosmos ecosystem",
   "license": "MIT",
   "author": {

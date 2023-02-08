@@ -293,7 +293,8 @@
 
 <Screen form slides on:submit={(d_submit) => {
 	d_submit.preventDefault();
-	submit();
+	void submit();
+	return false;
 }}>
 	<Header pops
 		title='Add Token Manually'

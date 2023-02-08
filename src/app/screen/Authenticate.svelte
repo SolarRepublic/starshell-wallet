@@ -17,7 +17,7 @@
 	import {global_receive} from '#/script/msg-global';
 	import {login} from '#/share/auth';
 	
-	import {ATU8_DUMMY_PHRASE, ATU8_DUMMY_VECTOR, B_FIREFOX_ANDROID, B_WITHIN_WEBEXT_POPOVER} from '#/share/constants';
+	import {ATU8_DUMMY_PHRASE, ATU8_DUMMY_VECTOR, B_DEVELOPMENT, B_FIREFOX_ANDROID, B_WITHIN_WEBEXT_POPOVER} from '#/share/constants';
 	import {CorruptedVaultError, InvalidPassphraseError, RecoverableVaultError, UnregisteredError} from '#/share/errors';
 	import {stringify_params} from '#/util/dom';
 	
@@ -179,6 +179,11 @@
 	let b_factory_reset_showing = false;
 	let c_logo_clicks = 0;
 	function logo_click() {
+		if(B_DEVELOPMENT && ++c_logo_clicks >= 2) {
+			sh_password = ' '.repeat(8);
+			void attempt_unlock();
+		}
+
 		if(++c_logo_clicks >= 5) {
 			b_factory_reset_showing = true;
 		}
@@ -264,7 +269,11 @@
 
 <Screen debug='Authenticate' classNames='welcome'>
 	<div class="logo" on:click={() => logo_click()}>
-		<img width="96" src="/media/vendor/logo-96px.png" srcset="/media/vendor/logo-96px.png 1x, /media/vendor/logo-192px.png 2x" alt="StarShell" />
+		<img width="96"
+			alt="StarShell"
+			src="/media/vendor/logo-96px.png"
+			srcset="/media/vendor/logo-192px.png 2x"
+		>
 	</div>
 
 	<div class="title">

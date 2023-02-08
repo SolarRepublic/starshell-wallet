@@ -36,14 +36,13 @@
 
 
 	function form_submit(d_event: Event) {
-		// prevent higher form submission
-		d_event.preventDefault();
-
 		// reject attempt
 		if(!b_password_acceptable) return;
 
 		// accept attempt
 		confirm();
+
+		return false;
 	}
 
 	function form_keydown(d_event: KeyboardEvent) {
@@ -60,7 +59,7 @@
 
 Enter a password to encrypt this file with. It can be different than your wallet password.
 
-<form on:submit={form_submit} on:keydown={form_keydown}>
+<form on:submit|preventDefault={form_submit} on:keydown={form_keydown}>
 	<NewPassword b_disabled={b_busy} c_resets={c_resets} b_once={g_context.once || false}
 		bind:sh_phrase={sh_phrase} bind:b_acceptable={b_password_acceptable}
 		/>

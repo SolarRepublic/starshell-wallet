@@ -446,9 +446,8 @@
 
 							{#if (g_permission.pros || g_permission.cons || g_permission.risk || g_permission.justifications)}
 								<br>
-								<span class="link show-details" on:click={(d_event) => {
+								<span class="link show-details" on:click|stopPropagation={() => {
 									g_permission.expanded = !g_permission.expanded;
-									d_event.stopPropagation();
 								}}>
 									{#if g_permission.expanded}
 										Hide details

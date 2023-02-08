@@ -50,6 +50,7 @@
 	import PopupNotice from '../popup/PopupNotice.svelte';
 	import PopupSolver from '../popup/PopupSolver.svelte';
 	import Row from '../ui/Row.svelte';
+    import { open_window } from '#/extension/browser';
 	
 	
 	const G_RETRYING_TOKEN = {

@@ -5,6 +5,8 @@
 	
 	import {syserr} from '../common';
 	
+	import {yw_store_medias, yw_store_pfps} from '../mem';
+	
 	import {render_icon_data} from '#/script/utils';
 	import {B_MOBILE} from '#/share/constants';
 	import {Medias} from '#/store/medias';
@@ -15,8 +17,8 @@
 	
 	import PfpDisplay from './PfpDisplay.svelte';
 	
-	import SX_ICON_IMAGE from '#/icon/image.svg?raw';
 	import SX_ICON_CLOSE from '#/icon/close.svg?raw';
+	import SX_ICON_IMAGE from '#/icon/image.svg?raw';
 	
 	const dispatch = createEventDispatcher();
 
@@ -92,8 +94,19 @@
 				src: `data:${si_type};base64,${buffer_to_base64(atu8_image)}`,
 			});
 
+			// wait for image to load
+			if(!dm_img.complete) {
+				await new Promise(fk_resolve => dm_img.addEventListener('load', fk_resolve, {once:true}));
+			}
+
 			// prep image set
 			const h_images = {} as ImageSet;
+
+			// anticipate cached store updates
+			const dp_store_updates = Promise.all([
+				yw_store_medias.nextUpdate(),
+				yw_store_pfps.nextUpdate(),
+			]);
 
 			// render to canvas at desired resolutions
 			const a_resolutions = [16, 32, 48, 64];
@@ -123,7 +136,13 @@
 			};
 
 			// save to store
-			pfpPath = await Pfps.upsert(g_pfp);
+			const p_pfp = await Pfps.upsert(g_pfp);
+
+			// wait for affected store caches to update
+			await dp_store_updates;
+
+			// update reactive assignment now that store caches are ready
+			pfpPath = p_pfp;
 
 			dispatch('upload', pfpPath);
 		}

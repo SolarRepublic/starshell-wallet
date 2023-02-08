@@ -55,7 +55,7 @@
 	
 	import SX_ICON_PERSONAL from '#/icon/account_box.svg?raw';
 	import SX_ICON_CONTRACT from '#/icon/analytics.svg?raw';
-	import SX_ICON_LOADING from '#/icon/donut_large.svg?raw';
+	import SX_ICON_LOADING from '#/icon/loading.svg?raw';
 	import SX_ICON_DROPDOWN from '#/icon/drop-down.svg?raw';
 	import SX_ICON_INFO from '#/icon/info.svg?raw';
 	import SX_ICON_SHIELD from '#/icon/shield.svg?raw';
@@ -628,7 +628,7 @@
 
 <Screen form slides on:submit={(d_submit) => {
 	d_submit.preventDefault();
-	// submit();
+	return false;
 }}>
 	<Header pops
 		title={b_asset_coin? 'Sending': 'Transferring'}

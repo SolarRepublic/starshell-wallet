@@ -68,7 +68,7 @@ export async function load_word_list(s_variant='english'): Promise<string[]> {
 			// intercept any errors in order to release the lock
 			try {
 				// request config
-				const d_req = new Request(chrome.runtime.getURL(`/data/bip-0039-${s_variant}.txt`), {
+				const d_req = new Request(chrome.runtime.getURL(`data/bip-0039-${s_variant}.txt`), {
 					method: 'GET',
 					integrity: H_WORDLIST_SUPPLEMENTALS[s_variant].hash,
 				});

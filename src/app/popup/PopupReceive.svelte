@@ -50,7 +50,7 @@
 	});
 
 	// prep account pfps
-	let h_pfps_account: Dict<HTMLElement> = {};
+	let h_pfps_account: Record<AccountPath, HTMLElement> = {};
 
 	// loads account from store and produces list of select options
 	async function load_account_options(): Promise<SelectOption<AccountPath>[]> {
@@ -58,27 +58,7 @@
 		const ks_accounts = await Accounts.read();
 
 		// asynchronously load all pfps
-		h_pfps_account = ofe(
-			await Promise.all(
-				ode(ks_accounts.raw).map(([_, g_account]) => new Promise(
-					(fk_resolve: (a_entry: [PfpTarget, HTMLElement]) => void) => {
-						const dm_dummy = dd('span');
-						const yc_pfp = new PfpDisplay({
-							target: dm_dummy,
-							props: {
-								dim: 28,
-								genStyle: 'font-size: 18px;',
-								resource: g_account,
-								settle() {
-									const dm_pfp = dm_dummy.firstChild?.cloneNode(true) as HTMLElement;
-									yc_pfp.$destroy();
-									fk_resolve([g_account.pfp, dm_pfp]);
-								},
-							},
-						});
-					}
-				))
-			));
+		h_pfps_account = await load_pfps(ks_accounts.raw);
 
 		// convert chain dict to list of select options
 		return oderac(ks_accounts.raw, account_to_option);
@@ -108,7 +88,7 @@
 	});
 
 	// prep chain pfps
-	let h_pfps_chain: Dict<HTMLElement> = {};
+	let h_pfps_chain: Record<ChainPath, HTMLElement> = {};
 
 	// loads chain from store and produces list of select options
 	async function load_chain_options(): Promise<SelectOption[]> {
@@ -158,7 +138,7 @@
 	>(h_resources: Record<p_res, g_res>): Promise<Record<p_res, HTMLElement>> {
 		return ofe(
 			await Promise.all(
-				ode(h_resources).map(([_, g_resource]) => new Promise(
+				ode(h_resources).map(([p_resource, g_resource]) => new Promise(
 					(fk_resolve: (a_entry: [p_res, HTMLElement]) => void) => {
 						const dm_dummy = dd('span');
 						const yc_pfp = new PfpDisplay({
@@ -170,7 +150,7 @@
 								settle() {
 									const dm_pfp = dm_dummy.firstChild?.cloneNode(true) as HTMLElement;
 									yc_pfp.$destroy();
-									fk_resolve([g_resource.pfp as p_res, dm_pfp]);
+									fk_resolve([p_resource, dm_pfp]);
 								},
 							},
 						});

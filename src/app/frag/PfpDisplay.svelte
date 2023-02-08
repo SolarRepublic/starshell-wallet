@@ -54,6 +54,7 @@
 	// reactively assign filter when resource changes
 	$: s_autofilter = resource?.['testnet']? 'testnet': '';
 
+
 	/**
 	 * Applies a predetermined styling to the background
 	 */
@@ -76,12 +77,12 @@
 
 	export let settle: VoidFunction | undefined = void 0;
 
+	let dm_pfp: Nilable<HTMLPictureElement> = null;
 	async function load_pfp() {
 		// load media store if it's not cached
 		const ks_medias = $yw_store_medias || await Medias.read();
 
 		// load pfp by ref
-		let dm_pfp: Nilable<HTMLPictureElement>;
 		try {
 			dm_pfp = await Pfps.load(path!, {
 				alt: name,
@@ -109,6 +110,9 @@
 		// 				⚠️
 		// 			</span> -->
 	}
+
+	// reactively reload pfp when path changes (and on init)
+	$: path, void load_pfp();  // eslint-disable-line @typescript-eslint/no-unused-expressions, no-sequences
 
 	function settle_inner(): Promise<never> {
 		if(settle) queueMicrotask(() => settle!());
@@ -232,21 +236,21 @@
 </style>
 
 <!-- class:default={!k_icon}  -->
-{#key updates || path || name || dim}
+{#key updates || name || dim}
 	<span class="global_pfp tile {s_classes}"
 		class:satin={'satin' === si_style_bg}
 		class:circular={circular}
 		style={sx_style_root}
 		data-path={path}
 	>
-		{#await load_pfp()}
+		{#if !dm_pfp}
 			<span class="global_icon-dom global_loading dynamic-pfp" style={sx_dom_style} data-pfp-args={JSON.stringify({
 				alt: name,
 				dim: dim,
 			})}>
 				⊚
 			</span>
-		{:then dm_pfp}
+		{:else}
 			{#if 'testnet' === filter || 'testnet' === s_autofilter}
 				<span class="filter-testnet" style="width:{dim}px; height:{dim}px;">
 					<span class="original">
@@ -264,6 +268,6 @@
 			{/if}
 
 			{#await settle_inner() then _}_{/await}
-		{/await}
+		{/if}
 	</span>
 {/key}

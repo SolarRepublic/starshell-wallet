@@ -21,6 +21,7 @@ import {
 const H_REPLACEMENTS_ENGINE = {
 	firefox: {
 		'chrome.': 'browser.',
+		'typeof chrome': 'typeof browser',
 	},
 };
 

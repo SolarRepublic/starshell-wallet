@@ -116,24 +116,22 @@ export function render_icon_data(
 	// should always be the same
 	const npx_dim_trim = Math.max(npx_trim_width, npx_trim_height);
 
+	// apply trimming using the canvas matrix
+	if(g_trim) {
+		// move top-left corner of image to origin
+		d_2d.translate(g_trim.x1, g_trim.y1);
+
+		// scale to fit bounds
+		const xs_scale = npx_dim_dst / npx_dim_trim;
+		d_2d.scale(xs_scale, xs_scale);
+	}
+
 	// image is svg; work around annoying intrinsic size canvas interaction
 	if(sx_media_type?.startsWith('image/svg')) {
-		if(g_trim) {
-			// move top-left corner of image to origin
-			d_2d.translate(g_trim.x1, g_trim.y1);
-
-			// scale to fit bounds
-			const xs_scale = npx_dim_dst / npx_dim_trim;
-			d_2d.scale(xs_scale, xs_scale);
-
-			// draw image same as before, using image's intrinsic dimensions
-			d_2d.drawImage(d_img, 0, 0, npx_dim_dst, npx_dim_dst);
-		}
-		else {
-			d_2d.drawImage(d_img, 0, 0, npx_dim_dst, npx_dim_dst);
-		}
+		// draw using image's intrinsic dimensions
+		d_2d.drawImage(d_img, 0, 0, npx_dim_dst, npx_dim_dst);
 	}
-	// draw image to canvas, centered along both axes
+	// image is raster; draw image to canvas, centered along both axes
 	else {
 		const npx_src_w = d_img.naturalWidth;
 		const npx_src_h = d_img.naturalHeight;
@@ -148,8 +146,7 @@ export function render_icon_data(
 		const ipx_out_y = npx_src_y + g_trim_apply.y1;
 
 		d_2d.drawImage(d_img,
-			ipx_out_x, ipx_out_y,
-			Math.min(npx_src_dim, npx_trim_width), Math.min(npx_src_dim, npx_trim_height),
+			ipx_out_x, ipx_out_y, npx_src_dim, npx_src_dim,
 			0, 0, npx_dim_dst, npx_dim_dst);
 	}
 
@@ -208,23 +205,25 @@ export function render_icon_data(
 		// trimmable edges
 		const npx_span_x = ipx_x_hi - ipx_x_lo;
 		const npx_span_y = ipx_y_hi - ipx_y_lo;
-		// if(npx_span_x < npx_width && npx_span_y < npx_height) {
-			// trim squarely
+
+		// trim squarely
 		const npx_dim_new = Math.max(npx_span_x, npx_span_y);
 
-		const npxx_half_span = npx_dim_new / 2;
-		const ipxx_mid_x = (ipx_x_lo + ipx_x_hi) / 2;
-		const ipxx_mid_y = (ipx_y_lo + ipx_y_hi) / 2;
+		const npx_half_span = npx_dim_new / 2;
+		const ipx_mid_x = (ipx_x_lo + ipx_x_hi) / 2;
+		const ipx_mid_y = (ipx_y_lo + ipx_y_hi) / 2;
 
 		const g_rect: Rect = {
-			x1: Math.floor(ipxx_mid_x - npxx_half_span),
-			x2: Math.ceil(ipxx_mid_x + npxx_half_span),
-			y1: Math.floor(ipxx_mid_y - npxx_half_span),
-			y2: Math.ceil(ipxx_mid_y + npxx_half_span),
+			x1: Math.floor(ipx_mid_x - npx_half_span),
+			x2: Math.ceil(ipx_mid_x + npx_half_span),
+			y1: Math.floor(ipx_mid_y - npx_half_span),
+			y2: Math.ceil(ipx_mid_y + npx_half_span),
 		};
 
-		return render_icon_data(d_img, npx_dim_dst, fk_init, sx_media_type, g_rect);
-		// }
+		// need to trim
+		if(0 !== g_rect.x1 || 0 !== g_rect.y1 || npx_dim_dst !== g_rect.x2 || npx_dim_dst !== g_rect.y2) {
+			return render_icon_data(d_img, npx_dim_dst, fk_init, sx_media_type, g_rect);
+		}
 	}
 
 	// render data url

@@ -49,7 +49,7 @@
 			return dd('span', {
 				class: 'global_select-item',
 			}, [
-				h_pfps? h_pfps[g_item.object!.pfp] || '': '',
+				h_pfps? h_pfps[g_item.value] || '': '',
 				dd('span', {
 					class: 'name '+primaryClass,
 				}, [

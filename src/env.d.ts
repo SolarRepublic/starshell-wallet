@@ -22,6 +22,8 @@ interface ImportMeta {
 export type WebKitMessageHandlerRegsitry = {
 	storage: Vocab.Message<ExtToNative.StorageVocab>;
 
+	session: Vocab.Message<ExtToNative.StorageVocab>;
+
 	notification: Vocab.Message<ExtToNative.NotificationVocab>;
 
 	runtime: {

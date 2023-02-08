@@ -1,6 +1,11 @@
-# StarShell Wallet Dev
+# Contributing
 
-## Install
+This page outlines the steps to build from source, or to get started with local development.
+
+
+## Building from source
+
+### 1. Install submodules and dependencies
 
 ```shell
 git submodule update --init
@@ -8,7 +13,7 @@ yarn install
 ```
 
 
-## Preparing to build
+### 2. Prepare your environment
 
 Building requires more heap memory than the default node instance allocates due to the use of some custom inline requires to generate nested bundles when targetting the various browser extensions.
 
@@ -17,41 +22,28 @@ You will need to manually increase the amount of heap memory allocated to node b
 export NODE_OPTIONS='--max_old_space_size=8192'
 ```
 
+### 3. Run the build command
 
-## Running locally
-
-There are several ways to run the extension depending on the intent.
-
-To simply play with the extension in a sandbox environment run:
+For Chrome:
 ```shell
-yarn serve:chrome
+yarn build:chrome
 ```
 
-This may require that your system has a chrome webdriver installed, depending on the OS. It should launch a standalone, vanilla chrome process with the extension pre-installed.
-
-
-#### Testing in Chrome, Chromium, Brave, Edge, etc. for Desktop
-
-In a new shell session, run the following command to continually build on save:
+For Firefox:
 ```shell
-yarn watch:chrome
+yarn build:firefox
 ```
 
-Then follow the instructions [here](https://github.com/SolarRepublic/starshell-beta-releases#setting-up-with-browser).
-
-
-#### Testing in Firefox for Desktop
-
-In a new shell session, run the following command to use vite's hot module reloading (HMR) feature:
+For iOS/Safari:
 ```shell
-yarn dev:firefox
+yarn build:safari
 ```
 
-Then, in a separate shell:
-```shell
-yarn serve:firefox
-```
+**That's it! The built extension will be available under `dist/`**
 
+------------
+
+This section below is only intended for development
 
 ### Testing in Firefox for Android
 
@@ -103,7 +95,7 @@ You can connect to this Android device on TCP port 63302
 
 If you want to deploy to a connected Android device instead, provide the device name given from `adb devices` as an argument:
 ```shell
-yarn serve:android-firefox org.mozilla.firefox E1021NS01195
+yarn serve:android-firefox org.mozilla.firefox DEVICE_NAME
 ```
 
 If you want to deploy to Firefox beta or nightly:

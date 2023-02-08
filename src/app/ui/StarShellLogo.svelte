@@ -58,10 +58,11 @@
 </style>
 
 <div class="vendor-group" on:click>
-	<picture class="no-margin logo" style="width:{x_dim}px; height:{x_dim}px;">
-		<source srcset="{sr_double}" media="(min-resolution: 2dppx)">
-		<img alt={s_alt} src="{sr_default}" />
-	</picture>
+	<img class="no-margin logo" width={x_dim}
+		alt={s_alt}
+		src={sr_default}
+		srcset="{sr_double} 2x"
+	>
 
 	{#if showStatusDot}
 		<span class="status">
