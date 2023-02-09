@@ -5,18 +5,21 @@ This page outlines the steps to build from source, or to get started with local 
 
 ## Building from source
 
-### 1. Install submodules and dependencies
+### 1. System requirements
+
+ - `node` v16 or later
+ - `yarn`
+ - `deno` - [https://deno.land/manual@v1.30.3/getting_started/installation](https://deno.land/manual@v1.30.3/getting_started/installation)
+   - Deno is used during the final stage of the build process when performing security checks and running security tests.
+ - `zip` & `unzip`
+
+
+### 2. Install submodules and dependencies
 
 ```shell
 git submodule update --init
 yarn install
 ```
-
-### 2. Install Deno
-
-[https://deno.land/manual@v1.30.3/getting_started/installation](https://deno.land/manual@v1.30.3/getting_started/installation)
-
-Deno is used during the final stage of the build process when performing security checks and running security tests.
 
 ### 3. Prepare your environment
 

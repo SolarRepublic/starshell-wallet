@@ -8,17 +8,6 @@ import type {
 	Promisable,
 } from '#/meta/belt';
 
-/* eslint-disable i/order */
-import {do_webkit_polyfill} from '#/script/webkit-polyfill';
-import {
-	B_IOS_NATIVE,
-} from '#/share/constants';
-/* eslint-enable */
-
-if(B_IOS_NATIVE) {
-	do_webkit_polyfill();
-}
-
 import {Page} from './page';
 import {Thread} from './thread';
 import {ThreadId} from '../def';
