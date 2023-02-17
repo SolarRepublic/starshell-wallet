@@ -742,6 +742,9 @@
 
 		// using feegrant requires a forecast; force user to wait
 		if(!b_no_fee && s_granter && b_use_grant && !s_gas_forecast && !s_err_sim) {
+			// reset ui
+			b_approving = false;
+
 			throw syserr({
 				title: 'Fee optimization required',
 				text: `When using a fee grant, an optimization is required. Wait a moment for the simulation to complete or opt-out of the fee grant.`,
@@ -1097,11 +1100,15 @@
 			}
 
 			completed?.(true, g_completed);
+			return;
 		}
 
-		// local and not in flow context; reset navigator thread
-		if(local && (broadcast || !completed)) {
+		// not in flow context; reset navigator thread
+		if(!completed) {
 			k_page.reset();
+		}
+		else {
+			debugger;
 		}
 	}
 

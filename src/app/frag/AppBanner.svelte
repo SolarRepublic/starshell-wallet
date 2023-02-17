@@ -14,9 +14,12 @@
 	import Fields from '../ui/Fields.svelte';
 
 	import SX_ICON_EXPAND from '#/icon/expand.svg?raw';
+    import { G_APP_EXTERNAL, G_APP_NULL } from '#/store/apps';
 	
-	
-	export let app: AppStruct;
+	/**
+	 * The app associated with the action. A `null` value explicitly means the action was inbound
+	 */
+	export let app: AppStruct | null = null;
 
 	export let chains: ChainStruct[] = [];
 
@@ -146,6 +149,10 @@
 				margin-left: auto;
 				margin-right: auto;
 
+				&.inbound {
+					flex-flow: row;
+				}
+
 				.context {
 					position: relative;
 					display: flex;
@@ -260,7 +267,7 @@
 					{
 						type: 'resource',
 						resourceType: 'app',
-						struct: app,
+						struct: app || G_APP_NULL,
 					},
 					{
 						type: 'group',
@@ -300,7 +307,7 @@
 
 			<div class="content column">
 
-				<div class="bubbles">
+				<div class="bubbles" class:inbound={!app}>
 					{#if chains?.length}
 						{#if account}
 							<span class="context">
@@ -315,9 +322,11 @@
 							<span class="context thru">
 								<PfpDisplay dim={40} resource={account} rootStyle='border:1px solid rgba(255,255,255,0.08); border-radius:9px;' />
 							</span>
-							<span class="context">
-								<PfpDisplay dim={40} resource={app} />
-							</span>
+							{#if app}
+								<span class="context">
+									<PfpDisplay dim={40} resource={app} />
+								</span>
+							{/if}
 							<span class="thru-line">&nbsp;</span>
 						{:else}
 							<span class="context overlap">
@@ -329,18 +338,22 @@
 									{/each}
 								{/if}
 							</span>
-							<span class="context underlap">
-								<PfpDisplay dim={40} resource={app} />
-							</span>
+							{#if app}
+								<span class="context underlap">
+									<PfpDisplay dim={40} resource={app} />
+								</span>
+							{/if}
 						{/if}
 					{:else if account}
 						<span class="context overlap">
 							<PfpDisplay dim={40} resource={account} />
 						</span>
-						<span class="context underlap">
-							<PfpDisplay dim={40} resource={app} />
-						</span>
-					{:else}
+						{#if app}
+							<span class="context underlap">
+								<PfpDisplay dim={40} resource={app} />
+							</span>
+						{/if}
+					{:else if app}
 						<span class="context">
 							<PfpDisplay dim={40} resource={app} />
 						</span>
@@ -349,7 +362,7 @@
 
 				<div class="host column">
 					<span class="origin">
-						{app.host}
+						{app? app.host: 'Inbound'}
 					</span>
 					<span class="name">
 						{#if chains?.length}
@@ -357,7 +370,7 @@
 						{:else if account}
 							{account.name}
 						{:else}
-							{app.name}
+							{app?.name || ''}
 						{/if}
 					</span>
 				</div>

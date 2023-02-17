@@ -132,7 +132,16 @@
 
 				// asset worth was found
 				if(si_coingecko in h_versus) {
-					s_fiat_equivalent = format_amount(+value * +h_versus[si_coingecko], true);
+					const x_value = +value;
+
+					// sub-penny amount
+					if(x_value > 0 && x_value < 0.01) {
+						s_fiat_equivalent = `< 0.01`;
+					}
+					else {
+						// TODO: consider replacing with `format_fiat`
+						s_fiat_equivalent = format_amount(x_value * +h_versus[si_coingecko], true);
+					}
 				}
 				else {
 					s_fiat_equivalent = '(?)';

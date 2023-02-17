@@ -9,15 +9,12 @@ import type {ProviderStruct, ProviderPath} from '#/meta/provider';
 import {create_store_class, WritableStoreMap} from './_base';
 import {Chains} from './chains';
 
-import {yw_chain} from '#/app/mem';
-
 import type {CosmosNetwork} from '#/chain/cosmos-network';
 import {SecretNetwork} from '#/chain/secret-network';
-import {SI_STORE_PROVIDERS, XT_SECONDS} from '#/share/constants';
+import {ConnectionHealth, SI_STORE_PROVIDERS, XT_SECONDS} from '#/share/constants';
 import {timeout_exec} from '#/util/belt';
 import {buffer_to_base64, sha256_sync, text_to_buffer} from '#/util/data';
-import TimeAgo from 'javascript-time-ago';
-import { format_time_ago } from '#/util/format';
+import {format_time_ago} from '#/util/format';
 
 
 export type BalanceBundle = {
@@ -48,15 +45,6 @@ export interface E2eInfo {
 	height: string;
 	hash: string;
 	pubkey: Uint8Array;
-}
-
-export enum ConnectionHealth {
-	UNKNOWN = 0,
-	LOADING = 1,
-	CONNECTING = 2,
-	CONNECTED = 3,
-	DELINQUENT = 4,
-	DISCONNECTED = 5,
 }
 
 export const H_HEALTH_COLOR: Record<ConnectionHealth, string> = {
@@ -141,11 +129,11 @@ export const Providers = create_store_class({
 			return ProviderI.pathFor(g_provider.grpcWebUrl);
 		}
 
-		static activate(g_provider: ProviderStruct, g_chain: ChainStruct=yw_chain.get()): SecretNetwork {
+		static activate(g_provider: ProviderStruct, g_chain: ChainStruct): SecretNetwork {
 			return new SecretNetwork(g_provider, g_chain);
 		}
 
-		static async activateDefaultFor<k_network extends CosmosNetwork=CosmosNetwork>(g_chain: ChainStruct=yw_chain.get()): Promise<k_network> {
+		static async activateDefaultFor<k_network extends CosmosNetwork=CosmosNetwork>(g_chain: ChainStruct): Promise<k_network> {
 			const p_chain = Chains.pathFrom(g_chain);
 
 			const ks_providers = await Providers.read();
@@ -159,7 +147,7 @@ export const Providers = create_store_class({
 			throw new Error(`No network provider found for chain ${p_chain}`);
 		}
 
-		static async activateStableDefaultFor<k_network extends CosmosNetwork=CosmosNetwork>(g_chain: ChainStruct=yw_chain.get()): Promise<k_network> {
+		static async activateStableDefaultFor<k_network extends CosmosNetwork=CosmosNetwork>(g_chain: ChainStruct): Promise<k_network> {
 			const p_chain = Chains.pathFrom(g_chain);
 
 			const ks_providers = await Providers.read();

@@ -15,7 +15,7 @@
 	
 	import {Header, Screen, type Page} from './_screens';
 	import {syserr} from '../common';
-	import {yw_account, yw_account_ref, yw_chain, yw_chain_ref, popup_receive, yw_network, yw_owner, yw_doc_visibility, yw_popup, yw_context_popup, yw_navigator} from '../mem';
+	import {yw_account, yw_account_ref, yw_chain, yw_chain_ref, popup_receive, yw_network, yw_owner, yw_doc_visibility, yw_popup, yw_context_popup, yw_navigator, yw_store_query_cache} from '../mem';
 	
 	import {request_feegrant} from '../svelte';
 	
@@ -26,6 +26,7 @@
 	import type {SecretNetwork} from '#/chain/secret-network';
 	import type {BalanceStruct} from '#/chain/token';
 	import {token_balance} from '#/chain/token';
+	import {open_window} from '#/extension/browser';
 	import {global_receive} from '#/script/msg-global';
 	import {XT_SECONDS} from '#/share/constants';
 	import {Accounts} from '#/store/accounts';
@@ -49,9 +50,8 @@
 	import TokenRow from '../frag/TokenRow.svelte';
 	import PopupNotice from '../popup/PopupNotice.svelte';
 	import PopupSolver from '../popup/PopupSolver.svelte';
-	import Row from '../ui/Row.svelte';
-    import { open_window } from '#/extension/browser';
-	
+	import Row from '../ui/Row.svelte';	
+    import type { O } from 'ts-toolbelt';
 	
 	const G_RETRYING_TOKEN = {
 		name: 'Retrying...',
@@ -110,7 +110,10 @@
 	// dict of balances for both native assets and fungible tokens
 	let h_balances: Dict<Promisable<BigNumber>> = {};
 
-	let h_token_balances: Dict<BalanceStruct> = {};
+	let h_token_balances: Dict<O.Merge<{
+		b_from_cache?: boolean;
+	}, O.Optional<BalanceStruct, 's_worth' | 'yg_worth' | 's_fiat' | 'yg_fiat'>>> = {};
+
 	let h_token_errors: Dict<Error | {
 		name?: string;
 		message?: string;
@@ -124,7 +127,7 @@
 	// native balances
 	let a_balances: [string, CoinInfo, Coin][] = [];
 
-	// dict of fiat equivalents 
+	// dict of fiat equivalents
 	let h_fiats: Dict<Promise<BigNumber>> = {};
 
 	// account's total worth in selected fiat
@@ -832,7 +835,18 @@
 		// ref token address
 		const sa_token = g_contract.bech32;
 
-		if(h_token_balances[sa_token]) {
+		const h_cache = $yw_store_query_cache?.at(`${Chains.caip2For(g_contract.chain)}:${sa_owner}`) || {};
+		const s_amount = h_cache[`${sa_token}:balance`]?.data?.amount as string;
+
+		if(s_amount) {
+			h_token_balances[sa_token] = {
+				b_from_cache: true,
+				s_amount,
+				yg_amount: new BigNumber(s_amount).shiftedBy(g_contract.interfaces.snip20?.decimals),
+			};
+			h_token_balances = h_token_balances;
+		}
+		else if(h_token_balances[sa_token]) {
 			delete h_token_balances[sa_token];
 			h_token_balances = h_token_balances;
 		}
@@ -1318,7 +1332,7 @@
 										suggested: [g_token],
 									},
 								});
-							}} 
+							}}
 								s_debug='vk'/>
 						<!-- unknown error -->
 						{:else}

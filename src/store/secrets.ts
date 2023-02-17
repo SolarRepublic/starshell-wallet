@@ -17,10 +17,10 @@ import SensitiveBytes from '#/crypto/sensitive-bytes';
 import {decrypt, encrypt, Vault} from '#/crypto/vault';
 
 import {storage_get_all} from '#/extension/public-storage';
+import {B_DEVELOPMENT} from '#/share/constants';
 import {ResourceNonExistentError} from '#/share/errors';
 import {is_dict, ode, oderac} from '#/util/belt';
 import {base93_to_buffer, buffer_to_base93, buffer_to_json, concat, json_to_buffer, sha256d, sha256_sync, text_to_buffer, zero_out} from '#/util/data';
-import { B_DEVELOPMENT } from '#/share/constants';
 
 type PathFrom<
 	g_secret extends Pick<SecretStruct, 'type' | 'uuid'>,

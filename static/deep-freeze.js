@@ -59,6 +59,7 @@ if('undefined' === typeof globalThis['__starshell_deeply_frozen']) {
 	const A_GLOBAL_SHIELD = [
 		...AS_UNFREEZABLE,
 		...B_WEBEXT_GLOBAL_BROWSER? ['browser']: [],
+		'chrome',
 		'localStorage',
 		'sessionStorage',
 	];
@@ -126,6 +127,9 @@ if('undefined' === typeof globalThis['__starshell_deeply_frozen']) {
 
 			// get descriptor
 			const g_descriptor = Reflect.getOwnPropertyDescriptor(z_thing, si_property);
+
+			// skip undefined
+			if(!g_descriptor) continue;
 
 			// has simple value; recurse
 			if('value' in g_descriptor) {
@@ -323,11 +327,11 @@ if('undefined' === typeof globalThis['__starshell_deeply_frozen']) {
 		}
 		// `chrome` global
 		else if('undefined' !== typeof globalThis['chrome']) {
-			// `chrome` should not be writable
-			test_writability(globalThis, 'chrome');
+			// `globalShield.chrome` should not be writable
+			test_writability(globalShield, 'chrome');
 
 			// `chrome.runtime` should not be writable
-			test_writability(globalThis['chrome'], 'runtime', 'chrome.runtime');
+			test_writability(globalShield['chrome'], 'runtime', 'chrome.runtime');
 		}
 
 		// `localStorage` global

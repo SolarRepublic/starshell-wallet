@@ -35,6 +35,7 @@
 
 		.global_svg-icon {
 			color: var(--theme-color-primary);
+			cursor: pointer;
 
 			&.showing {
 				background-color: black;

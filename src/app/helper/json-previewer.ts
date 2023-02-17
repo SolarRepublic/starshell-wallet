@@ -10,7 +10,7 @@ import {RT_UINT, RT_URI_LIKELY, R_BECH32} from '#/share/constants';
 import {Chains} from '#/store/chains';
 import {is_dict_es} from '#/util/belt';
 import {base64_to_text, uuid_v4} from '#/util/data';
-import {dd} from '#/util/dom';
+import {dd, qsa} from '#/util/dom';
 import {format_amount} from '#/util/format';
 
 export interface PreviewerConfig {
@@ -128,9 +128,19 @@ export class JsonPreviewer {
 
 		const z_expanded = decode_and_expand(z_value);
 
+		const dm_rendered = k_previewer.render(z_expanded);
+
+		for(const dm_nested_array of qsa(dm_rendered, '.json-array.nested')) {
+			// array has at least one nested descendent
+			if(dm_nested_array.querySelector('.nested')) {
+				// force it onto the next line
+				dm_nested_array.classList.add('newlined');
+			}
+		}
+
 		return {
 			type: 'dom',
-			dom: k_previewer.render(z_expanded),
+			dom: dm_rendered,
 			...gc_field,
 		} as const;
 	}
@@ -346,7 +356,7 @@ export class JsonPreviewer {
 			// unsigned integer
 			if(RT_UINT.test(z_value)) {
 				if('uint' === g_format?.expect) {
-					const s_amount = format_amount(BigNumber(z_value).shiftedBy(-g_format.decimals).toNumber());
+					const s_amount = format_amount(BigNumber(z_value).shiftedBy(-g_format.decimals).toNumber(), true);
 					return classify(
 						classify(s_amount+' '+g_format.unit),
 						`formatted ${g_format.classes || ''}`

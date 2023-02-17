@@ -7,6 +7,8 @@ import type {Vocab} from '#/meta/vocab';
 
 import type {WebKitMessageHandlerKey, WebKitMessageHandlerRegsitry} from '#/env';
 
+import {MemStore} from '#/app/mem-store';
+
 let debug = (s: string, ...a_args: any[]) => console.debug(`StarShell?foreground: ${s}`, ...a_args);
 
 export class WebKitMessenger<
@@ -161,8 +163,31 @@ export function do_webkit_polyfill(f_debug?: typeof debug, g_extend?: Partial<ty
 
 	// communication with the view host
 	if(location.pathname.endsWith('/navigation.html')) {
+		// sending navigation commands to host
 		const k_navigation = new WebKitMessenger('navigation', true);
 		globalThis.navigation_handler = k_navigation;
+
+		// local copy of navigation model state
+		const yw_state = globalThis.navigation_model_state = new MemStore<WebKitMessageHandlerRegsitry['model']['state']>({
+			url: '',
+			title: '',
+			stage: 'unknown',
+		});
+		
+		// receiving navigation updates from host
+		addEventListener('@model', (d_event: CustomEvent<WebKitMessageHandlerRegsitry['model']>) => {
+			const {
+				state: h_update,
+			} = d_event.detail;
+
+			console.debug(`Service received model message from webkit host: %o`, d_event.detail);
+
+			// update local model state
+			yw_state.update((_h_state) => ({
+				..._h_state,
+				...h_update,
+			}));
+		})
 	}
 
 	const kl_storage_changed = new Listener<chrome.storage.StorageChangedEvent>('storage.change');

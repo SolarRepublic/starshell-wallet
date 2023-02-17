@@ -24,5 +24,9 @@
 
 
 <div class="selection">
-	<InlineContactSelection contact={item.contact} address={item.value} />
+	{#if item.contact}
+		<InlineContactSelection contact={item.contact} address={item.value} />
+	{:else if item.account}
+		<InlineContactSelection account={item.account} address={item.value} />
+	{/if}
 </div>

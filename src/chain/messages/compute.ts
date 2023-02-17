@@ -12,6 +12,7 @@ import type {Snip24PermitMsg} from '#/schema/snip-24-def';
 import {AminoJsonError, kv, MalforedMessageError} from './_util';
 
 import {H_SNIP_HANDLERS} from './snip';
+import {inject_app_profile} from '../app';
 import {install_contracts} from '../contract';
 import {SecretNetwork} from '../secret-network';
 
@@ -21,6 +22,7 @@ import {JsonPreviewer, snip_json_formats} from '#/app/helper/json-previewer';
 import {svelte_to_dom} from '#/app/svelte';
 import {SecretWasm} from '#/crypto/secret-wasm';
 
+import {R_BECH32} from '#/share/constants';
 import {Chains} from '#/store/chains';
 import {Contracts} from '#/store/contracts';
 import {Providers} from '#/store/providers';
@@ -29,10 +31,6 @@ import {defer_many, is_dict, proper} from '#/util/belt';
 import {base64_to_buffer, buffer_to_hex, sha256_sync, uuid_v4} from '#/util/data';
 import {dd} from '#/util/dom';
 import {abbreviate_addr} from '#/util/format';
-import { R_BECH32 } from '#/share/constants';
-import { SessionStorage } from '#/extension/session-storage';
-import { inject_app_profile } from '../app';
-import { Apps } from '#/store/apps';
 
 export const _FAILED_MESSAGE_OVERRIDE = Symbol('failed-message-override');
 
@@ -222,7 +220,7 @@ export const ComputeMessages: MessageDict = {
 					});
 
 					// attempt to install contract
-					await install_contracts([sa_created], g_chain, g_app);
+					await install_contracts([sa_created], g_chain, g_app, g_account);
 				}
 				catch(e_apply) {
 					syswarn({
@@ -507,7 +505,7 @@ export const ComputeMessages: MessageDict = {
 
 			async approve() {
 				try {
-					await install_contracts([sa_contract], g_chain, g_app);
+					await install_contracts([sa_contract], g_chain, g_app, g_account);
 				}
 				catch(e_install) {
 					syswarn({

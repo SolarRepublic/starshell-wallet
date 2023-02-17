@@ -4,6 +4,7 @@
 	import {Bip39} from '#/crypto/bip39';
 	import RuntimeKey from '#/crypto/runtime-key';
 	
+	import {B_DEVELOPMENT} from '#/share/constants';
 	import {text_to_buffer} from '#/util/data';
 	
 	import MnemonicVerify from './MnemonicVerify.svelte';
@@ -11,9 +12,10 @@
 	import Mnemonic from '../frag/Mnemonic.svelte';
 	
 	import ActionsLine from '../ui/ActionsLine.svelte';
-    import { B_DEVELOPMENT } from '#/share/constants';
 
 	export let atu16_indicies: Uint16Array;
+
+	export let b_use_pin = false;
 
 	let sh_extension = '';
 
@@ -38,6 +40,7 @@
 				kr_precursor,
 				s_hint_extension,
 				b_extension: !!sh_extension.length,
+				b_use_pin,
 			},
 		});
 	}

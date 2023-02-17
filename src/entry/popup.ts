@@ -499,7 +499,6 @@ async function reload(b_override_restriction=false) {
 	b_busy = false;
 }
 
-
 // app is running as local development for UI inspecting
 if(B_LOCALHOST) {
 	if(h_params.autoskip) {
@@ -516,7 +515,7 @@ if(B_LOCALHOST) {
 				await login(s_password);
 			}
 
-			void reload();
+			await reload();
 		})();
 	}
 	else {

@@ -45,7 +45,7 @@
 	export let circular = false;
 	export let appRelated = false;
 	export let classes = '';
-	const s_classes = (circular? '': appRelated? 'square app': 'square')+classes;
+	const s_classes = (circular? '': appRelated? 'square app': 'square')+' '+classes;
 
 	export let updates = 0;
 

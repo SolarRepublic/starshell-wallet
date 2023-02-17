@@ -224,6 +224,8 @@ export const R_CAIP_10 = /^([-a-z0-9]{3,8}):([-a-zA-Z0-9]{1,32}):([a-zA-Z0-9]{1,
  */
 export const R_CAIP_19 = /^([-a-z0-9]{3,8}):([-a-zA-Z0-9]{1,32})\/([-a-z0-9]{3,8}):([-a-zA-Z0-9]{1,64})$/;
 
+export const R_FAULTY_CAIP_19 = /^([-a-z0-9]{3,8}):([-a-zA-Z0-9]{1,32}):([-a-z0-9]{3,8})\/([-a-zA-Z0-9]{1,64})$/;
+
 
 // chain id pattern w/ versioning (cosmos standard pending) <https://github.com/cosmos/cosmos-sdk/issues/5363>
 export const R_CHAIN_ID_VERSION = /^([a-zA-Z0-9][a-zA-Z0-9-]*?)-([1-9][0-9]{0,44})$/;
@@ -272,6 +274,9 @@ export const P_STARSHELL_DECREES = 'https://raw.githubusercontent.com/SolarRepub
 // defaults repo
 export const P_STARSHELL_DEFAULTS = 'https://raw.githubusercontent.com/SolarRepublic/wallet-defaults-registry/main/global.json';
 
+// dapps repo
+export const P_STARSHELL_DAPPS = 'https://raw.githubusercontent.com/SolarRepublic/wallet-apps-registry/main/global.json';
+
 // transfer amount string regex
 export const R_TRANSFER_AMOUNT = /^(\d+)(.+)/;
 
@@ -309,6 +314,8 @@ export const X_SIMULATION_GAS_MULTIPLIER = 1.1;
 
 export const XT_TIMEOUT_APP_PERMISSIONS = 5 * XT_MINUTES;
 export const XT_TIMEOUT_SERVICE_REQUEST = 5 * XT_MINUTES;
+
+export const XT_TIMEOUT_DEFALUT_NOTIFICATION = 5.5 * XT_SECONDS;
 
 // default chain namepsaces
 export const A_CHAIN_NAMESPACES = [
@@ -351,3 +358,13 @@ export const SI_EXTENSION_ID_KEPLR = 'dmkamcknogkgcdfhhbddcghachkejeap';
 export const A_COURTESY_ACCOUNTS = [
 	'secret13220hzfrxxd6zrdl5qm78xm4aacvyvlskx0jnn',
 ];
+
+
+export enum ConnectionHealth {
+	UNKNOWN = 0,
+	LOADING = 1,
+	CONNECTING = 2,
+	CONNECTED = 3,
+	DELINQUENT = 4,
+	DISCONNECTED = 5,
+}

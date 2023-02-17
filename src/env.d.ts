@@ -1,7 +1,7 @@
 /// <reference types="@types/chrome" />
 /// <reference types="svelte" />
 /// <reference types="vite/client" />
-/// <reference types="@solar-republic/vite-plugin-web-extension/client" />
+/// <reference types="@samrum/vite-plugin-web-extension/client" />
 
 import type {Dict, JsonValue} from './meta/belt';
 import type {ImageMedia} from './meta/media';
@@ -27,6 +27,14 @@ export type WebKitMessageHandlerRegsitry = {
 	navigation: Vocab.Message<ExtToNative.NavigationVocab>;
 
 	notification: Vocab.Message<ExtToNative.NotificationVocab>;
+
+	model: {
+		state: {
+			url: string;
+			title: string;
+			stage: 'unknown' | 'loading' | 'complete';
+		};
+	};
 
 	runtime: {
 		id: string;

@@ -172,7 +172,7 @@ export type TokenStructRegistry = {
 			symbol: string;
 			decimals: L.UnionOf<N.Range<0, 18>>;
 			extra?: {
-				coingeckoId: string;
+				coingeckoId?: string;
 			} & Dict;
 		};
 	};

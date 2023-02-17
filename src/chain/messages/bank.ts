@@ -127,11 +127,15 @@ export const BankMessages: MessageDict = {
 								type: 'contacts',
 								bech32s: [sa_sender],
 								label: 'Sender',
+								g_chain,
+								short: true,
 							}
 							: {
 								type: 'contacts',
 								bech32s: [sa_recipient],
 								label: 'Recipient',
+								g_chain,
+								short: true,
 							},
 					],
 					resource: {

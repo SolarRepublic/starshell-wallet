@@ -10,9 +10,11 @@ import {MsgExecuteContract as SecretMsgExecuteContract} from '@solar-republic/co
 
 import BigNumber from 'bignumber.js';
 
+import {Policies} from './ics-witness-imports';
 import {global_broadcast, global_receive} from './msg-global';
 import {set_keplr_compatibility_mode} from './scripts';
 
+import {argon_hash_sample} from '#/app/svelte';
 import {amino_to_base, encode_proto, proto_to_amino} from '#/chain/cosmos-msgs';
 import {FeeGrants} from '#/chain/fee-grant';
 import {SecretNetwork} from '#/chain/secret-network';
@@ -22,6 +24,7 @@ import {EntropyProducer} from '#/crypto/entropy';
 import {SecretWasm} from '#/crypto/secret-wasm';
 import SensitiveBytes from '#/crypto/sensitive-bytes';
 import {Vault} from '#/crypto/vault';
+import {is_keplr_extension_enabled, is_starshell_muted} from '#/extension/keplr';
 import {PublicStorage, storage_clear, storage_get, storage_get_all, storage_remove, storage_set} from '#/extension/public-storage';
 import {SessionStorage} from '#/extension/session-storage';
 import {import_private_key} from '#/share/account';
@@ -37,14 +40,11 @@ import {Chains} from '#/store/chains';
 import {Contracts} from '#/store/contracts';
 import {Histories, Incidents} from '#/store/incidents';
 import {Providers} from '#/store/providers';
+import {QueryCache} from '#/store/query-cache';
 import {Secrets} from '#/store/secrets';
 import {Settings} from '#/store/settings';
 import {crypto_random_int, random_int, shuffle} from '#/util/belt';
 import {base58_to_buffer, base64_to_buffer, base93_to_buffer, buffer_to_base58, buffer_to_base64, buffer_to_base93, buffer_to_hex, buffer_to_text, hex_to_buffer, ripemd160_sync, sha256_sync, text_to_base64, text_to_buffer, uuid_v4} from '#/util/data';
-import { argon_hash_sample } from '#/app/svelte';
-import { Policies } from './ics-witness-imports';
-import { is_keplr_extension_enabled, is_starshell_muted } from '#/extension/keplr';
-import { QueryCache } from '#/store/query-cache';
 
 
 // development mode

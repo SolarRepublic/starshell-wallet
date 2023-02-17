@@ -18,7 +18,10 @@ import {
 	base64_to_buffer, buffer_to_base58,
 } from './src/util/data';
 
+const G_REPLACE_CHROME = {};
+
 const H_REPLACEMENTS_ENGINE = {
+	chrome: G_REPLACE_CHROME,
 	firefox: {
 		'chrome.': 'globalShield.browser.',
 		'typeof chrome': 'typeof globalShield.browser',
@@ -70,6 +73,13 @@ export default defineConfig((gc_run) => {
 		command: si_command,
 		mode: si_mode,
 	} = gc_run;
+
+	if('production' === si_mode) {
+		// Object.assign(G_REPLACE_CHROME, {
+		// 	'chrome': 'globalShield.chrome',
+		// 	'typeof chrome': 'typeof globalShield.chrome',
+		// });
+	}
 
 	// sensitive build values are stored in environment variables
 	const {

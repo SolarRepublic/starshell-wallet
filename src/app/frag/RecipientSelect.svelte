@@ -1,13 +1,15 @@
 <script lang="ts">	
+	import type {AccountStruct} from '#/meta/account';
 	import type {AgentPath, Chain} from '#/meta/chain';
 	import type {ContactStruct} from '#/meta/contact';
 	
 	import Select from 'svelte-select';
 	
+	import {Accounts} from '#/store/accounts';
 	import {Agents} from '#/store/agents';
 	import {Chains} from '#/store/chains';
 	import {qs} from '#/util/dom';
-	import {yw_chain, yw_chain_namespace} from '##/mem';
+	import {yw_account_ref, yw_chain, yw_chain_namespace} from '##/mem';
 	
 	import RecipientSelectItem from './RecipientSelectItem.svelte';
 	import RecipientSelectSelection from './RecipientSelectSelection.svelte';
@@ -32,6 +34,12 @@
 		contact: g,
 	});
 
+	const account_to_option = (g: AccountStruct): ContactOption => ({
+		value: Chains.addressFor(g.pubkey, $yw_chain),
+		label: g.name,
+		account: g,
+	});
+
 	async function load_contacts(): Promise<ContactOption[]> {
 		const ks_agents = await Agents.read();
 
@@ -41,16 +49,34 @@
 			contact: null!,
 		}];
 
-		a_contacts = [...ks_agents.contacts($yw_chain_namespace)];
-		for(const [, g_contact] of a_contacts) {
-			const g_option = contact_to_option(g_contact);
+		// contacts
+		{
+			a_contacts = [...ks_agents.contacts($yw_chain_namespace)];
+			for(const [, g_contact] of a_contacts) {
+				const g_option = contact_to_option(g_contact);
 
-			const sa_contact = Agents.addressFor(g_contact, $yw_chain);
-			if(sa_input && sa_contact === sa_input) {
-				g_item_select = g_option;
+				const sa_contact = Agents.addressFor(g_contact, $yw_chain);
+				if(sa_input && sa_contact === sa_input) {
+					g_item_select = g_option;
+				}
+
+				a_options.push(g_option);
 			}
+		}
 
-			a_options.push(g_option);
+		// accounts
+		{
+			// load accounts
+			const a_accounts = await Accounts.filter({
+				family: 'cosmos',
+			});
+
+			// add others to options
+			for(const [p_account, g_account] of a_accounts) {
+				if(p_account !== $yw_account_ref) {
+					a_options.push(account_to_option(g_account));
+				}
+			}
 		}
 
 		return a_options;

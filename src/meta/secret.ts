@@ -101,9 +101,9 @@ type SecretTypeRegistry = {
 			origin: 'imported' | 'created';
 
 			/**
-			 * Mnemonics are always protected by a PIN
+			 * Mnemonics can be protected by a PIN or not at all
 			 */
-			security: SecretSecurity.Struct<'pin'>;
+			security: SecretSecurity.Struct<'pin' | 'none'>;
 		};
 	};
 

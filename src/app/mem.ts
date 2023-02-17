@@ -14,6 +14,8 @@ import type {ProviderStruct, ProviderPath} from '#/meta/provider';
 import type {StoreKey} from '#/meta/store';
 import type {ParametricSvelteConstructor} from '#/meta/svelte';
 
+
+
 import type {Vocab} from '#/meta/vocab';
 
 import {derived, writable} from './mem-store';
@@ -22,22 +24,39 @@ import {once_store_updates} from './svelte';
 import type {CosmosNetwork} from '#/chain/cosmos-network';
 import type {Pwa} from '#/script/messages';
 import {global_receive} from '#/script/msg-global';
-import {B_FIREFOX_ANDROID, B_MOBILE, B_IOS_NATIVE, B_SAFARI_MOBILE, B_WITHIN_PWA, B_WITHIN_WEBEXT_POPOVER, G_USERAGENT, H_PARAMS, N_PX_FIREFOX_TOOLBAR, SI_STORE_MEDIA, SI_STORE_TAGS, SI_STORE_PFPS, SI_STORE_ACCOUNTS, SI_STORE_CHAINS, SI_STORE_PROVIDERS, SI_STORE_SETTINGS} from '#/share/constants';
+import {
+	B_FIREFOX_ANDROID,
+	B_MOBILE,
+	B_IOS_NATIVE,
+	B_SAFARI_MOBILE,
+	B_WITHIN_PWA,
+	B_WITHIN_WEBEXT_POPOVER,
+	G_USERAGENT,
+	H_PARAMS,
+	N_PX_FIREFOX_TOOLBAR,
+	SI_STORE_MEDIA,
+	SI_STORE_TAGS,
+	SI_STORE_PFPS,
+	SI_STORE_ACCOUNTS,
+	SI_STORE_CHAINS,
+	SI_STORE_PROVIDERS,
+	SI_STORE_SETTINGS,
+	ConnectionHealth,
+	SI_STORE_QUERY_CACHE,
+} from '#/share/constants';
 import type {StoreRegistry} from '#/store/_registry';
 import {Accounts} from '#/store/accounts';
 import {Chains} from '#/store/chains';
 import {Medias} from '#/store/medias';
 import {Pfps} from '#/store/pfps';
-import {
-	Providers,
-	ConnectionHealth,
-} from '#/store/providers';
+import {Providers} from '#/store/providers';
 import {Settings} from '#/store/settings';
 import {Tags} from '#/store/tags';
 import {F_NOOP, microtask, timeout} from '#/util/belt';
 
 
 import PopupReceive from './popup/PopupReceive.svelte';
+import { QueryCache } from '#/store/query-cache';
 
 
 
@@ -162,6 +181,10 @@ const H_STORE_INVALIDATORS = {
 		await yw_store_pfps.set(await Pfps.read(), true);
 	},
 
+	async [SI_STORE_QUERY_CACHE]() {
+		await yw_store_query_cache.set(await QueryCache.read(), true);
+	},
+
 	async [SI_STORE_SETTINGS]() {
 		await yw_store_settings.set(await Settings.read(), true);
 	},
@@ -196,6 +219,7 @@ export const yw_store_medias = store_cache(SI_STORE_MEDIA);
 export const yw_store_tags = store_cache(SI_STORE_TAGS);
 export const yw_store_pfps = store_cache(SI_STORE_PFPS);
 export const yw_store_settings = store_cache(SI_STORE_SETTINGS);
+export const yw_store_query_cache = store_cache(SI_STORE_QUERY_CACHE);
 
 // expose settings as live registry
 export const yw_settings = derived(yw_store_settings, ks_settings => ks_settings?.raw || {});

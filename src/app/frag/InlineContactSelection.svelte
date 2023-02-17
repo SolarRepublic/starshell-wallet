@@ -2,11 +2,13 @@
 	export interface ContactOption {
 		value: Chain.Bech32String;
 		label: string;
-		contact: ContactStruct;
+		contact?: ContactStruct;
+		account?: AccountStruct;
 	}
 </script>
 
 <script lang="ts">
+	import type {AccountStruct} from '#/meta/account';
 	import type {Chain} from '#/meta/chain';
 	import type {ContactStruct} from '#/meta/contact';
 	
@@ -16,8 +18,9 @@
 	import {Agents} from '#/store/agents';
 	
 	
+	import {Chains} from '#/store/chains';
 	import {yw_chain, yw_chain_namespace} from '##/mem';
-
+	
 	import Address from './Address.svelte';
 	import PfpDisplay from './PfpDisplay.svelte';
 
@@ -26,6 +29,13 @@
 	 */
 	export let contact: ContactStruct | null = null;
 	let g_contact: ContactStruct = contact!;
+	
+	/**
+	 * Resource path to the account
+	 */
+	export let account: AccountStruct | null = null;
+	const g_account: AccountStruct = account!;
+	
 
 	/**
 	 * Manually entered address
@@ -83,7 +93,7 @@
 	<style lang="less">
 		@import '../_base.less';
 	
-		.contact {
+		.agent {
 			display: flex;
 			flex-direction: row;
 			align-items: center;
@@ -92,7 +102,7 @@
 			// padding-top: 3px;
 			box-sizing: border-box;;
 	
-			>.contact-pfp {
+			>.agent-pfp {
 				display: inline-flex;
 				--proxy-icon-diameter: 26px;
 				line-height: 26px;
@@ -147,20 +157,24 @@
 		}
 	</style>
 	
-	{#if g_contact}
-		<div class="contact">
-			<span class="contact-pfp">
-				{#if g_contact}
-					<PfpDisplay dim={28} resource={g_contact} genStyle='font-size:18px;' />
-				{/if}
+	{#if g_contact || g_account}
+		{@const g_agent = g_contact || g_account}
+
+		<div class="agent">
+			<span class="agent-pfp">
+				<PfpDisplay dim={28} resource={g_agent} genStyle='font-size:18px;' />
 			</span>
 	
 			<span class="info">
 				<span class="name">
-					{g_contact.name}
+					{g_agent.name}
 				</span>
 	
-				<Address address={Agents.addressFor(g_contact, $yw_chain)} />
+				{#if g_contact}
+					<Address address={Agents.addressFor(g_contact, $yw_chain)} />
+				{:else if g_account}
+					<Address address={Chains.addressFor(g_account.pubkey, $yw_chain)} />
+				{/if}
 			</span>
 		</div>
 	{:else if address}

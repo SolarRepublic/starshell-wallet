@@ -65,9 +65,9 @@ export const H_SNIP_TRANSACTION_HISTORY_HANDLER: HistoryHandler = {
 					},
 					{
 						type: 'contacts',
+						label: 'Sender',
 						bech32s: [sa_from],
 						g_chain,
-						label: 'Sender',
 					},
 					{
 						type: 'memo',

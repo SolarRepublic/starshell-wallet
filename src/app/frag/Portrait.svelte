@@ -53,6 +53,7 @@
 	import SX_ICON_DOWNLOAD from '#/icon/download.svg?raw';
 	import SX_ICON_EDIT from '#/icon/edit.svg?raw';
 	import SX_ICON_GROUP from '#/icon/group.svg?raw';
+	import SX_ICON_HEXAGON_CHECK from '#/icon/hexagon-check.svg?raw';
 	import SX_ICON_INFO from '#/icon/info.svg?raw';
 	import SX_ICON_MORE_VERT from '#/icon/more-vert.svg?raw';
 	import SX_ICON_PERSON from '#/icon/person.svg?raw';
@@ -64,7 +65,7 @@
 	import SX_ICON_SHIELD_INSPECT from '#/icon/shield-inspect.svg?raw';
 	import SX_ICON_UNWRAP from '#/icon/unwrap.svg?raw';
 	import SX_ICON_WRAP from '#/icon/wrap.svg?raw';
-	import SX_ICON_HEXAGON_CHECK from '#/icon/hexagon-check.svg?raw';
+    import { createEventDispatcher } from 'svelte';
 
 	const H_ACTIONS: Record<ActionKey, DefaultActionConfig> = {
 		send: {
@@ -188,6 +189,10 @@
 
 	export let info = false;
 
+	const dispatch = createEventDispatcher();
+	function pfp_click(d_event: MouseEvent) {
+		dispatch('pfp_click', d_event);
+	}
 </script>
 
 <style lang="less">
@@ -306,7 +311,7 @@
 
 <div class="portrait {s_classes}" data-path={p_resource}>
 	{#if !b_no_pfp}
-		<div class="pfp">
+		<div class="pfp" on:click={pfp_click}>
 			{#if $$slots.pfp}
 				<span class="icon">
 					<slot name="pfp">

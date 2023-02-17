@@ -12,11 +12,11 @@
 	import {system_notify} from '#/extension/notifications';
 	import {global_receive} from '#/script/msg-global';
 	import {NetworkFeed} from '#/script/service-feed';
-	import {SI_VERSION} from '#/share/constants';
+	import {ConnectionHealth, SI_VERSION} from '#/share/constants';
 	
 	import {Chains} from '#/store/chains';
 	import {Histories} from '#/store/incidents';
-	import {ConnectionHealth, H_HEALTH_COLOR, Providers} from '#/store/providers';
+	import {H_HEALTH_COLOR, Providers} from '#/store/providers';
 	import {ode} from '#/util/belt';
 	import {
 		yw_menu_vendor,

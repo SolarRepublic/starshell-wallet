@@ -76,7 +76,7 @@
 		for(const g_contract of a_contracts) {
 			const g_balance = ks_cache.get(p_chain, sa_owner, `${g_contract.bech32}:balance`);
 
-			const s_amount = g_balance?.data.amount;
+			const s_amount = g_balance?.data?.amount;
 			if('string' === typeof s_amount) {
 				h_balances[g_contract.bech32] = format_amount(
 					BigNumber(s_amount).shiftedBy(-g_contract.interfaces.snip20!.decimals).toNumber()

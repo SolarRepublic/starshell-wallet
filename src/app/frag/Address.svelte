@@ -103,7 +103,7 @@
 
 		&.copyable {
 			align-items: center;
-			width: calc(100% - 0.5ch);
+			width: min(100%, 45.75ch);
 			cursor: copy;
 		}
 

@@ -1,5 +1,6 @@
 import type {AccountPath} from '#/meta/account';
 import type {IncidentPath} from '#/meta/incident';
+import { XT_TIMEOUT_DEFALUT_NOTIFICATION } from '#/share/constants';
 
 import {Accounts} from '#/store/accounts';
 import {Incidents} from '#/store/incidents';
@@ -66,10 +67,10 @@ export async function system_notify(gc_notification: NotificationConfig): Promis
 	}, (si_notifcation) => {
 		// clear after some timeout
 		const xt_timeout = gc_notification.timeout!;
-		if(Number.isFinite(xt_timeout) && xt_timeout > 0) {
+		if(Number.isFinite(xt_timeout) && xt_timeout >= 0) {
 			setTimeout(() => {
 				chrome.notifications?.clear(si_notifcation);
-			}, xt_timeout);
+			}, xt_timeout || XT_TIMEOUT_DEFALUT_NOTIFICATION);
 		}
 	});
 }

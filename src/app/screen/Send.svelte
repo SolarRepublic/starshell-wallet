@@ -60,6 +60,8 @@
 	import SX_ICON_INFO from '#/icon/info.svg?raw';
 	import SX_ICON_SHIELD from '#/icon/shield.svg?raw';
 	import SX_ICON_VISIBILITY from '#/icon/visibility.svg?raw';
+    import { Chains } from '#/store/chains';
+    import { Accounts } from '#/store/accounts';
 	
 	
 
@@ -88,6 +90,9 @@
 
 	// address to contact lookup cache
 	let h_addr_to_contact: Record<Chain.Bech32String, ContactPath>;
+
+	// address to account lookup cache
+	let h_addr_to_account: Record<Chain.Bech32String, AccountPath>;
 
 	// bindings for AmountInput
 	let s_amount: string;
@@ -143,6 +148,11 @@
 		// replace address lookup cache
 		h_addr_to_contact = fold(a_contacts, ([p_contact, g_contact]) => ({
 			[Agents.addressFor(g_contact, $yw_chain)]: p_contact,
+		}));
+
+		// replace address lookup cache
+		h_addr_to_account = fold(await Accounts.entries(), ([p_account, g_account]) => ({
+			[Chains.addressFor(g_account.pubkey, $yw_chain)]: p_account,
 		}));
 
 		// no longer busy
@@ -413,7 +423,7 @@
 	let s_err_recipient = '';
 	let s_err_amount = '';
 
-	$: b_new_address = sa_recipient && h_addr_to_contact && !(sa_recipient in h_addr_to_contact);
+	$: b_new_address = sa_recipient && !h_addr_to_contact?.[sa_recipient] && !h_addr_to_account?.[sa_recipient];
 
 
 	const R_CONTACT_NAME = /^\S.{0,1023}$/;

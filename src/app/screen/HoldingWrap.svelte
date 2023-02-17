@@ -151,7 +151,7 @@
 			First, you need to add the {s_token_symbol} token to your wallet.
 		</p>
 
-		<ActionsLine cancel confirm={['Next', () => add_token()]} />
+		<ActionsLine cancel='pop' confirm={['Next', () => add_token()]} />
 	{:else}
 		<Field short key='amount' name='Amount'>
 			<AmountInput
@@ -167,6 +167,6 @@
 			/>
 		</Field>
 
-		<ActionsLine cancel confirm={['Next', () => submit(), !b_form_valid]} />
+		<ActionsLine cancel='pop' confirm={['Next', () => submit(), !b_form_valid]} />
 	{/if}
 </Screen>

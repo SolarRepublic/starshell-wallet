@@ -8,6 +8,10 @@
 	import MnemonicImport from './MnemonicImport.svelte';
 	import ActionsWall from '../ui/ActionsWall.svelte';
 
+	import CheckboxField from '../ui/CheckboxField.svelte';
+	import Curtain from '../ui/Curtain.svelte';
+	import Tooltip from '../ui/Tooltip.svelte';
+	
 	import SX_ICON_SEED_DERIVATION from '#/icon/seed-derivation.svg?raw';
 
 
@@ -18,12 +22,16 @@
 	 */
 	export let b_agreed = false;
 
+	let b_tooltip_showing = false;
+
+	let b_use_pin = false;
 
 	async function create_new_wallet() {
 		k_page.push({
 			creator: MnemonicCreate,
 			props: {
 				atu16_indicies: await Bip39.entropyToIndicies(),
+				b_use_pin,
 			},
 		});
 	}
@@ -59,6 +67,20 @@
 	</div>
 
 	<ActionsWall>
+		<CheckboxField id='use-pin' bind:checked={b_use_pin}>
+			<span>
+				<span>
+					Protect my seed with a custom PIN
+				</span>
+				<span>
+					<Tooltip bind:showing={b_tooltip_showing}>
+						A short PIN encrypts your seed phrase with an additional layer of security.
+						It will only be required when creating new accounts or exporting the mnemonic.
+					</Tooltip>
+				</span>
+			</span>
+		</CheckboxField>
+
 		<button class="primary" on:click={() => create_new_wallet()}>
 			Create new seed
 		</button>
@@ -67,4 +89,6 @@
 			Restore existing seed
 		</button>
 	</ActionsWall>
+
+	<Curtain on:click={() => b_tooltip_showing = false} />
 </Screen>

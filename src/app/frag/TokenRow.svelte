@@ -35,6 +35,7 @@
 	const dispatch = createEventDispatcher();
 
 	export let balance: {
+		b_from_cache?: boolean;
 		s_amount: string;
 		s_fiat: Promisable<string>;
 		s_worth: Promisable<string>;
@@ -137,7 +138,7 @@
 	}
 </script>
 
-<div style="display: contents" bind:this={dm_row} data-contract-path={p_contract}>
+<div class="display_contents" bind:this={dm_row} data-contract-path={p_contract}>
 	{#if unauthorized || mintable || pending}
 		<Row postnameTags b_draggable on:dropRow
 			name={g_snip20.symbol}
@@ -182,6 +183,7 @@
 		</Row>
 	{:else}
 		<Row postnameTags b_draggable on:dropRow
+			b_amount_updating={balance?.b_from_cache || false}
 			name={g_snip20.symbol}
 			resourcePath={p_contract}
 			detail={contract.name}

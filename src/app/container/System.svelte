@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type {AccountPath} from '#/meta/account';
-	import type {Nilable, PlainObject} from '#/meta/belt';
+	import type {Dict, Nilable, PlainObject} from '#/meta/belt';
 	
 	// import './tailwind.css';
 	import type {ChainPath, ChainStruct} from '#/meta/chain';
@@ -13,7 +13,7 @@
 	
 	import {Gestures} from '../helper/gestures';
 	import {await_transition, GC_HOOKS_DEFAULT, page_slide} from '../nav/defaults';
-	import {once_store_updates} from '../svelte';
+	import {initialize_mem, once_store_updates} from '../svelte';
 	
 	import {Vault} from '#/crypto/vault';
 	import {Accounts} from '#/store/accounts';
@@ -63,47 +63,8 @@
 	let dm_exitting: HTMLElement;
 
 	// get all contexts
-	const h_context_all = Object.fromEntries(getAllContexts().entries());
+	const h_context_all: Dict<any> = Object.fromEntries(getAllContexts().entries());
 
-	async function initialize_mem() {
-		console.debug('System#initialize-mem');
-
-		// allow these to fail in order to recover from disasters
-		try {
-			const ks_settings = await Settings.read();
-
-			// select account from context, or last used account
-			const p_account_selected: Nilable<AccountPath> = h_context_all.accountPath
-				|| ks_settings.get('p_account_selected');
-
-			// select chain from context, or last used chain
-			const p_chain_selected: Nilable<ChainPath> = h_context_all.chain
-				? Chains.pathFrom(h_context_all.chain as ChainStruct)
-				: ks_settings.get('p_chain_selected');
-
-			// attempt to load accounts
-			const ks_accounts = await Accounts.read();
-
-			// no accounts yet; don't wait for other stores to update since it may never return
-			if(!Object.keys(ks_accounts.raw).length) {
-				return;
-			}
-
-			// set defaults
-			await Promise.all([
-				// default chain
-				$yw_chain || once_store_updates(yw_chain, true),
-				Chains.read().then(ks => yw_chain_ref.set(p_chain_selected || ode(ks.raw)[0][0])),
-
-				// default account
-				$yw_account || once_store_updates(yw_account, true),
-				(() => yw_account_ref.set(p_account_selected || ode(ks_accounts.raw)[0][0]))(),
-			]);
-		}
-		catch(e_load_default) {
-			console.warn(e_load_default);
-		}
-	}
 
 	onMount(async() => {
 		// track thread switching history
@@ -129,7 +90,7 @@
 				...GC_HOOKS_DEFAULT,
 
 				async before_switch() {
-					await initialize_mem();
+					await initialize_mem(h_context_all);
 
 					// only needs to happen once
 					delete this.before_switch;
@@ -207,7 +168,7 @@
 			};
 
 			// initialize mem
-			await initialize_mem();
+			await initialize_mem(h_context_all);
 		}
 		// main system
 		else if(b_main) {

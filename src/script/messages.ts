@@ -1136,6 +1136,23 @@ export namespace ExtToNative {
 		mode: {
 			value: 'expanded' | 'collapsed';
 		};
+
+		/**
+		 * Submits a navigation request
+		 */
+		navigate: {
+			value: string;
+		};
+
+		/**
+		 * Instructs the host to reload the web view
+		 */
+		reload: {};
+
+		/**
+		 * Instructs the host to close the web view
+		 */
+		close: {};
 	}>;
 
 	export type NotificationVocab = Vocab.New<{

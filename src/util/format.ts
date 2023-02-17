@@ -19,7 +19,7 @@ const D_INTL_USD_LT1 = new Intl.NumberFormat('en-US', {
 	currency: 'USD',
 	currencyDisplay: 'symbol',
 	minimumFractionDigits: 2,
-	maximumFractionDigits: 5,
+	maximumFractionDigits: 3,
 });
 
 const A_NUMERIC_GT1 = [
@@ -120,7 +120,7 @@ const A_NUMERIC_LT1 = [
 
 const D_INTL_AMOUNT_LT1 = new Intl.NumberFormat('en-US', {
 	notation: 'standard',
-	maximumSignificantDigits: 6,
+	maximumSignificantDigits: 3,
 });
 
 const D_INTL_AMOUNT_GT1 = new Intl.NumberFormat('en-US', {
@@ -183,6 +183,11 @@ export function format_amount(x_amount: number, b_shorter=false): string {
 
 
 export function format_fiat(x_amount: number, si_fiat: CoinGeckoFiat='usd', b_omit_sign=false, n_decimals=2): string {
+	// very small amounts
+	if(x_amount > 0 && x_amount < 0.01) {
+		return `< ${b_omit_sign? '': '$'}0.01`;
+	}
+
 	const s_formatted = x_amount < 1? D_INTL_USD_LT1.format(x_amount): D_INTL_USD.format(x_amount);
 
 	return b_omit_sign? s_formatted.replace(/^[$]/, ''): s_formatted;

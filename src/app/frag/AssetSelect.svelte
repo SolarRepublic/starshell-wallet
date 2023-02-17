@@ -91,7 +91,7 @@
 <style lang="less">
 </style>
 
-<div class="asset">
+<div class="asset" data-path={assetPath}>
 	{#await load_assets()}
 		<Load forever />
 	{:then a_assets}

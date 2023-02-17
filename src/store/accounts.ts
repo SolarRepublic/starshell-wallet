@@ -1,7 +1,7 @@
 import type {Replace} from 'ts-toolbelt/out/String/Replace';
 
 import type {AccountStruct, AccountPath} from '#/meta/account';
-import type {Bech32, ChainStruct, ChainNamespaceKey} from '#/meta/chain';
+import type {Bech32, ChainStruct, ChainNamespaceKey, ChainPath} from '#/meta/chain';
 
 import {
 	create_store_class,
@@ -116,6 +116,25 @@ export const Accounts = create_store_class({
 			const g_account = ks_accounts.at(p_account)!;
 
 			return [p_account, g_account];
+		}
+
+		static async deleteAsset(p_account: AccountPath, p_chain: ChainPath, si_asset: Bech32): Promise<void> {
+			return await Accounts.update(p_account, g => ({
+				...g,
+				assets: {
+					...g.assets,
+					[p_chain]: {
+						...g.assets[p_chain],
+						data: (() => {
+							const h_assets = g.assets[p_chain]?.data || {};
+
+							delete h_assets[si_asset];
+
+							return h_assets;
+						})(),
+					},
+				},
+			}));
 		}
 
 		get(si_family: ChainNamespaceKey, s_pubkey: string): AccountStruct | null {

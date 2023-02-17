@@ -62,6 +62,15 @@ export const Chains = create_store_class({
 			return `${g_chain.namespace}:${g_chain.reference}`;
 		}
 
+		static caip2For(p_chain: ChainPath): Caip2.String {
+			const [si_namespace, si_reference] = ChainsI.parsePath(p_chain);
+
+			return ChainsI.caip2From({
+				namespace: si_namespace,
+				reference: si_reference,
+			});
+		}
+
 		static parsePath(p_chain: ChainPath): [ChainNamespaceKey, string] {
 			const m_path = R_CHAIN_PATH.exec(p_chain);
 			if(!m_path) throw new Error(`Invalid chain path: "${p_chain}"`);
@@ -142,7 +151,7 @@ export const Chains = create_store_class({
 			const x_amount = new BigNumber(g_amount.amount).shiftedBy(-g_coin.decimals).toNumber();
 
 			// 
-			return `${format_amount(x_amount)} ${si_coin}`;
+			return `${format_amount(x_amount, true)} ${si_coin}`;
 		}
 
 		static coinFromDenom(si_denom: string, g_chain: ChainStruct): string {

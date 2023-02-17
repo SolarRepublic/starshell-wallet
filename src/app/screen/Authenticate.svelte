@@ -217,12 +217,17 @@
 			gap: 20px;
 			padding-left: 16px;
 			padding-right: 16px;
-			background-image: url('/media/vendor/orb-1.svg');
-			background-repeat: no-repeat;
-			background-position: center top;
-			background-size: cover;
 			// padding-top: calc(50vh - 200px);
 			padding-top: calc((0.45 * var(--app-window-height)) - 132px);  // 132px is half the computed height of the login prompt
+		}
+
+		form&.screen {
+			:global(&) {
+				background-image: url('/media/vendor/orb-1.svg');
+				background-repeat: no-repeat;
+				background-position: center top;
+				background-size: cover;
+			}
 		}
 
 		>div {

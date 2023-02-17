@@ -10,6 +10,7 @@
 	
 	import {Screen} from './_screens';
 	import {syserr} from '../common';
+	import {yw_account} from '../mem';
 	import {load_app_context} from '../svelte';
 	
 	import {produce_contracts} from '#/chain/contract';
@@ -26,7 +27,7 @@
 	import RequestSignature from './RequestSignature.svelte';
 	import AppBanner from '../frag/AppBanner.svelte';
 	import ActionsLine from '../ui/ActionsLine.svelte';
-	import CheckboxField, { toggleChildCheckbox } from '../ui/CheckboxField.svelte';
+	import CheckboxField, {toggleChildCheckbox} from '../ui/CheckboxField.svelte';
 	import Curtain from '../ui/Curtain.svelte';
 	import Load from '../ui/Load.svelte';
 	import LoadingRows from '../ui/LoadingRows.svelte';
@@ -57,12 +58,12 @@
 
 	let a_contracts: ContractStruct[] = [];
 
-	const g_app_cover = (g_cause?.['app'] || g_app) as AppStruct;
+	const g_app_cover = g_cause?.['app'] || g_app;
 
 	const dp_load = (async function load() {
 		// init fields
 		await Promise.all([
-			produce_contracts(bech32s, g_chain, g_app_cover).then(a => a_contracts = a),
+			produce_contracts(bech32s, g_chain, g_app_cover, g_account || $yw_account).then(a => a_contracts = a),
 			Accounts.at(p_account).then(g => g_account = g!),
 			Providers.activateStableDefaultFor<SecretNetwork>(g_chain).then(async(_k_network) => {
 				k_network = _k_network;
@@ -166,7 +167,7 @@
 						broadcast: true,
 					},
 					context: {
-						completed: F_NOOP,
+						completed,
 					},
 				});
 			};
@@ -299,80 +300,76 @@
 		</p> -->
 		
 		<div class="rows no-margin">
-			{#await produce_contracts(bech32s, g_chain, g_app_cover)}
-				<LoadingRows count={bech32s.length} />
-			{:then a_contracts}
-				{#each a_contracts as g_contract}
-					<!-- TODO: represent NFTs too? -->
+			{#each a_contracts as g_contract}
+				<!-- TODO: represent NFTs too? -->
 
-					{#if g_contract.bech32 in h_errors}
-						<Row resource={g_contract}
-							name={g_contract.interfaces.snip20?.symbol || '??'}
-							postname={g_contract.name}
-							address={g_contract.bech32} copyable
-						>
-							<span slot="right" style="margin-left: 1.5em;">
-								<CheckboxField id="add-${g_contract.bech32}" disabled checked={false} />
+				{#if g_contract.bech32 in h_errors}
+					<Row resource={g_contract}
+						name={g_contract.interfaces.snip20?.symbol || '??'}
+						postname={g_contract.name}
+						address={g_contract.bech32} copyable
+					>
+						<span slot="right" style="margin-left: 1.5em;">
+							<CheckboxField id="add-${g_contract.bech32}" disabled checked={false} />
+						</span>
+
+						<span slot="below" class="contract-error">
+							{h_errors[g_contract.bech32]}
+						</span>
+					</Row>
+				{:else}
+					<Row resource={g_contract}
+						name={g_contract.interfaces.snip20?.symbol || '??'}
+						postname={g_contract.name}
+						address={g_contract.bech32} copyable
+						on:click={toggleChildCheckbox}
+					>
+						<span slot="right" style="margin-left: 1.5em;">
+							<CheckboxField id="add-${g_contract.bech32}"
+								bind:checked={h_checked[g_contract.bech32]}
+								on:change={update_checked}
+								disabled={b_disabled}
+							>
+							</CheckboxField>
+						</span>
+
+						<span slot="below" class="contract-stats">
+							<span class="global_svg-icon icon-diameter_18px link"
+								on:click|stopPropagation={() => open_external_link(Chains.blockExplorer('contract', {
+									address: g_contract.bech32,
+								}, g_chain))}
+							>
+								{@html SX_ICON_EXTERNAL}
 							</span>
 
-							<span slot="below" class="contract-error">
-								{h_errors[g_contract.bech32]}
-							</span>
-						</Row>
-					{:else}
-						<Row resource={g_contract}
-							name={g_contract.interfaces.snip20?.symbol || '??'}
-							postname={g_contract.name}
-							address={g_contract.bech32} copyable
-							on:click={toggleChildCheckbox}
-						>
-							<span slot="right" style="margin-left: 1.5em;">
-								<CheckboxField id="add-${g_contract.bech32}"
-									bind:checked={h_checked[g_contract.bech32]}
-									on:change={update_checked}
-									disabled={b_disabled}
-								>
-								</CheckboxField>
-							</span>
-
-							<span slot="below" class="contract-stats">
-								<span class="global_svg-icon icon-diameter_18px link"
-									on:click|stopPropagation={() => open_external_link(Chains.blockExplorer('contract', {
-										address: g_contract.bech32,
-									}, g_chain))}
-								>
-									{@html SX_ICON_EXTERNAL}
+							{#await SecretNodes.contractStats(g_chain, g_contract)}
+								<span>
+									<Load forever />
 								</span>
-
-								{#await SecretNodes.contractStats(g_chain, g_contract)}
-									<span>
-										<Load forever />
-									</span>
-									<span>
-										<Load forever />
-									</span>
-									<span>
-										<Load forever />
-									</span>
-								{:then g_stats}
-									{@const x_locked = +g_stats.value_locked / 1e6}
-									{@const n_txs = +g_stats.txs_count}
-									{@const n_accs = +g_stats.accounts_count}
-									<span class:color_caution={x_locked < 10e3 && (n_txs < 5e3 || n_accs < 1e3)}>
-										{format_amount(x_locked, true)} SCRT locked
-									</span>
-									<span class:color_caution={x_locked < 10e3 && n_txs < 3e3}>
-										{format_amount(n_txs, true)} txs
-									</span>
-									<span class:color_caution={x_locked < 10e3? n_accs < 100: n_accs < 1e3}>
-										{format_amount(n_accs, true)} accs
-									</span>
-								{/await}
-							</span>
-						</Row>
-					{/if}
-				{/each}
-			{/await}
+								<span>
+									<Load forever />
+								</span>
+								<span>
+									<Load forever />
+								</span>
+							{:then g_stats}
+								{@const x_locked = +g_stats.value_locked / 1e6}
+								{@const n_txs = +g_stats.txs_count}
+								{@const n_accs = +g_stats.accounts_count}
+								<span class:color_caution={x_locked < 10e3 && (n_txs < 5e3 || n_accs < 1e3)}>
+									{format_amount(x_locked, true)} SCRT locked
+								</span>
+								<span class:color_caution={x_locked < 10e3 && n_txs < 3e3}>
+									{format_amount(n_txs, true)} txs
+								</span>
+								<span class:color_caution={x_locked < 10e3? n_accs < 100: n_accs < 1e3}>
+									{format_amount(n_accs, true)} accs
+								</span>
+							{/await}
+						</span>
+					</Row>
+				{/if}
+			{/each}
 		</div>
 	{/await}
 

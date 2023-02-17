@@ -279,7 +279,7 @@ export const Snip2xMessageConstructor = {
 	},
 };
 
-type QueryRes<si_key extends Snip2x.AnyQueryKey=Snip2x.AnyQueryKey> = Promise<Snip2x.AnyQueryResponse<si_key>>;
+export type Snip2xQueryRes<si_key extends Snip2x.AnyQueryKey=Snip2x.AnyQueryKey> = Promise<Snip2x.AnyQueryResponse<si_key>>;
 
 const GC_DEFAULT_RATE_LIMITS: RateLimitConfig = {
 	concurrency: 6,
@@ -299,7 +299,7 @@ async function query_snip<si_key extends Snip2x.AnyQueryKey=Snip2x.AnyQueryKey>(
 	k_network: SecretNetwork,
 	g_chain: ChainStruct,
 	g_account: AccountStruct
-): QueryRes<si_key> {
+): Snip2xQueryRes<si_key> {
 	const g_writeback: {atu8_nonce?: Uint8Array} = {};
 
 	// ref grpc-web URL
@@ -504,7 +504,13 @@ export async function deduce_token_interfaces(
 					}
 
 					// contract implements all queries in spec (snip20 needs extra data)
-					if('snip20' !== si_interface) {
+					if('snip20' === si_interface) {
+						try {
+							await Snip2xToken.promoteSnip20(g_contract, k_network, g_account);
+						}
+						catch(e_discover) {}
+					}
+					else {
 						await _promote(si_interface);
 					}
 
@@ -519,28 +525,40 @@ export async function deduce_token_interfaces(
 
 
 export class Snip2xToken {
+	static async promoteSnip20(g_contract: ContractStruct, k_network: SecretNetwork, g_account: AccountStruct): Promise<void> {
+		// construct token as if it is already snip-20
+		const k_token = new Snip2xToken(g_contract, k_network, g_account);
+
+		const {
+			_g_contract,
+		} = k_token;
+
+		// attempt token info query
+		const g_info = (await k_token.tokenInfo()).token_info;
+
+		// passing implies snip-20; update contract
+		_g_contract.name = _g_contract.name || g_info.name || '';
+		if(_g_contract.name.startsWith('Unknown Contract')) _g_contract.name = g_info.name || '';
+		_g_contract.interfaces.snip20 = {
+			decimals: g_info.decimals as 0,
+			symbol: g_info.symbol,
+		};
+
+		await Contracts.merge(_g_contract);
+	}
+
 	static async discover(g_contract: ContractStruct, k_network: SecretNetwork, g_account: AccountStruct): Promise<Snip2xToken | null> {
 		// construct token as if it is already snip-20
 		const k_token = new Snip2xToken(g_contract, k_network, g_account);
 
 		// snip-20 interface not defined
 		if(!g_contract.interfaces.snip20) {
-			// attempt token info query
-			let g_info: Awaited<QueryRes>['token_info'];
 			try {
-				g_info = (await k_token.tokenInfo()).token_info;
+				await Snip2xToken.promoteSnip20(g_contract, k_network, g_account);
 			}
-			catch(e_info) {
+			catch(e_promote) {
 				return null;
 			}
-
-			// passing implies snip-20; update contract
-			g_contract.name = g_contract.name || g_info.name || '';
-			g_contract.interfaces.snip20 = {
-				decimals: g_info.decimals as 0,
-				symbol: g_info.symbol,
-			};
-			await Contracts.merge(g_contract);
 		}
 
 		// discover other snip interfaces
@@ -577,14 +595,14 @@ export class Snip2xToken {
 
 	protected _g_chain: ChainStruct;
 
-	protected _sa_owner: Cw.Bech32;
+	protected _sa_owner: ''|Cw.Bech32;
 
 	protected _g_snip20: TokenStructDescriptor<'snip20'>['snip20'];
 
-	constructor(protected _g_contract: ContractStruct, protected _k_network: SecretNetwork, protected _g_account: AccountStruct) {
+	constructor(protected _g_contract: ContractStruct, protected _k_network: SecretNetwork, protected _g_account: null|AccountStruct) {
 		this._g_chain = _k_network.chain;
-		this._sa_owner = Chains.addressFor(_g_account.pubkey, _k_network.chain) as Cw.Bech32;
 		this._g_snip20 = _g_contract.interfaces.snip20!;
+		this._sa_owner = _g_account? Chains.addressFor(_g_account.pubkey, _k_network.chain) as Cw.Bech32: '';
 	}
 
 	get bech32(): Bech32 {
@@ -599,12 +617,12 @@ export class Snip2xToken {
 		return this._g_chain;
 	}
 
-	get account(): AccountStruct {
+	get account(): null|AccountStruct {
 		return this._g_account;
 	}
 
-	get owner(): Bech32 {
-		return this._sa_owner;
+	get owner(): null|Bech32 {
+		return this._sa_owner || null;
 	}
 
 	get symbol(): string {
@@ -727,7 +745,7 @@ export class Snip2xToken {
 		return true;
 	}
 
-	async query<si_key extends Snip2x.AnyQueryKey=Snip2x.AnyQueryKey>(g_query: Snip2x.AnyQueryParameters<si_key>): QueryRes<si_key> {
+	async query<si_key extends Snip2x.AnyQueryKey=Snip2x.AnyQueryKey>(g_query: Snip2x.AnyQueryParameters<si_key>): Snip2xQueryRes<si_key> {
 		return await query_snip<si_key>(g_query, this._g_contract, this._k_network, this._g_chain, this._g_account);
 	}
 
@@ -735,13 +753,13 @@ export class Snip2xToken {
 		return Snip2xToken.viewingKeyFor(this._g_contract, this._g_chain, this._g_account);
 	}
 
-	tokenInfo(): QueryRes<'token_info'> {
+	tokenInfo(): Snip2xQueryRes<'token_info'> {
 		return this.query({
 			token_info: {},
 		});
 	}
 
-	async balance(): QueryRes<'balance'> {
+	async balance(): Snip2xQueryRes<'balance'> {
 		const g_balance = await this.query({
 			balance: {
 				address: this._sa_owner,
@@ -763,7 +781,7 @@ export class Snip2xToken {
 		return this._k_network.saveQueryCache(this._sa_owner, `${this._g_contract.bech32}:${si_key}`, g_data, Date.now());
 	}
 
-	async transferHistory(nl_page_size=16): QueryRes<'transfer_history'> {
+	async transferHistory(nl_page_size=16): Snip2xQueryRes<'transfer_history'> {
 		nl_page_size = Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, nl_page_size));
 
 		// read from cache
@@ -862,7 +880,7 @@ export class Snip2xToken {
 	}
 
 
-	async transactionHistory(nl_page_size=16): QueryRes<'transaction_history'> {
+	async transactionHistory(nl_page_size=16): Snip2xQueryRes<'transaction_history'> {
 		if(!this.snip21) throw new Error(`'transaction_history' not available on non SNIP-21 contract`);
 
 		type TransactionHistoryCache = Dict<TransactionHistoryItem>;
@@ -1042,7 +1060,7 @@ export class Snip2xToken {
 		return await this.execute(g_msg);
 	}
 
-	async exchangeRate(): QueryRes<'exchange_rate'> {
+	async exchangeRate(): Snip2xQueryRes<'exchange_rate'> {
 		return this.query({
 			exchange_rate: {},
 		});

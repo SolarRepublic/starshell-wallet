@@ -96,6 +96,7 @@ export type FieldConfigRegistry = {
 		bech32s: Promisable<Bech32[] | Record<Bech32, any>>;
 		g_chain: ChainStruct;
 		g_app?: AppStruct;
+		g_account?: AccountStruct;
 	};
 
 	dom: {

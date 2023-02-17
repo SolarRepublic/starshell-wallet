@@ -43,6 +43,8 @@
 	 */
 	export let b_mandatory = false;
 
+	export let p_mnemonic_selected = '';
+
 	type SeedOption = O.Merge<{
 		value: SecretPath<'mnemonic'>;
 	}, SelectOption>;
@@ -86,6 +88,16 @@
 		// create default selection
 		g_selected_seed = a_items[0];
 
+		// default selection was provided by pusher
+		if(p_mnemonic_selected) {
+			for(const g_item of a_items) {
+				if(p_mnemonic_selected === g_item.value) {
+					g_selected_seed = g_item;
+					break;
+				}
+			}
+		}
+
 		// initialize bip44 path
 		void update_path(true);
 	})();
@@ -119,27 +131,38 @@
 
 		// decrypt mnemonic
 		const atu8_package: Uint8Array = await new Promise((fk_resolve) => {
-			// set context for pin popup
-			$yw_context_popup = {
-				seed: g_secret_mnemonic.name,
-				hint: g_secret_mnemonic.security.hint,
+			const g_security = g_secret_mnemonic.security;
 
-				// test the pin entry
-				enter: (atu8_pin: Uint8Array) => Secrets.borrow(p_secret_mnemonic, async(kn_encrypted) => {
-					// attempt to decrypt with pin
-					try {
-						const _atu8_package = await Secrets.decryptWithPin(kn_encrypted.data, atu8_pin, g_secret_mnemonic.security);
-						fk_resolve(_atu8_package);
-						return true;
-					}
-					catch(e_decrypt) {
-						return false;
-					}
-				}),
-			};
+			// mnemonic is protected by PIN
+			if('pin' === g_security.type) {
+				// set context for pin popup
+				$yw_context_popup = {
+					seed: g_secret_mnemonic.name,
+					hint: g_security.hint,
 
-			// show popup
-			$yw_popup = PopupPin;
+					// test the pin entry
+					enter: (atu8_pin: Uint8Array) => Secrets.borrow(p_secret_mnemonic, async(kn_encrypted) => {
+						// attempt to decrypt with pin
+						try {
+							const _atu8_package = await Secrets.decryptWithPin(kn_encrypted.data, atu8_pin, g_security);
+							fk_resolve(_atu8_package);
+							return true;
+						}
+						catch(e_decrypt) {
+							return false;
+						}
+					}),
+				};
+
+				// show popup
+				$yw_popup = PopupPin;
+			}
+			// mnemonic is not protected
+			else {
+				void Secrets.borrow(p_secret_mnemonic, (kn_package) => {
+					fk_resolve(kn_package.data.slice());
+				});
+			}
 		});
 
 		// decode mnemonic package

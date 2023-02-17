@@ -1,19 +1,27 @@
+import {deduce_token_interfaces, Snip2xToken} from '#/schema/snip-2x-const';
+
 import {NL_PASSPHRASE_MAXIMUM, NL_PASSPHRASE_MINIMUM} from './constants';
 import {AlreadyRegisteredError, CorruptedVaultError, InvalidPassphraseError, RecoverableVaultError, UnregisteredError} from './errors';
 
+import {H_SNIP_HANDLERS} from '#/chain/messages/snip';
+import type {SecretNetwork} from '#/chain/secret-network';
 import {NB_ARGON2_MEMORY, N_ARGON2_ITERATIONS, Vault} from '#/crypto/vault';
 import {PublicStorage, storage_clear, storage_remove} from '#/extension/public-storage';
+import {precedes} from '#/extension/semver';
 import {SessionStorage} from '#/extension/session-storage';
 import {global_broadcast} from '#/script/msg-global';
 import {set_keplr_compatibility_mode} from '#/script/scripts';
+import {H_STORE_INIT_CONTRACTS} from '#/store/_init';
+import {Accounts} from '#/store/accounts';
+import {Chains} from '#/store/chains';
+import {Contracts} from '#/store/contracts';
+import {Incidents} from '#/store/incidents';
+import {Providers} from '#/store/providers';
+import {QueryCache} from '#/store/query-cache';
 import {F_NOOP, ode, timeout} from '#/util/belt';
 import {canonicalize, text_to_buffer} from '#/util/data';
-import { Contracts } from '#/store/contracts';
-import { H_STORE_INIT_CONTRACTS } from '#/store/_init';
-import { precedes } from '#/extension/semver';
-import { Chains } from '#/store/chains';
-import { QueryCache } from '#/store/query-cache';
-import type { JsonObject } from '#/meta/belt';
+import { Apps } from '#/store/apps';
+import type { Incident, TxSynced } from '#/meta/incident';
 
 
 
@@ -274,6 +282,89 @@ async function run_migrations() {
 				// overwrite
 				await QueryCache.putAt(si_caip2, h_cache);
 			}
+		}
+
+		// reset descriptorless snip20s
+		if(precedes(g_seen.version, '1.0.11')) {
+			// recover from any unforseen errors
+			try {
+				// cache of networks created during migration
+				const h_networks: Record<string, SecretNetwork> = {};
+
+				// start by finding contracts without any interfaces
+				const a_orphans = (await Contracts.entries()).map(([, g]) => g).filter(g => !Object.keys(g.interfaces).length);
+
+				// see if any turn up snip20
+				ADOPTING_ORPHANS:
+				for(const g_orphan of a_orphans) {
+					const p_chain = g_orphan.chain;
+					let k_network = h_networks[p_chain];
+					if(!k_network) {
+						const g_chain = await Chains.at(p_chain);
+						k_network = h_networks[p_chain] = await Providers.activateStableDefaultFor(g_chain!);
+					}
+
+					// grab first account (only used for public query)
+					const g_account_faux = (await Accounts.entries())[0][1];
+
+					// deduce current token interfaces for orphan
+					const a_interfaces = await deduce_token_interfaces(g_orphan, k_network, g_account_faux);
+
+					// enabled snip20
+					if(a_interfaces.includes('snip20')) {
+						// replay latest viewing key transaction
+						const a_incidents = [...await Incidents.filter({
+							type: 'tx_out',
+							stage: 'synced',
+							chain: g_orphan.chain,
+						})];
+
+						a_incidents.sort((g_a, g_b) => g_b.time - g_a.time);
+
+						for(const g_incident of a_incidents) {
+							const h_events = g_incident.data?.['events'] || {};
+							const a_executions = h_events.executions || [];
+							for(const g_exec of a_executions) {
+								// execution was made on this contract
+								if(g_orphan.bech32 === g_exec.contract) {
+									// found the most recent set viewing key transaction
+									if(g_exec.msg?.set_viewing_key) {
+										// build context
+										const g_data = g_incident.data as TxSynced;
+										const p_app = g_data.app;
+										const p_account = g_data.account;
+
+										if(!p_app || !p_account || !p_chain) continue;
+
+										const g_app = await Apps.at(p_app);
+										const g_account = await Accounts.at(p_account);
+										const g_chain = await Chains.at(p_chain);
+
+										if(!g_app || !g_account || !g_chain) continue;
+
+										const g_handled = await H_SNIP_HANDLERS.set_viewing_key?.({
+											key: g_exec.msg.set_viewing_key,
+										}, {
+											g_app,
+											g_account,
+											g_chain,
+											p_app,
+											p_account,
+											p_chain,
+										}, g_exec);
+
+										// attempt to apply
+										g_handled?.apply();
+
+										continue ADOPTING_ORPHANS;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			catch(e_resets) {}
 		}
 	}
 

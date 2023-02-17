@@ -213,7 +213,9 @@
 
 		.font(regular);
 
-		background-color: var(--theme-color-bg);
+		// background-color: var(--theme-color-bg);
+		background: var(--theme-color-bg);
+		background: radial-gradient(circle, rgb(15,19,23) 80%, rgb(1,8,15) 106%);
 
 		opacity: 1;
 		filter: blur(0);

@@ -25,6 +25,8 @@
 	export let s_hint_extension: string;
 
 	export let b_extension = false;
+	
+	export let b_use_pin = false;
 
 	let i_current = 0;
 
@@ -75,12 +77,16 @@
 		if(i_response === atu16_indicies[i_current]) {
 			i_avoid = -1;
 
-			i_current += random_int(2, 6);
+			i_current += random_int(3, 6);
 
 			if(i_current >= atu16_indicies.length) {
 				zero_out(atu16_fake);
 
 				b_complete = true;
+
+				// automatically advance to next screen
+				await timeout(500);
+				void next();
 				return;
 			}
 
@@ -138,6 +144,7 @@
 				kr_mnemonic,
 				kr_precursor,
 				s_hint_extension,
+				b_use_pin,
 			},
 		});
 	}

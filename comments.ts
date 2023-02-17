@@ -27,7 +27,7 @@ const h_package = {
 		"@sveltejs/vite-plugin-svelte": "^1.0.0-next.44",
 
 		// web extension tooling
-		"@solar-republic/vite-plugin-web-extension": "^1.0.2",
+		"@samrum/vite-plugin-web-extension": "^2.2.0",
 		"@types/chrome": "^0.0.185",
 		"@types/webextension-polyfill": "^0.8.3",
 		"web-ext": "^6.8.0",

@@ -11,7 +11,7 @@
 	import type {SecretPath} from '#/meta/secret';
 	
 	import {classify} from '../helper/json-previewer';
-	import {yw_chain} from '../mem';
+	import {yw_account, yw_chain} from '../mem';
 	
 	import {inject_svelte_slots, svelte_to_dom} from '../svelte';
 	
@@ -306,7 +306,7 @@
 							}
 
 							// produce contract struct, leveraging app profile if necessary
-							const g_contract = await produce_contract(sa_addr, g_chain, g_app, true);
+							const g_contract = await produce_contract(sa_addr, g_chain, g_app, null, true);
 							if(g_contract) {
 								return await render_resource(g_contract, 'contract', Contracts.pathFrom(g_contract), {
 									copy: sa_addr,
@@ -347,7 +347,7 @@
 	}
 
 	function not_brutal_gap(z_config) {
-		return !('gap' === z_config['type'] && z_config['brutal']);
+		return !('gap' === z_config?.['type'] && z_config?.['brutal']);
 	}
 </script>
 
@@ -376,7 +376,7 @@
 </style>
 
 <div class="fields" class:flex={flex} class:vertical={vertical}>
-	{#each configs as z_field, i_field}
+	{#each configs.filter(z => z) as z_field, i_field}
 		{#if i_field && !flex && not_brutal_gap(z_field) && not_brutal_gap(configs[i_field-1])}
 			<hr class:minimal={noHrs}>
 		{/if}
@@ -566,7 +566,7 @@
 					{@const z_bech32s = gc_field.bech32s}
 					{@const h_bech32s = Array.isArray(z_bech32s)? fold(z_bech32s, sa => ({[sa]:''})): z_bech32s}
 					{#each ode(h_bech32s) as [sa_contract, w_disabled]}
-						{#await produce_contract(sa_contract, g_chain, g_app)}
+						{#await produce_contract(sa_contract, g_chain, g_app, gc_field.g_account || $yw_account || null)}
 							<LoadingRows />
 						{:then g_contract}
 							<Copyable confirmation="Address copied!" let:copy>

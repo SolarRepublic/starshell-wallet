@@ -7,6 +7,7 @@ import {
 	P_PUBLIC_SUFFIX_LIST,
 	P_STARSHELL_DECREES,
 	P_STARSHELL_DEFAULTS,
+	P_STARSHELL_DAPPS,
 	XT_DAYS,
 	XT_HOURS,
 	XT_MINUTES,
@@ -105,6 +106,11 @@ const H_REGISTRY = {
 	[P_STARSHELL_DEFAULTS]: {
 		format: 'json',
 		lifespan: 15*XT_MINUTES,
+	},
+
+	[P_STARSHELL_DAPPS]: {
+		format: 'json',
+		lifespan: 12 * XT_HOURS,
 	},
 } as const;
 

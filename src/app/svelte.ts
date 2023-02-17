@@ -3,7 +3,7 @@ import type {Readable} from 'svelte/store';
 import type {Nameable, Pfpable} from '#/meta/able';
 import type {AccountStruct, AccountPath} from '#/meta/account';
 import type {AppStruct, AppPath} from '#/meta/app';
-import type {Dict} from '#/meta/belt';
+import type {Dict, Nilable} from '#/meta/belt';
 import type {ChainStruct, ChainPath, Bech32} from '#/meta/chain';
 import type {Resource} from '#/meta/resource';
 import type {ParametricSvelteConstructor} from '#/meta/svelte';
@@ -14,7 +14,7 @@ import {cubicOut} from 'svelte/easing';
 import {detach, insert, noop} from 'svelte/internal';
 
 import {syserr} from './common';
-import {yw_network, yw_progress} from './mem';
+import {yw_account, yw_account_ref, yw_chain, yw_chain_ref, yw_network, yw_progress} from './mem';
 
 import {FeeGrants} from '#/chain/fee-grant';
 import {Argon2, Argon2Type} from '#/crypto/argon2';
@@ -33,6 +33,7 @@ import {dd} from '#/util/dom';
 import type {Page} from '##/nav/page';
 
 import PfpDisplay from './frag/PfpDisplay.svelte';
+import { Settings } from '#/store/settings';
 
 
 export function once_store_updates(yw_store: Readable<any>, b_truthy=false): (typeof yw_store) extends Readable<infer w_out>? Promise<w_out>: never {
@@ -429,4 +430,45 @@ export function inject_svelte_slots(h_slots: Dict<HTMLElement>): {
 		$$slots: h_out,
 		$$scope: {},
 	};
+}
+
+
+export async function initialize_mem(h_context_all: Dict<any>={}) {
+	console.debug('#initialize-mem');
+
+	// allow these to fail in order to recover from disasters
+	try {
+		const ks_settings = await Settings.read();
+
+		// select account from context, or last used account
+		const p_account_selected: Nilable<AccountPath> = h_context_all.accountPath
+			|| ks_settings.get('p_account_selected');
+
+		// select chain from context, or last used chain
+		const p_chain_selected: Nilable<ChainPath> = h_context_all.chain
+			? Chains.pathFrom(h_context_all.chain as ChainStruct)
+			: ks_settings.get('p_chain_selected');
+
+		// attempt to load accounts
+		const ks_accounts = await Accounts.read();
+
+		// no accounts yet; don't wait for other stores to update since it may never return
+		if(!Object.keys(ks_accounts.raw).length) {
+			return;
+		}
+
+		// set defaults
+		await Promise.all([
+			// default chain
+			yw_chain.get() || once_store_updates(yw_chain, true),
+			Chains.read().then(ks => yw_chain_ref.set(p_chain_selected || ode(ks.raw)[0][0])),
+
+			// default account
+			yw_account.get() || once_store_updates(yw_account, true),
+			(() => yw_account_ref.set(p_account_selected || ode(ks_accounts.raw)[0][0]))(),
+		]);
+	}
+	catch(e_load_default) {
+		console.warn(e_load_default);
+	}
 }

@@ -73,30 +73,41 @@
 
 		// decrypt mnemonic
 		const atu8_package: Uint8Array = await new Promise((fk_resolve) => {
-			// set context for pin popup
-			$yw_context_popup = {
-				seed: g_mnemonic.name,
-				hint: g_mnemonic.security.hint,
+			const g_security = g_mnemonic.security;
 
-				// test the pin entry
-				enter: (atu8_pin: Uint8Array) => Secrets.borrow(p_mnemonic, async(kn_encrypted) => {
-					// attempt to decrypt with pin
-					try {
-						fk_resolve(await Secrets.decryptWithPin(kn_encrypted.data, atu8_pin, g_mnemonic.security));
-						return true;
-					}
-					catch(e_decrypt) {
-						return false;
-					}
-				}),
+			// mnemonic is protected by PIN
+			if('pin' === g_security.type) {
+				// set context for pin popup
+				$yw_context_popup = {
+					seed: g_mnemonic.name,
+					hint: g_security.hint,
 
-				cancelled() {
-					b_pin_cancelled = true;
-				},
-			};
+					// test the pin entry
+					enter: (atu8_pin: Uint8Array) => Secrets.borrow(p_mnemonic, async(kn_encrypted) => {
+						// attempt to decrypt with pin
+						try {
+							fk_resolve(await Secrets.decryptWithPin(kn_encrypted.data, atu8_pin, g_security));
+							return true;
+						}
+						catch(e_decrypt) {
+							return false;
+						}
+					}),
 
-			// show popup
-			$yw_popup = PopupPin;
+					cancelled() {
+						b_pin_cancelled = true;
+					},
+				};
+
+				// show popup
+				$yw_popup = PopupPin;
+			}
+			// mnemonic is not protected
+			else {
+				void Secrets.borrow(p_mnemonic, (kn_package) => {
+					fk_resolve(kn_package.data.slice());
+				});
+			}
 		});
 
 		// close popup

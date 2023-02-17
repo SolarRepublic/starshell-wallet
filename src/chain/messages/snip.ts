@@ -149,13 +149,16 @@ function wrap_handlers<as_keys extends string>(h_configs: Partial<SnipConfigs>):
 
 export const H_SNIP_HANDLERS: Partial<SnipHandlers> = wrap_handlers<Snip2x.AnyMessageKey>({
 	create_viewing_key(h_args) {
-		// TODO: fetch viewing key from contract once tx succeeds
-
 		return {
-			apply: () => ({
-				title: '🔑 Viewing Key Created',
-				message: '',
-			}),
+			async apply(si_txn) {
+				// TODO: fetch viewing key from contract once tx succeeds
+				debugger;
+
+				return {
+					title: '🔑 Viewing Key Created',
+					message: '',
+				};
+			},
 		};
 	},
 
@@ -192,7 +195,6 @@ export const H_SNIP_HANDLERS: Partial<SnipHandlers> = wrap_handlers<Snip2x.AnyMe
 		p_contract, g_contract_loaded, g_contract,
 		g_snip20,
 		g_snip721,
-		g_exec,
 	}) => ({
 		async apply() {
 			// whether this is a new token for the account
@@ -544,13 +546,14 @@ export const H_SNIP_HANDLERS: Partial<SnipHandlers> = wrap_handlers<Snip2x.AnyMe
 		});
 
 		const s_tokens = a_tokens.join(' + ');
+		const s_token_names = a_tokens.map(s => s.split(/\s+/g).at(-1)).join(', ');
 
 		return {
 			apply() {
 				return {
 					group: nl => `Asset${1 === nl? '': 's'} Wrapped`,
 					title: `🥷 Wrapped ${s_sent}`,
-					message: `by converting it into ${s_tokens}.`,
+					message: `into ${s_token_names}.`,
 				};
 			},
 
@@ -588,8 +591,10 @@ export const H_SNIP_HANDLERS: Partial<SnipHandlers> = wrap_handlers<Snip2x.AnyMe
 		const yg_amount = BigNumber(h_args.amount).shiftedBy(-g_contract_pseudo.interfaces.snip20!.decimals);
 
 		const s_tokens = yg_amount.toString()+' '+g_snip20!.symbol;
+		const s_tokens_summary = format_amount(yg_amount.toNumber(), true)+' '+g_snip20!.symbol;
 
-		const si_coin = g_rate.denom;
+		const si_denom = g_rate.denom;
+		const si_coin = Coins.idFromDenom(si_denom, g_chain);
 		const s_coin_amount = yg_amount.times(g_rate.rate).toString();
 		const s_coins = `${s_coin_amount} ${si_coin}`;
 
@@ -599,8 +604,8 @@ export const H_SNIP_HANDLERS: Partial<SnipHandlers> = wrap_handlers<Snip2x.AnyMe
 			apply() {
 				return {
 					group: nl => `Asset${1 === nl? '': 's'} Wrapped`,
-					title: `🎁 Unwrapped ${s_tokens}`,
-					message: `by converting it back to ${si_coin}.`,
+					title: `🎁 Unwrapped ${s_tokens_summary}`,
+					message: `into ${si_coin}.`,
 				};
 			},
 
@@ -626,7 +631,7 @@ export const H_SNIP_HANDLERS: Partial<SnipHandlers> = wrap_handlers<Snip2x.AnyMe
 				}
 				else {
 					return {
-						title: `Unwrapp${b_pending? 'ing': 'ed'} ${s_tokens}`,
+						title: `Unwrapp${b_pending? 'ing': 'ed'} ${s_tokens_summary}`,
 						infos: [
 							`on ${g_contract_loaded?.name || 'Unknown Contract'}`,
 						],

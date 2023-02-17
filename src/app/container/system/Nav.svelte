@@ -141,10 +141,11 @@
 		--nav-height: 72px;
 
 		position: absolute;
-		bottom: 0;
+		bottom: -0.1px;  // sub-pixel space
 		height: var(--nav-height);
 		width: 100%;
-		background-color: var(--theme-color-bg);
+		background: var(--theme-color-bg);
+		background: linear-gradient(177deg, @theme-color-dark 55%, @theme-color-darker 188%);
 		display: block;
 		z-index: 1000;
 
@@ -246,9 +247,9 @@
 </style>
 
 <nav class:collapsed={$yw_nav_collapsed} class:visible={$yw_nav_visible}>
-	<div class="collapse icon" on:click={() => toggle_collapsed()}>
+	<!-- <div class="collapse icon" on:click={() => toggle_collapsed()}>
 		{@html SX_ICON_EXPAND}
-	</div>
+	</div> -->
 	<ul class="bar">
 		{#each ode(H_BUTTONS) as [si_button, g_button]}
 			{#if g_button.disabled}

@@ -9,7 +9,8 @@
 	import type {FieldConfig} from '#/meta/field';
 	import type {Incident, IncidentStruct, IncidentPath, IncidentType} from '#/meta/incident';
 	
-	import type {TransactionHistoryItem, TransferHistoryItem} from '#/schema/snip-2x-def';
+	import type {TransferHistoryCache} from '#/schema/snip-2x-const';
+	import type {TransactionHistoryItem} from '#/schema/snip-2x-def';
 	
 	import {MsgSend} from '@solar-republic/cosmos-grpc/dist/cosmos/bank/v1beta1/tx';
 	import {PubKey} from '@solar-republic/cosmos-grpc/dist/cosmos/crypto/secp256k1/keys';
@@ -34,7 +35,7 @@
 	import {Providers} from '#/store/providers';
 	import {QueryCache} from '#/store/query-cache';
 	import {ode, oderac} from '#/util/belt';
-	import {base93_to_buffer, buffer_to_base64} from '#/util/data';
+	import {base64_to_buffer, base93_to_buffer, buffer_to_base64, buffer_to_hex} from '#/util/data';
 	import {dd} from '#/util/dom';
 	import {format_date_long, format_time} from '#/util/format';
 	
@@ -44,7 +45,6 @@
 	import Spacer from '../ui/Spacer.svelte';
 	
 	import SX_ICON_LAUNCH from '#/icon/launch.svg?raw';
-    import type { TransferHistoryCache } from '#/schema/snip-2x-const';
 
 
 	const {
@@ -76,6 +76,8 @@
 
 	// determines view mode for app banner
 	const b_banner = true;
+
+	let b_inbound = false;
 
 	const H_RELABELS = {
 		'extra.pfpg.offset': 'pfp offset',
@@ -222,6 +224,8 @@
 		},
 
 		tx_in: async(g_data, g_context) => {
+			b_inbound = true;
+
 			// interpret raw messages
 			const a_reviewed: ReviewedMessage[] = [];
 			for(const g_msg_proto of g_data.msgs) {
@@ -321,11 +325,18 @@
 				g_chain,
 			} = g_context;
 
+			b_inbound = true;
+
 			const sa_owner = Chains.addressFor(g_account.pubkey, g_chain);
 
 			const g_contract = await produce_contract(sa_contract, g_chain);
 
 			const a_fields_inbound_above: FieldConfig[] = [
+				{
+					type: 'transaction',
+					hash: buffer_to_hex(base64_to_buffer(si_tx)).toUpperCase(),
+					chain: g_context.g_chain,
+				},
 				{
 					type: 'contracts',
 					bech32s: [sa_contract],
@@ -341,7 +352,7 @@
 			let g_transfer: SelectTransactionHistoryItem | null = null;
 
 			// load from query cache
-			let g_cache_txn = ks_cache.get<Dict<TransactionHistoryItem>>(p_chain, sa_owner, `${sa_contract}:transaction_history`);
+			const g_cache_txn = ks_cache.get<Dict<TransactionHistoryItem>>(p_chain, sa_owner, `${sa_contract}:transaction_history`);
 			if(g_cache_txn) {
 				const h_data = g_cache_txn.data;
 				const g_tx = h_data[si_tx];
@@ -356,7 +367,7 @@
 				}
 			}
 			else {
-				let g_cache_xfr = ks_cache.get<TransferHistoryCache>(p_chain, sa_owner, `${sa_contract}:transfer_history`);
+				const g_cache_xfr = ks_cache.get<TransferHistoryCache>(p_chain, sa_owner, `${sa_contract}:transfer_history`);
 				if(g_cache_xfr) {
 					const g_xfer = g_cache_xfr.data?.transfers?.[si_tx];
 					g_transfer = {
@@ -647,7 +658,7 @@
 	}
 </style>
 
-<Screen nav>
+<Screen nav={!completed}>
 	<Header plain
 		search={!completed}
 		pops={!completed}
@@ -656,53 +667,57 @@
 		on:update={() => c_updates++}
 	/>
 
-	{#key c_updates}
-		{#if s_title}
-			{#if b_banner && gc_banner}
-				<AppBanner embedded
-					app={gc_banner.app}
-					chains={[gc_banner.chain]}
-					account={gc_banner.account}
-					rootStyle='margin-bottom: 8px;'
-				/>
+	{#await dp_loaded}
+		<h3 style='text-align: center;'>Loading</h3>
+	{:then}
+		{#key c_updates}
+			{#if s_title}
+				{#if b_banner && gc_banner}
+					<AppBanner embedded
+						app={b_inbound? null: gc_banner.app}
+						chains={[gc_banner.chain]}
+						account={gc_banner.account}
+						rootStyle='margin-bottom: 8px;'
+					/>
 
-				<hr class="no-margin">
-			{/if}
+					<hr class="no-margin">
+				{/if}
 
-			{#if 'tx_in' === g_incident.type || 'tx_out' === g_incident.type}
-				<Fields
-					incident={g_incident}
-					configs={[
-						...g_error? [g_error]: [],
-						{
-							type: 'key_value',
-							key: 'Date',
-							value: format_date_long(g_incident.time),
-						},
-						...a_fields,
-					]}
-					chain={g_chain}
-					network={k_network}
-					loaded={dp_loaded}
-				/>
-			{:else}
-				<Fields
-					incident={g_incident}
-					configs={[
-						{
-							type: 'key_value',
-							key: 'Date',
-							value: format_date_long(g_incident.time),
-						},
-						...a_fields,
-					]}
-					chain={g_chain}
-					network={k_network}
-					loaded={dp_loaded}
-				/>
+				{#if 'tx_in' === g_incident.type || 'tx_out' === g_incident.type}
+					<Fields
+						incident={g_incident}
+						configs={[
+							...g_error? [g_error]: [],
+							{
+								type: 'key_value',
+								key: 'Date',
+								value: format_date_long(g_incident.time),
+							},
+							...a_fields,
+						]}
+						chain={g_chain}
+						network={k_network}
+						loaded={dp_loaded}
+					/>
+				{:else}
+					<Fields
+						incident={g_incident}
+						configs={[
+							{
+								type: 'key_value',
+								key: 'Date',
+								value: format_date_long(g_incident.time),
+							},
+							...a_fields,
+						]}
+						chain={g_chain}
+						network={k_network}
+						loaded={dp_loaded}
+					/>
+				{/if}
 			{/if}
-		{/if}
-	{/key}
+		{/key}
+	{/await}
 
 	<Spacer height="0px" />
 

@@ -21,6 +21,7 @@
 			white-space: pre-wrap;
 			box-shadow: -1px 4px 6px black;
 			margin-top: 4px;
+			z-index: 2;
 		}
 	
 		&:hover {

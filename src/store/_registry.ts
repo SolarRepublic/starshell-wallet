@@ -9,6 +9,7 @@ import {Medias} from './medias';
 import {Pfps} from './pfps';
 import {Policies} from './policies';
 import {Providers} from './providers';
+import {QueryCache} from './query-cache';
 import {Settings} from './settings';
 import {Tags} from './tags';
 import {WebApis} from './web-apis';
@@ -26,6 +27,7 @@ import {
 	SI_STORE_WEB_APIS,
 	SI_STORE_PROVIDERS,
 	SI_STORE_EVENTS,
+	SI_STORE_QUERY_CACHE,
 } from '#/share/constants';
 
 
@@ -42,6 +44,7 @@ export const H_STORE_REGISTRY = {
 	[SI_STORE_PROVIDERS]: Providers,
 	[SI_STORE_ENTITIES]: Entities,
 	[SI_STORE_WEB_APIS]: WebApis,
+	[SI_STORE_QUERY_CACHE]: QueryCache,
 } as const;
 
 export type StoreRegistry<

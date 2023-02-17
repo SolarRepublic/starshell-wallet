@@ -1,7 +1,8 @@
 <script lang="ts">
 	import {yw_connection_health} from '../mem';
 	
-	import {ConnectionHealth, H_HEALTH_COLOR} from '#/store/providers';
+	import {ConnectionHealth} from '#/share/constants';
+	import {H_HEALTH_COLOR} from '#/store/providers';
 	
 	import Dot from './Dot.svelte';
 

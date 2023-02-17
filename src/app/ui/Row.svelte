@@ -98,6 +98,8 @@
 
 	export let embedded = false;
 
+	export let b_amount_updating = false;
+
 
 	// export let tagRefs: Tag.Ref[] | null = null;
 	export let rootStyle = '';
@@ -250,7 +252,7 @@
 		display: flex;
 		flex-direction: column;
 
-		&:first-child {
+		&:first-child:not(.display_contents>.row) {
 			border-top-width: 1px;
 		}
 
@@ -526,7 +528,7 @@
 				{#if $$slots.status}
 					<slot name="status"></slot>
 				{:else if amount}
-					<div class="amount">
+					<div class="amount" class:global_pulse={b_amount_updating}>
 						<span class="number">
 							<Load input={amount} pad />
 							<!-- {#await start_spinner(amount)}

@@ -39,6 +39,8 @@
 	import SX_ICON_CREDIT_CARD from '#/icon/credit-card.svg?raw';
 	import SX_ICON_EDIT from '#/icon/edit.svg?raw';
 	import SX_ICON_EYE from '#/icon/visibility.svg?raw';
+    import HoldingWrap from './HoldingWrap.svelte';
+    import ContractInspect from './ContractInspect.svelte';
 	
 	
 
@@ -149,6 +151,17 @@
 
 				gc_actions = {
 					send: gc_actions.send!,
+					wrap: {
+						label: 'Deposit',
+						trigger() {
+							k_page.push({
+								creator: HoldingWrap,
+								props: {
+									si_coin,
+								},
+							});
+						},
+					},
 					unwrap: {
 						trigger() {
 							k_page.push({
@@ -291,7 +304,22 @@
 		k_page,
 	} = load_page_context();
 
+	let xt_click_prev = 0;
+	function pfp_click() {
+		const xt_now = performance.now();
 
+		if(xt_now - xt_click_prev < 250) {
+			k_page.push({
+				creator: ContractInspect,
+				props: {
+					g_contract,
+					g_chain,
+				},
+			});
+		}
+
+		xt_click_prev = xt_now;
+	}
 </script>
 
 <style lang="less">
@@ -314,7 +342,7 @@
 		/>
 	{:else}
 		{#key gc_actions}
-			<Portrait
+			<Portrait on:pfp_click={pfp_click}
 				resource={g_contract}
 				resourcePath={p_contract}
 				title={s_main_title}

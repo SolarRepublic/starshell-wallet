@@ -263,7 +263,7 @@ const H_AMINO_SANITIZERS = {
 			);
 
 			// install contracts given by app
-			await install_contracts(a_tokens, g_chain, g_resolved.app);
+			await install_contracts(a_tokens, g_chain, g_resolved.app, g_account);
 		}
 
 		// return signed response

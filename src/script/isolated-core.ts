@@ -37,6 +37,7 @@ import {
 	R_CHAIN_NAME,
 	R_CONTRACT_NAME,
 	R_DATA_IMAGE_URL_WEB,
+	R_FAULTY_CAIP_19,
 	R_TOKEN_SYMBOL,
 } from '#/share/constants';
 import type {AppProfile} from '#/store/apps';
@@ -478,64 +479,78 @@ export async function load_app_pfp(b_reload=false): Promise<void> {
 	const sq_icons = ['icon', 'apple-touch-icon'].map(s => `link[rel="${s}"]`).join(',');
 	const a_icons = [...document.head.querySelectorAll(sq_icons)] as HTMLLinkElement[];
 
-	// 
-	let dm_selected: HTMLLinkElement | null = null;
-	let x_max = 0;
+	// prep icon data
+	let p_data = '';
 
-	// each icon
-	for(const dm_icon of a_icons) {
-		// icon has sizes attribute set
-		const sx_sizes = dm_icon.getAttribute('sizes');
-		if(sx_sizes) {
-			// each size listed
-			for(const sx_size of sx_sizes.split(/\s+/)) {
-				// parse dimensions
-				const m_dims = /^(\d+)x(\d+)$/.exec(sx_size);
+	// some found
+	if(a_icons.length) {
+		// 
+		let dm_selected: HTMLLinkElement | null = null;
+		let x_max = 0;
 
-				// failed to parse or not square; skip
-				if(!m_dims || m_dims[1] !== m_dims[2]) continue;
+		// each icon
+		for(const dm_icon of a_icons) {
+			// icon has sizes attribute set
+			const sx_sizes = dm_icon.getAttribute('sizes');
+			if(sx_sizes) {
+				// each size listed
+				for(const sx_size of sx_sizes.split(/\s+/)) {
+					// parse dimensions
+					const m_dims = /^(\d+)x(\d+)$/.exec(sx_size);
 
-				// parse integer
-				const x_dim = +m_dims[1];
+					// failed to parse or not square; skip
+					if(!m_dims || m_dims[1] !== m_dims[2]) continue;
 
-				// larger than largest but still within range; select icon
-				if(x_dim > x_max && x_dim <= 2 * N_PX_DIM_ICON) {
-					x_max = x_dim;
+					// parse integer
+					const x_dim = +m_dims[1];
+
+					// larger than largest but still within range; select icon
+					if(x_dim > x_max && x_dim <= 2 * N_PX_DIM_ICON) {
+						x_max = x_dim;
+						dm_selected = dm_icon;
+					}
+				}
+			}
+			// nothing else is selected yet
+			else if(!dm_selected) {
+				dm_selected = dm_icon;
+			}
+			// this variant is a (typically) higher resolution apple-touch-icon
+			else if('apple-touch-icon' === dm_icon.getAttribute('rel')) {
+				if(dm_selected.getAttribute('type')?.startsWith('image/png')) {
 					dm_selected = dm_icon;
 				}
 			}
-		}
-		// nothing else is selected yet
-		else if(!dm_selected) {
-			dm_selected = dm_icon;
-		}
-		// this variant is a (typically) higher resolution apple-touch-icon
-		else if('apple-touch-icon' === dm_icon.getAttribute('rel')) {
-			if(dm_selected.getAttribute('type')?.startsWith('image/png')) {
+			// svg can be scaled; prefer it
+			else if(dm_icon.getAttribute('type')?.startsWith('image/svg')) {
 				dm_selected = dm_icon;
 			}
 		}
-		// svg can be scaled; prefer it
-		else if(dm_icon.getAttribute('type')?.startsWith('image/svg')) {
-			dm_selected = dm_icon;
+
+		// an icon was selected
+		if(dm_selected) {
+			// load its image data into a data URL
+			p_data = await load_icon_data(dm_selected.href, N_PX_DIM_ICON) || '';
+		}
+	}
+	else {
+		const p_og_image = document.head.querySelector('meta[property="og:image"]')?.getAttribute('content');
+
+		if(p_og_image) {
+			// load its image data into a data URL
+			p_data = await load_icon_data(p_og_image, N_PX_DIM_ICON) || '';
 		}
 	}
 
-	// an icon was selected
-	if(dm_selected) {
-		// load its image data into a data URL
-		const p_data = await load_icon_data(dm_selected.href, N_PX_DIM_ICON) || '';
+	// okay to use
+	if(p_data) {
+		// save pfp data URL to session storage
+		const p_pfp = `pfp:${location.origin}` as const;
 
-		// okay to use
-		if(p_data) {
-			// save pfp data URL to session storage
-			const p_pfp = `pfp:${location.origin}` as const;
-
-			// set pfp
-			await SessionStorage.set({
-				[p_pfp]: p_data,
-			});
-		}
+		// set pfp
+		await SessionStorage.set({
+			[p_pfp]: p_data,
+		});
 	}
 
 	// set basic profile
@@ -602,7 +617,22 @@ export async function create_app_profile(): Promise<AppProfile> {
 			// each caip-19 link
 			...[...destructure_links('caip-19')].map(async({href:p_href, value:si_caip19}) => {
 				// invalid CAIP-19
-				if(!R_CAIP_19.test(si_caip19)) return;
+				if(!R_CAIP_19.test(si_caip19)) {
+					// faulty syntax; fix
+					let m_faulty = R_FAULTY_CAIP_19.exec(si_caip19);
+					if(m_faulty) {
+						const si_corrected = `${m_faulty[1]}:${m_faulty[2]}/${m_faulty[3]}:${m_faulty[4]}`;
+
+						// issue deprecation warning
+						warn(`DEPRECATION NOTICE:  <link data-caip-19="${si_caip19}" ...>  uses an invalid CAIP-19 identifier and its value should be updated to "${si_corrected}"`);
+
+						si_caip19 = si_corrected;
+					}
+					// invalid
+					else {
+						return;
+					}
+				}
 
 				// load its image data into a data URL
 				const sx_data = await load_icon_data(p_href);

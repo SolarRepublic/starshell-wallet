@@ -13,7 +13,7 @@ import {format_amount} from '#/util/format';
 export function as_amount(g_coin: Coin, g_info: CoinInfo): string {
 	const s_norm = g_coin.amount.padStart(g_info.decimals + 2, '0');
 
-	return s_norm.slice(0, -g_info.decimals).replace(/^0+/, '0')+'.'+s_norm.slice(-g_info.decimals);
+	return s_norm.slice(0, -g_info.decimals).replace(/^(0(?!\.))+/, '')+'.'+s_norm.slice(-g_info.decimals);
 }
 
 export async function coin_to_fiat(g_balance: Coin, g_coin: CoinInfo, si_versus='usd'): Promise<BigNumber> {
