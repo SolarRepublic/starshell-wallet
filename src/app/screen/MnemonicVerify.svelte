@@ -34,7 +34,7 @@
 
 	const atu16_fake = new Uint16Array(atu16_indicies.length - 1);
 
-	const {k_page} = load_page_context();
+	const {k_page, a_progress, next_progress} = load_page_context();
 
 	let dm_challenge: HTMLElement;
 	let b_complete = false;
@@ -146,6 +146,7 @@
 				s_hint_extension,
 				b_use_pin,
 			},
+			context: next_progress(),
 		});
 	}
 </script>
@@ -285,7 +286,7 @@
 	}
 </style>
 
-<Screen progress={[2, 5]}>
+<Screen progress={a_progress}>
 	<Mnemonic b_readonly i_reveal={i_current}
 		bind:atu16_indicies={atu16_indicies}
 	/>

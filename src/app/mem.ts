@@ -50,13 +50,12 @@ import {Chains} from '#/store/chains';
 import {Medias} from '#/store/medias';
 import {Pfps} from '#/store/pfps';
 import {Providers} from '#/store/providers';
+import {QueryCache} from '#/store/query-cache';
 import {Settings} from '#/store/settings';
 import {Tags} from '#/store/tags';
 import {F_NOOP, microtask, timeout} from '#/util/belt';
 
-
 import PopupReceive from './popup/PopupReceive.svelte';
-import { QueryCache } from '#/store/query-cache';
 
 
 
@@ -333,10 +332,10 @@ const d_viewport = globalThis.visualViewport || {
 } as VisualViewport;
 
 // fits the app to the full viewport dimensions
-function fit_viewport(xl_offset_height=0) {
+function fit_viewport(xl_offset_height=0, xl_max_width=Infinity) {
 	const d_style_root = document.documentElement.style;
 	if(d_viewport) {
-		const xl_width = d_viewport.width;
+		const xl_width = Math.min(xl_max_width, d_viewport.width);
 		const xl_height = d_viewport.height + xl_offset_height;
 
 		if(xl_width * xl_height > 100) {
@@ -428,7 +427,15 @@ if('undefined' !== typeof document) {
 
 				// start by setting dimensions to fill entire viewport
 				dm_html.style.width = '100vw';
-				dm_html.style.height = '100vh';
+
+				// remove height property
+				dm_html.style.removeProperty('height');
+
+				// wait a tick
+				await microtask();
+
+				// set height property
+				dm_html.style.setProperty('height', '100vh');
 
 				// wait a tick
 				await microtask();
@@ -622,10 +629,23 @@ if('undefined' !== typeof document) {
 					// scroll document to nearly top
 					dm_html.scrollTo({top:0, behavior:'smooth'});
 				});
+
+				// prevent weird keyboard layout issues
+				setInterval(async() => {
+					document.documentElement.style.removeProperty('height');
+					await timeout(1e3);
+					document.documentElement.style.setProperty('height', '100vh');
+				}, 5e3);
 			}
 
 			// resize app on mobile
 			await resize_app();
+
+			// expose resize functions
+			Object.assign(globalThis, {
+				resize_app,
+				fit_viewport,
+			});
 		}
 		// desktop
 		else {
@@ -633,7 +653,8 @@ if('undefined' !== typeof document) {
 
 			// window
 			if(['popout', 'tab'].includes(H_PARAMS.within as string)) {
-				fit_viewport();
+				// take up entire viewing width
+				document.documentElement.style.setProperty('--app-window-width', '100vw');
 
 				// take up fill window
 				d_style_root.width = d_style_root.height = '100%';
@@ -642,6 +663,9 @@ if('undefined' !== typeof document) {
 			}
 			// popover
 			else if(B_WITHIN_WEBEXT_POPOVER) {
+				// ensure consistent max width (affects firefox)
+				fit_viewport(0, 360);
+
 				// firefox
 				if('Firefox' === G_USERAGENT.browser.name) {
 					document.body.style.width = 'var(--app-window-width)';

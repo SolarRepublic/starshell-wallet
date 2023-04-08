@@ -69,7 +69,7 @@
 		g_account = (await Accounts.at(p_account))!;
 		sa_owner = Chains.addressFor(g_account.pubkey, g_chain);
 
-		a_contracts = await produce_contracts(bech32s, g_chain, g_app);
+		a_contracts = await produce_contracts(bech32s, g_chain, g_app, g_account);
 
 		// TODO: move this into `TokenRow`
 		const ks_cache = await QueryCache.read();
@@ -151,7 +151,7 @@
 		}
 
 		// produce list of secondaries affected
-		a_contracts_secondary = await produce_contracts([...as_secondaries], g_chain, g_app);
+		a_contracts_secondary = await produce_contracts([...as_secondaries], g_chain, g_app, g_account);
 
 		// done
 		b_loaded = true;

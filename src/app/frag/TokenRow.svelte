@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type {Promisable} from '#/meta/belt';
+	import type {Nilable, Promisable} from '#/meta/belt';
 	import type {ContractStruct, FeeConfig} from '#/meta/chain';
 	import type {Cw} from '#/meta/cosm-wasm';
 	import type {Snip20} from '#/schema/snip-20-def';
@@ -35,10 +35,10 @@
 	const dispatch = createEventDispatcher();
 
 	export let balance: {
-		b_from_cache?: boolean;
 		s_amount: string;
-		s_fiat: Promisable<string>;
-		s_worth: Promisable<string>;
+		b_from_cache?: Nilable<boolean>;
+		s_fiat?: Nilable<Promisable<string>>;
+		s_worth?: Nilabel<Promisable<string>>;
 	} | true | null = null;
 
 	export let unauthorized = false;
@@ -72,9 +72,10 @@
 		}
 	});
 
-	$: w_amount = balance? balance?.s_amount || forever(''): '';
+	$: w_amount = balance? balance?.['s_amount'] || forever(''): '';
 
-	const g_fields = balance?.s_fiat? {fiat:balance.s_fiat}: {};
+	$: g_fields = balance?.['s_fiat']? {fiat:balance['s_fiat']}: {};
+
 
 	function click_row() {
 		k_page.push({
@@ -183,7 +184,7 @@
 		</Row>
 	{:else}
 		<Row postnameTags b_draggable on:dropRow
-			b_amount_updating={balance?.b_from_cache || false}
+			b_amount_updating={balance?.['b_from_cache'] || false}
 			name={g_snip20.symbol}
 			resourcePath={p_contract}
 			detail={contract.name}

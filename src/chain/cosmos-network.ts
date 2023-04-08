@@ -8,13 +8,18 @@ import type {Coin} from '@solar-republic/cosmos-grpc/dist/cosmos/base/v1beta1/co
 import type {Grant} from '@solar-republic/cosmos-grpc/dist/cosmos/feegrant/v1beta1/feegrant';
 import type {Proposal, TallyResult} from '@solar-republic/cosmos-grpc/dist/cosmos/gov/v1beta1/gov';
 import type {ParamChange} from '@solar-republic/cosmos-grpc/dist/cosmos/params/v1beta1/params';
+
 import type {
-	QueryParamsRequest as ParamsQueryConfig} from '@solar-republic/cosmos-grpc/dist/cosmos/params/v1beta1/query';
+	QueryParamsRequest as ParamsQueryConfig,
+} from '@solar-republic/cosmos-grpc/dist/cosmos/params/v1beta1/query';
+
 import type {
 	Params,
 	Pool,
 	RedelegationResponse,
-	UnbondingDelegation} from '@solar-republic/cosmos-grpc/dist/cosmos/staking/v1beta1/staking';
+	UnbondingDelegation,
+} from '@solar-republic/cosmos-grpc/dist/cosmos/staking/v1beta1/staking';
+
 import type {
 	GetTxsEventResponse,
 	BroadcastTxResponse,
@@ -677,6 +682,12 @@ export class CosmosNetwork {
 		});
 	}
 
+	async findAccount(sa_find: Bech32) {
+		return await wgrpc_retry(() => new AuthQueryClient(this._y_grpc).account({
+			address: sa_find,
+		}));
+	}
+
 	async e2eInfoFor(sa_other: Bech32, s_height_max=''): Promise<E2eInfo> {
 		return await with_timeout({
 			duration: 10e3,
@@ -857,17 +868,7 @@ export class CosmosNetwork {
 		};
 	}
 
-	async broadcastDirect(gc_broadcast: BroadcastConfig): Promise<[TxResponse, Uint8Array]> {
-		const {
-			atu8_tx,
-			sxb16_hash,
-		} = this.finalizeTxRaw(gc_broadcast);
-
-		// deststructure args
-		const {
-			mode: xc_mode=BroadcastMode.BROADCAST_MODE_SYNC,
-		} = gc_broadcast;
-
+	async broadcastRaw(atu8_tx: Uint8Array, xc_mode: BroadcastMode=BroadcastMode.BROADCAST_MODE_SYNC): Promise<[TxResponse, Uint8Array]> {
 		// prep response
 		let g_response: BroadcastTxResponse;
 
@@ -906,6 +907,20 @@ export class CosmosNetwork {
 		// }
 
 		return [g_response.txResponse!, atu8_tx];
+	}
+
+	async broadcastDirect(gc_broadcast: BroadcastConfig): Promise<[TxResponse, Uint8Array]> {
+		const {
+			atu8_tx,
+			sxb16_hash,
+		} = this.finalizeTxRaw(gc_broadcast);
+
+		// deststructure args
+		const {
+			mode: xc_mode=BroadcastMode.BROADCAST_MODE_SYNC,
+		} = gc_broadcast;
+
+		return await this.broadcastRaw(atu8_tx, xc_mode);
 	}
 
 	// async fetchParams() {
@@ -1323,7 +1338,7 @@ export class CosmosNetwork {
 
 	// -----------
 
-	async authInfoDirect(g_account: AccountStruct, gc_fee: Partial<Fee>): Promise<{auth: Uint8Array; signer: SignerData}> {
+	async authInfo(g_account: AccountStruct, gc_fee: Partial<Fee>, xc_mode: SignMode=SignMode.SIGN_MODE_DIRECT): Promise<{auth: Uint8Array; signer: SignerData}> {
 		// derive account's address
 		const sa_owner = Chains.addressFor(g_account.pubkey, this._g_chain);
 
@@ -1348,48 +1363,7 @@ export class CosmosNetwork {
 					},
 					modeInfo: {
 						single: {
-							mode: SignMode.SIGN_MODE_DIRECT,
-						},
-					},
-					sequence: g_signer.sequence+'',
-				},
-			],
-			fee: Fee.fromPartial(gc_fee),
-		});
-
-		return {
-			auth: atu8_auth,
-			signer: g_signer,
-		};
-	}
-
-
-	async authInfoAmino(g_account: AccountStruct, gc_fee: Partial<Fee>): Promise<{auth: Uint8Array; signer: SignerData}> {
-		// derive account's address
-		const sa_owner = Chains.addressFor(g_account.pubkey, this._g_chain);
-
-		// get account's signing key
-		const k_secp = await Accounts.getSigningKey(g_account);
-
-		// export its public key
-		const atu8_pk = k_secp.exportPublicKey();
-
-		// fetch latest signer info
-		const g_signer = await this.signerData(sa_owner);
-
-		// generate auth info bytes
-		const atu8_auth = encode_proto(AuthInfo, {
-			signerInfos: [
-				{
-					publicKey: {
-						typeUrl: '/cosmos.crypto.secp256k1.PubKey',
-						value: encode_proto(PubKey, {
-							key: atu8_pk,
-						}),
-					},
-					modeInfo: {
-						single: {
-							mode: SignMode.SIGN_MODE_LEGACY_AMINO_JSON,
+							mode: xc_mode,
 						},
 					},
 					sequence: g_signer.sequence+'',
@@ -1413,7 +1387,7 @@ export class CosmosNetwork {
 		const {
 			auth: atu8_auth,
 			signer: g_signer,
-		} = await this.authInfoDirect(g_account, g_fee);
+		} = await this.authInfo(g_account, g_fee, SignMode.SIGN_MODE_DIRECT);
 
 		// produce signed doc bytes
 		return await sign_direct_doc(g_account, g_signer.accountNumber, atu8_auth, atu8_body, g_chain.reference);

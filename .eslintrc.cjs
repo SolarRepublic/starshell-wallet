@@ -1,6 +1,10 @@
 
 const SX_POW2 = '(?:8|16|32|64)';
 
+const A_PRIMITIVE_STRING = [
+	`s([aihpqrx]|x?b\\d+)?`, 'p[r]?',
+];
+
 const H_PRIMITIVES = {
 	boolean: [
 		'b',
@@ -8,9 +12,7 @@ const H_PRIMITIVES = {
 	number: [
 		'c[b]?', 'i([bt]|px)?', 'n([bil]?|px)', `x(?:a[rd]|[b-z][l]?|[uifg]${SX_POW2})?`,
 	],
-	string: [
-		`s([aihpqrx]|x?b${SX_POW2})?`, 'p[r]?',
-	],
+	string: A_PRIMITIVE_STRING,
 	array: [
 		'a',
 	],
@@ -20,7 +22,8 @@ const H_PRIMITIVES = {
 	_other: [
 		'd[a-z]{0,2}', 'e', 'g[ca-z]?',
 		'h[m]?', 'k[a-z]{0,2}', 'm', 'r[t]?',
-		't', 'v', 'w', 'xg', 'y[a-z]{0,2}', 'z',
+		...A_PRIMITIVE_STRING,
+		't', 'v', 'w', 'x[cg]', 'y[a-z]{0,2}', 'z',
 		'a[btsx]', 'at[uif](8|16|32|64)',
 	],
 };

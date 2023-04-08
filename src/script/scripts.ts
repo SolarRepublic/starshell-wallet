@@ -7,6 +7,7 @@ import {locate_script} from './utils';
 import {Vault} from '#/crypto/vault';
 import {PublicStorage} from '#/extension/public-storage';
 import {SessionStorage} from '#/extension/session-storage';
+import {B_IPHONE_IOS} from '#/share/constants';
 import {Apps} from '#/store/apps';
 
 export type ContentScript = Browser.Scripting.RegisteredContentScript;
@@ -88,6 +89,9 @@ export const H_CONTENT_SCRIPT_DEFS = {
  * Handles the (un)registration of content scripts 
  */
 export async function set_script_registration(gc_script: ContentScript, b_enabling: boolean): Promise<void> {
+	// unconditionally enabled
+	if(B_IPHONE_IOS) return;
+
 	// acquire exclusive lock
 	await navigator.locks.request('webext:script-registration', async() => {
 		// check the current status of the script, i.e., whether or not it is enabled
@@ -168,6 +172,9 @@ export async function set_script_registration(gc_script: ContentScript, b_enabli
  * Adds origin matches to the keplr polyfill script registration and ensures it is enabled
  */
 export async function keplr_polyfill_script_add_matches(a_matches: string[], b_exclusive?: boolean): Promise<void> {
+	// already unconditional
+	if(B_IPHONE_IOS) return;
+
 	// dynamic script registration not available
 	if('function' !== typeof f_scripting()?.registerContentScripts) {
 		debugger;

@@ -31,7 +31,7 @@ export const Apps = create_store_class({
 			s_scheme extends AppSchemeKey,
 			g_app extends App<Replace<s_host, ':', '+'>, s_scheme>,
 		>(s_host: s_host, s_scheme: s_scheme): Resource.Path<g_app> {
-			return `/scheme.${s_scheme}/host.${s_host.replace(/:/g, '+')}` as Resource.Path<g_app>;
+			return `/scheme.${s_scheme.replace(/:+$/, '')}/host.${s_host.replace(/:/g, '+')}` as Resource.Path<g_app>;
 		}
 
 		static pathFrom<
@@ -71,14 +71,14 @@ export const Apps = create_store_class({
 			return await Apps.open(ks => ks.put(g_app));
 		}
 
-		override at(p_app: AppPath): AppStruct {
+		override at(p_app: AppPath, b_null_for_unfound=false): AppStruct {
 			const [s_scheme, s_host] = Apps.parsePath(p_app);
 
 			if('wallet' === s_scheme) {
 				return H_WALLET_APPS[s_host] || G_APP_NULL;
 			}
 
-			return this._w_cache[p_app] || G_APP_NOT_FOUND;
+			return this._w_cache[p_app] || (b_null_for_unfound? null: G_APP_NOT_FOUND);
 		}
 
 		get(s_host: string, s_scheme: AppSchemeKey): AppStruct | null {

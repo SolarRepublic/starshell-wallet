@@ -281,7 +281,7 @@ export function timeout_exec<
 	return new Promise((fk_resolve, fe_reject) => {
 		// infinite
 		if(!Number.isFinite(xt_wait)) {
-			void f_attempt?.().then(w => fk_resolve([w, 0]));
+			void f_attempt?.().then(w => fk_resolve([w, 0])).catch(e => fe_reject(e));
 			return;
 		}
 

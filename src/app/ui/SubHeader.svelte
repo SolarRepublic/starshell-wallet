@@ -67,7 +67,9 @@
 				</span>
 
 				<span class="text">
-					Add New
+					<slot name="add-new">
+						Add New
+					</slot>
 				</span>
 			</button>
 		{/if}

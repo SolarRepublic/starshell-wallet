@@ -139,7 +139,7 @@
 		{#await Chains.read()}
 			<LoadingRows count={5} />
 		{:then ks_chains}
-			{#each ks_chains.entries() as [p_chain, g_chain]}
+			{#each ks_chains.entries().filter(([, g]) => g.on) as [p_chain, g_chain]}
 				<Row
 					resource={g_chain}
 					resourcePath={p_chain}

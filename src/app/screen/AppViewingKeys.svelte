@@ -50,7 +50,7 @@
 		});
 
 		// produce contracts for each bech32 referenced
-		const a_contracts = await produce_contracts(a_keys.map(g => g.contract), $yw_chain);
+		const a_contracts = await produce_contracts(a_keys.map(g => g.contract), $yw_chain, null, $yw_account);
 
 		// initialize staging object
 		const h_staging = {};

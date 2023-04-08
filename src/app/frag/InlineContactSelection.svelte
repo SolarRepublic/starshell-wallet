@@ -4,6 +4,7 @@
 		label: string;
 		contact?: ContactStruct;
 		account?: AccountStruct;
+		created?: boolean;
 	}
 </script>
 

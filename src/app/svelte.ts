@@ -18,7 +18,7 @@ import {yw_account, yw_account_ref, yw_chain, yw_chain_ref, yw_network, yw_progr
 
 import {FeeGrants} from '#/chain/fee-grant';
 import {Argon2, Argon2Type} from '#/crypto/argon2';
-import {NB_ARGON2_MEMORY, Vault} from '#/crypto/vault';
+import {NB_ARGON2_MEMORY} from '#/crypto/vault';
 import type {IntraExt} from '#/script/messages';
 import {global_receive} from '#/script/msg-global';
 import {A_COURTESY_ACCOUNTS} from '#/share/constants';
@@ -26,6 +26,7 @@ import {Accounts} from '#/store/accounts';
 import {Apps, G_APP_STARSHELL} from '#/store/apps';
 import {Chains} from '#/store/chains';
 import {NB_ARGON2_PIN_MEMORY, N_ARGON2_PIN_ITERATIONS} from '#/store/secrets';
+import {Settings} from '#/store/settings';
 import {ode, ofe, timeout_exec} from '#/util/belt';
 import {text_to_buffer} from '#/util/data';
 import {dd} from '#/util/dom';
@@ -33,7 +34,6 @@ import {dd} from '#/util/dom';
 import type {Page} from '##/nav/page';
 
 import PfpDisplay from './frag/PfpDisplay.svelte';
-import { Settings } from '#/store/settings';
 
 
 export function once_store_updates(yw_store: Readable<any>, b_truthy=false): (typeof yw_store) extends Readable<infer w_out>? Promise<w_out>: never {
@@ -152,10 +152,14 @@ export interface Intent {
 
 type Completable<w_complete extends any=any> = (b_answer: boolean, w_value?: w_complete) => void;
 
+type ProgressTracker = [number, number];
+
 export interface PageContext {
 	k_page: Page;
 	g_cause: IntraExt.Cause | null;
 	b_searching: boolean;
+	a_progress: ProgressTracker | null;
+	next_progress: (this: void, a_progress?: [number, number] | null, n_delta?: number) => {progress?: ProgressTracker};
 }
 
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
@@ -163,11 +167,16 @@ export function load_page_context(): PageContext {
 	const k_page = getContext<Page>('page');
 	const g_cause = getContext<IntraExt.Cause | null>('cause') || null;
 	const b_searching = getContext<boolean>('searching') || false;
+	const a_progress = getContext<ProgressTracker>('progress') || null;
 
 	return {
 		k_page,
 		g_cause,
 		b_searching,
+		a_progress,
+		next_progress: (a=a_progress, c_delta=+1): ReturnType<PageContext['next_progress']> => a? {
+			progress: [a[0]+c_delta, a[1]],
+		}: {},
 	};
 }
 

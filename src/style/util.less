@@ -77,29 +77,44 @@
 	--background: var(--theme-color-border);
 	--border: 1px solid transparent;
 
-	--borderRadius: 8px;
-	--inputColor: var(--theme-color-text-light);
-	--placeholderColor: var(--theme-color-graysoft);
+	--border-radius: 8px;
+	--input-color: var(--theme-color-text-light);
+	--placeholder-color: var(--theme-color-graysoft);
 
-	--inputFontSize: 13px;
+	--font-size: 13px;
 
-	--borderFocusColor: var(--theme-color-primary);
+	--border-focus-color: var(--theme-color-primary);
 
-	--indicatorColor: var(--theme-color-primary);
+	--chevron-color: var(--theme-color-primary);
+	--indicator-color: var(--theme-color-primary);
 
-	--listShadow: -1px 3px 7px 0 rgba(0, 0, 0, 0.8);
+	--list-shadow: -1px 3px 7px 0 rgba(0, 0, 0, 0.8);
 
-	--listMaxHeight: 500px;
-	--listBackground: fade(@theme-color-graydark, 97%);
-	--listBorderRadius: var(--ui-border-radius);
+	--list-max-height: 500px;
+	--list-background: fade(@theme-color-graydark, 97%);
+	--list-border-radius: var(--ui-border-radius);
 
-	--itemHoverBG: black;
-	--itemIsActiveBG: var(--theme-color-primary);
-	--itemIsActiveColor: black;
+	--item-hover-bg: black;
+	--item-is-active-bg: rgba(0,0,0,0.6);
 
-	--clearSelectColor: var(--theme-color-graymed);
-	--clearSelectFocusColor: var(--theme-color-graymed);
-	--clearSelectHoverColor: var(--theme-color-graymed);
+	--clear-select-color: var(--theme-color-graymed);
+	--clear-select-focus-color: var(--theme-color-graymed);
+	--clear-select-hover-color: var(--theme-color-graymed);
+
+	--selected-item-overflow: visible;
+
+	.item.active {
+		:global(&) {
+			outline: 1px solid var(--theme-color-primary);
+		}
+	}
+
+	.svelte-select-list {
+		:global(&) {
+			padding-top: 2px;
+			padding-bottom: 2px;
+		}
+	}
 }
 
 

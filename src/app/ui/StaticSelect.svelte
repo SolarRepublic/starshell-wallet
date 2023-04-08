@@ -11,7 +11,7 @@
 
 	export let xpx_width = 48;
 	
-	let i_selected = -1;
+	export let i_selected = -1;
 	
 	$: if(i_selected >= 0) {
 		z_selected = a_options[i_selected];

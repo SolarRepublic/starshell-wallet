@@ -25,6 +25,8 @@
 
 	export let deny = false;
 
+	export let reject = false;
+
 	/**
 	 * Sets the confirmation label and optionally its action and disabled state
 	 */
@@ -173,8 +175,8 @@
 <div class="actions-line">
 	<slot>
 		{#if b_cancel || b_back}
-			<button type="button" disabled={disabled || b_busy} on:click={() => cancel_action()}>
-				{deny? 'Deny': b_cancel? 'Cancel': 'Back'}
+			<button type="button" disabled={disabled || b_busy} on:click={() => cancel_action()} class:cautionary={reject}>
+				{deny? 'Deny': reject? 'Reject': b_cancel? 'Cancel': 'Back'}
 			</button>
 		{/if}
 

@@ -1,13 +1,11 @@
 /* eslint-disable i/order */
 import {do_webkit_polyfill} from '#/script/webkit-polyfill';
 import {
-	B_IOS_NATIVE,
+	parse_params,
 } from '#/share/constants';
-/* eslint-enable */
 
-if(B_IOS_NATIVE) {
-	do_webkit_polyfill();
-}
+do_webkit_polyfill();
+/* eslint-enable */
 
 import {initialize_mem} from '#/app/svelte';
 import {ode} from '#/util/belt';
@@ -18,10 +16,15 @@ const h_context = {};
 (async() => {
 	await initialize_mem(h_context);
 
+	const h_params = parse_params();
+
 	// create system
 	new NavigationSvelte({
 		target: document.body,
-		props: {},
+		props: {
+			p_account: h_params.account,
+			p_chain: h_params.chain,
+		},
 		context: new Map(ode(h_context || {})),
 	});
 })();

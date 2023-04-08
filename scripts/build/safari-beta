@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+
+CWD=$(dirname "$0")
+"$CWD/_base.sh" safari beta
+
+"$CWD/package-safari.sh" -beta

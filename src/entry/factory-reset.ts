@@ -15,6 +15,11 @@ window.addEventListener('DOMContentLoaded', () => {
 		}, 2e3);
 	}
 
+	// bind reload button
+	document.getElementById('reload')?.addEventListener('click', () => {
+		location.reload();
+	});
+
 	// bind factory reset button
 	document.getElementById('factory-reset')?.addEventListener('click', async() => {
 		const s_confirmation = window.prompt([
@@ -24,7 +29,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 		if('DELETE ALL' === s_confirmation?.replace(/^\s*['"]?|['"]?\s*$/g, '').toUpperCase()) {
 			await factory_reset();
-			window.close();
+			location.reload();
 		}
 	});
 

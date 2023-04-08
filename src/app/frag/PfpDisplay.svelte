@@ -1,12 +1,14 @@
 <script lang="ts">
 	import type {Nameable, Pfpable} from '#/meta/able';
 	import type {Nilable} from '#/meta/belt';
+	import type {DevicePath} from '#/meta/device';
 	import type {PfpTarget} from '#/meta/pfp';
 	
 	import {createEventDispatcher} from 'svelte';
 	
 	import {yw_store_medias, yw_store_pfps} from '../mem';
 	
+	import {Devices} from '#/store/devices';
 	import {Medias} from '#/store/medias';
 	import {Pfps} from '#/store/pfps';
 	import {F_NOOP} from '#/util/belt';
@@ -15,6 +17,7 @@
 	
 	import Put from '../ui/Put.svelte';
 	
+	import SX_ICON_HARDWARE from '#/icon/usb.svg?raw';
 
 
 	const dispatch = createEventDispatcher();
@@ -49,11 +52,21 @@
 
 	export let updates = 0;
 
-	export let filter: ''|'testnet' = '';
+	export let filter: ''|'testnet'|'hardware' = '';
 	
-	// reactively assign filter when resource changes
-	$: s_autofilter = resource?.['testnet']? 'testnet': '';
 
+	function filter_for(g_res: typeof resource) {
+		if(g_res) {
+			if(g_res['testnet']) return 'testnet';
+
+			if(g_res['extra']?.device) return 'hardware';
+		}
+
+		return '';
+	}
+
+	// reactively assign filter when resource changes
+	$: s_autofilter = filter_for(resource);
 
 	/**
 	 * Applies a predetermined styling to the background
@@ -67,13 +80,13 @@
 
 	const sx_style_gen = `width:${dim}px; height:${dim}px; `
 		+(genStyle || '')
-		+(path? `font-size:${dim}px;`: `font-size:${dim * 0.55}px;`);
+		+(path? `font-size:${dim}px;`: `font-size:${Math.round(dim * 0.55)}px;`);
 
 	export let rootStyle = '';
 	const sx_style_root = rootStyle;
 
 	// fallback dom style to use for icon-dom element
-	const sx_dom_style = sx_style_gen+`font-size:${dim * 0.55}px;`;
+	const sx_dom_style = sx_style_gen+`font-size:${Math.round(dim * 0.55)}px;`;
 
 	export let settle: VoidFunction | undefined = void 0;
 
@@ -99,7 +112,7 @@
 		if(dm_pfp) return dm_pfp;
 
 		// fallback to icon dom
-		return dd('span', {
+		dm_pfp = dd('span', {
 			class: 'global_icon-dom',
 			style: sx_dom_style,
 		}, [name[0] as string || '']);
@@ -162,9 +175,11 @@
 	// 	}
 	// }
 
-	.filter-testnet {
+	.filter {
 		position: relative;
+	}
 
+	.filter-testnet {
 		>* {
 			position: absolute;
 			top: 0;
@@ -233,6 +248,60 @@
 			}
 		}
 	}
+
+	.filter-hardware {
+		>.original,>.overlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+		}
+
+		>.overlay {
+			filter: blur(1.25px) contrast(2.5);
+			opacity: 0.5;
+
+			clip-path: polygon(
+				0% 60%,
+				60% 60%,
+				60% 100%,
+				0% 100%
+			);
+		}
+
+		>.badge {
+			// position: absolute;
+			// bottom: 0;
+			// left: 0;
+			// width: 50%;
+			// height: 50%;
+
+			// >svg {
+			// 	width: 100%;
+			// 	height: 100%;
+			// 	margin-top: 12%;
+			// }
+
+			position: absolute;
+			bottom: 0;
+			left: 0;
+			width: 70%;
+			height: 0;
+
+			>.global_svg-icon {
+				width: 100%;
+				height: auto;
+				margin-top: -40%;
+				background-color: rgba(0,0,0,0.6);
+				padding: 0 15%;
+				box-sizing: border-box;
+				margin-left: -20%;
+				border-radius: 20%;
+				--icon-diameter: 100%;
+			}
+		}
+	}
 </style>
 
 <!-- class:default={!k_icon}  -->
@@ -251,8 +320,8 @@
 				⊚
 			</span>
 		{:else}
-			{#if 'testnet' === filter || 'testnet' === s_autofilter}
-				<span class="filter-testnet" style="width:{dim}px; height:{dim}px;">
+			{#if [filter, s_autofilter].includes('testnet')}
+				<span class="filter filter-testnet" style="width:{dim}px; height:{dim}px;">
 					<span class="original">
 						<Put element={dm_pfp} />
 					</span>
@@ -261,6 +330,20 @@
 					</span>
 					<span class="overlay">
 						<Put element={dm_pfp} />
+					</span>
+				</span>
+			{:else if [filter, s_autofilter].includes('hardware')}
+				<span class="filter filter-hardware" style="width:{dim}px; height:{dim}px;">
+					<span class="original">
+						<Put element={dm_pfp} />
+					</span>
+					<!-- <span class="overlay">
+						<Put element={dm_pfp} />
+					</span> -->
+					<span class="badge">
+						<span class="global_svg-icon">
+							{@html SX_ICON_HARDWARE}
+						</span>
 					</span>
 				</span>
 			{:else}

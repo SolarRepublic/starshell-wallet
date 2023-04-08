@@ -78,8 +78,8 @@ export const Chains = create_store_class({
 			return [m_path[1] as ChainNamespaceKey, m_path[2]];
 		}
 
-		static addressFor(s_pubkey: string, z_context: ChainStruct | string): Bech32 {
-			return pubkey_to_bech32(s_pubkey, z_context);
+		static addressFor(z_pubkey: string | Uint8Array, z_context: ChainStruct | string): Bech32 {
+			return pubkey_to_bech32(z_pubkey, z_context);
 		}
 
 		static transformBech32(sa_src: string, g_chain: ChainStruct, si_hrp: string=g_chain.bech32s.acc): Bech32 {

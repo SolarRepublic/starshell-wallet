@@ -12,12 +12,14 @@ import {
 	XT_TIMEOUT_SERVICE_REQUEST,
 	SI_EXTENSION_ID_KEPLR,
 	B_DEVELOPMENT,
+	B_IOS_WEBKIT,
+	B_DESKTOP,
+	B_MOBILE_WEBKIT_VIEW,
+	B_MOBILE_APP_TOP_IS_MAIN,
 } from '#/share/constants';
 /* eslint-enable */
 
-if(B_IOS_NATIVE) {
-	do_webkit_polyfill(debug);
-}
+do_webkit_polyfill(debug);
 
 /* eslint-disable i/order */
 import type {
@@ -43,6 +45,7 @@ import {open_flow} from './msg-flow';
 import {global_receive} from './msg-global';
 import {set_keplr_compatibility_mode} from './scripts';
 
+import {SessionStorage} from '#/extension/session-storage';
 import {app_blocked, check_app_permissions, page_info_from_sender, parse_sender, position_widow_over_tab, request_advertisement, request_keplr_decision, RetryCode, unlock_to_continue} from './service-apps';
 import {NetworkFeed} from './service-feed';
 import {H_HANDLERS_ICS_APP} from './service-handlers-ics-app';
@@ -164,7 +167,7 @@ const H_HANDLERS_ICS: Vocab.HandlersChrome<IcsToService.PublicVocab> = {
 		if(!g_app) return;
 
 		// ref tab id
-		const i_tab = g_sender.tab!.id!;
+		const i_tab = g_sender.tab?.id || 0;
 
 		// secrets for this session
 		const g_secrets: ServiceToIcs.SessionKeys = {
@@ -251,7 +254,9 @@ const H_HANDLERS_ICS: Vocab.HandlersChrome<IcsToService.PublicVocab> = {
 					},
 					page: g_page,
 				},
-				open: await position_widow_over_tab(g_sender.tab!.id!),
+				...B_DESKTOP && g_sender.tab? {
+					open: await position_widow_over_tab(g_sender.tab.id!),
+				}: {},
 			});
 		}
 
@@ -360,7 +365,9 @@ const H_HANDLERS_ICS: Vocab.HandlersChrome<IcsToService.PublicVocab> = {
 				},
 				page: g_page,
 			},
-			open: await position_widow_over_tab(g_sender.tab!.id!),
+			...B_DESKTOP && g_sender.tab? {
+				open: await position_widow_over_tab(g_sender.tab.id!),
+			}: {},
 		});
 
 		if(b_approved) {
@@ -385,22 +392,15 @@ const H_HANDLERS_ICS: Vocab.HandlersChrome<IcsToService.PublicVocab> = {
 		fk_respond(null);
 
 		// check if keplr is enabled
-		CHECK_KEPLR_ENABLED:
-		if('function' === typeof chrome.management?.get) {
-			let g_keplr: chrome.management.ExtensionInfo;
-			try {
-				g_keplr = await chrome.management.get(SI_EXTENSION_ID_KEPLR);
-			}
-			// not installed
-			catch(e_get) {
-				break CHECK_KEPLR_ENABLED;
-			}
-
-			// keplr is installed and enabled
-			if(g_keplr.enabled) {
-				debug(`Content Script at "${g_sender.url}" detected Keplr API but Keplr is installed and active, ignoring polyfill.`);
-				return;
-			}
+		if(await check_keplr_operational_status()) {
+			// debugger;
+			// const a_hosts = (await SessionStorage.get('keplr_operational')) || [];
+			// a_hosts.push(new URL(g_sender.url!).host);
+			// await SessionStorage.set({
+			// 	keplr_yield_hosts: [...new Set(a_hosts)],
+			// });
+			debug(`Content Script at "${g_sender.url}" detected Keplr API but Keplr is installed and active, ignoring polyfill.`);
+			return;
 		}
 
 		// // check if wallet was locked before finding out app was already registered
@@ -557,101 +557,109 @@ const message_router: MessageHandler = (g_msg, g_sender, fk_respond) => {
 		// ref message type
 		const si_type = g_msg.type;
 
-		// message originates from extension
-		const b_origin_verified = g_sender.url?.startsWith(chrome.runtime.getURL('')) || false;
-		if(chrome.runtime.id === g_sender.id && (b_origin_verified || 'null' === g_sender.origin)) {
-			// for native iOS only
-			if(B_IOS_NATIVE) {
-				// handle session storage commands
-				if('sessionStorage' === g_msg.type) {
-					const g_command = g_msg.value;
+		// authorize the source of the message
+		CHECK_SOURCE: {
+			// message originates from extension
+			const b_origin_verified = g_sender.url?.startsWith(chrome.runtime.getURL('')) || false;
+			if(chrome.runtime.id === g_sender.id && (b_origin_verified || 'null' === g_sender.origin)) {
+				// for native iOS only
+				if(B_IOS_NATIVE) {
+					// handle session storage commands
+					if('sessionStorage' === g_msg.type) {
+						const g_command = g_msg.value;
 
-					// polyfill is synchronous
-					fk_respond(H_SESSION_STORAGE_POLYFILL[g_command.type](g_command.value));
-					return;
-				}
-			}
-
-			console.error(`Need to migrate caller to service comms for '${si_type}'`);
-			return;
-		}
-		// message originates from tab (content script)
-		else if(g_sender.tab && 'number' === typeof g_sender.tab.id) {
-			// app message
-			if(si_type in H_HANDLERS_ICS_APP) {
-				// go async
-				timeout_exec(XT_TIMEOUT_APP_PERMISSIONS, async() => {
-					// check app permissions
-					const g_check = await check_app_permissions(g_sender);
-
-					// app does not have permissions; silently ignore
-					if(!g_check) return fk_respond(null);
-
-					// destructure
-					const {g_app} = g_check;
-
-					// ref chain and account paths
-					const {
-						chainPath: p_chain,
-						accountPath: p_account,
-					} = g_msg.value as {chainPath: ChainPath; accountPath: AccountPath};
-
-					// ref connection
-					const g_connection = g_app.connections[p_chain];
-
-					// no connections on this chain; silently ignore
-					if(!g_connection) return fk_respond(null);
-
-					// app is not authorized to access this account; silently ignore
-					if(!g_connection.accounts.includes(p_account)) return fk_respond(null);
-
-					// route message to handler
-					let w_return: any;
-					try {
-						w_return = await H_HANDLERS_ICS_APP[si_type](g_msg.value, {
-							app: g_app,
-							appPath: Apps.pathFrom(g_app),
-							connection: g_connection,
-						}, g_sender);
-					}
-					// catch errors
-					catch(z_error) {
-						fk_respond({
-							error: z_error.message,
-						});
-
-						// do not respond twice
+						// polyfill is synchronous
+						fk_respond(H_SESSION_STORAGE_POLYFILL[g_command.type](g_command.value));
 						return;
 					}
 
-					// respond with return value
-					fk_respond({
-						ok: w_return,
-					});
-				}).then(([, xc_timeout]) => {
-					// service response timeout exceeded; fail
-					if(xc_timeout) {
-						fk_respond({
-							error: 'Timed out while waiting for app permissions check',
-						});
-					}
-				}).catch((e_handle: Error) => {
-					fk_respond({
-						error: `Uncaught message handler error: ${e_handle.message}`,
-					});
-				});
+					// otherwise, allow to fall through to app-message check
+					break CHECK_SOURCE;
+				}
+				else {
+					console.error(`Need to migrate caller to service comms for '${si_type}'`);
+					return;
+				}
+			}
+			// from content script
+			else if(g_sender.tab && 'number' === typeof g_sender.tab.id) {
+				break CHECK_SOURCE;
+			}
 
-				return true;
-			}
-			// public message
-			else {
-				h_handlers = H_HANDLERS_ICS;
-			}
-		}
-		// reject unknown senders
-		else {
+			// reject unknown senders
 			console.error(`Refusing request from unknown sender: ${JSON.stringify(g_sender)}`);
 			return;
+		}
+
+		// app message
+		if(si_type in H_HANDLERS_ICS_APP) {
+			// go async
+			timeout_exec(XT_TIMEOUT_APP_PERMISSIONS, async() => {
+				// check app permissions
+				const g_check = await check_app_permissions(g_sender);
+
+				// app does not have permissions; silently ignore
+				if(!g_check) return fk_respond(null);
+
+				// destructure
+				const {g_app} = g_check;
+
+				// ref chain and account paths
+				const {
+					chainPath: p_chain,
+					accountPath: p_account,
+				} = g_msg.value as {chainPath: ChainPath; accountPath: AccountPath};
+
+				// ref connection
+				const g_connection = g_app.connections[p_chain];
+
+				// no connections on this chain; silently ignore
+				if(!g_connection) return fk_respond(null);
+
+				// app is not authorized to access this account; silently ignore
+				if(!g_connection.accounts.includes(p_account)) return fk_respond(null);
+
+				// route message to handler
+				let w_return: any;
+				try {
+					w_return = await H_HANDLERS_ICS_APP[si_type](g_msg.value, {
+						app: g_app,
+						appPath: Apps.pathFrom(g_app),
+						connection: g_connection,
+					}, g_sender);
+				}
+				// catch errors
+				catch(z_error) {
+					fk_respond({
+						error: z_error.message,
+					});
+
+					// do not respond twice
+					return;
+				}
+
+				// respond with return value
+				fk_respond({
+					ok: w_return,
+				});
+			}).then(([, xc_timeout]) => {
+				// service response timeout exceeded; fail
+				if(xc_timeout) {
+					fk_respond({
+						error: 'Timed out while waiting for app permissions check',
+					});
+				}
+			}).catch((e_handle: Error) => {
+				fk_respond({
+					error: `Uncaught message handler error: ${e_handle.message}`,
+				});
+			});
+
+			return true;
+		}
+		// public message
+		else {
+			h_handlers = H_HANDLERS_ICS;
 		}
 
 		// lookup handler
@@ -753,41 +761,29 @@ chrome.runtime.onInstalled?.addListener(async(g_installed) => {
 	}
 
 	console.log('done');
-
-	// // upon first install, walk the user through setup
-	// await flow_broadcast({
-	// 	flow: {
-	// 		type: 'authenticate',
-	// 		page: null,
-	// 	},
-	// });
-
-	// await chrome.storage.session.setAccessLevel({
-	// 	accessLevel: chrome.storage.AccessLevel.TRUSTED_AND_UNTRUSTED_CONTEXTS,
-	// });
-
-	// console.log('ok');
-
-	// const f_scripting() = chrome.scripting as browser.Scripting.Static;
-
-
-	// const g_waker = H_CONTENT_SCRIPT_DEFS.inpage_waker();
-
-	// await f_scripting().registerContentScripts([
-	// 	{
-	// 		...g_waker,
-	// 		// js: [
-	// 		// 	's2r.signing.key#ae4261c',
-	// 		// 	...g_waker.js,
-	// 		// ],
-	// 	},
-	// ]);
-
-	// const a_scripts = await f_scripting().getRegisteredContentScripts();
-	// for(const g_script of a_scripts) {
-	// 	console.log(g_script);
-	// }
 });
+
+async function check_keplr_operational_status(): Promise<boolean | undefined> {
+	// check if keplr is enabled
+	CHECK_KEPLR_ENABLED:
+	if('function' === typeof chrome.management?.get) {
+		let g_keplr: chrome.management.ExtensionInfo;
+		try {
+			g_keplr = await chrome.management.get(SI_EXTENSION_ID_KEPLR);
+		}
+		// not installed
+		catch(e_get) {
+			break CHECK_KEPLR_ENABLED;
+		}
+
+		// set operational status
+		await SessionStorage.set({
+			keplr_operational: g_keplr.enabled,
+		});
+
+		return g_keplr.enabled;
+	}
+}
 
 console.log('clearing alarms');
 
@@ -799,6 +795,8 @@ chrome.alarms?.clearAll(() => {
 	});
 
 	chrome.alarms.onAlarm.addListener((g_alarm) => {
+		void check_keplr_operational_status();
+
 		switch(g_alarm.name) {
 			case 'network_feeds': {
 				void check_network_feeds();
@@ -895,33 +893,35 @@ async function check_network_feeds() {
 	});
 }
 
+// exclude 'quiet' background frames
+if(!B_MOBILE_WEBKIT_VIEW || B_MOBILE_APP_TOP_IS_MAIN) {
+	// global message handler
+	global_receive({
+		// user has authenticated
+		async login() {
+			// update compatibility mode based on apps and current settings
+			await set_keplr_compatibility_mode();
 
-// global message handler
-global_receive({
-	// user has authenticated
-	async login() {
-		// update compatibility mode based on apps and current settings
-		await set_keplr_compatibility_mode();
+			// start feeds
+			await check_network_feeds();
+		},
 
-		// start feeds
-		await check_network_feeds();
-	},
+		// user has logged out
+		logout() {
+			// destroy all feeds
+			for(const k_feed of a_feeds) {
+				k_feed.destroy();
+			}
+		},
 
-	// user has logged out
-	logout() {
-		// destroy all feeds
-		for(const k_feed of a_feeds) {
-			k_feed.destroy();
-		}
-	},
+		debug(w_msg: JsonValue) {
+			console.debug(`Service witnessed global debug message: %o`, w_msg);
+		},
+	});
 
-	debug(w_msg: JsonValue) {
-		console.debug(`Service witnessed global debug message: %o`, w_msg);
-	},
-});
-
-// init in case already unlocked
-void check_network_feeds();
+	// init in case already unlocked
+	void check_network_feeds();
+}
 
 // set compatibility mode based on apps and current settings
 void set_keplr_compatibility_mode();

@@ -603,7 +603,7 @@
 				resource: g_chain,
 				details: {
 					id: g_chain.reference,
-					blockExplorer: g_chain.blockExplorer.base,
+					...g_chain.blockExplorer? {blockExplorer:g_chain.blockExplorer.base}: {},
 				},
 			})), [], {
 				id: 0.45,

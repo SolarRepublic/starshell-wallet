@@ -1,5 +1,6 @@
 import type {O} from 'ts-toolbelt';
 
+import {B_DEFINED_WINDOW, B_IOS_WEBEXT, B_SAFARI_MOBILE} from '#/share/constants';
 import {buffer_to_text, concat, zero_out} from '#/util/data';
 
 export interface Argon2Methods {
@@ -172,12 +173,24 @@ function init_wasm(): Promise<Argon2WasmInstance> {
 		// eslint-disable-next-line prefer-const
 		let k_mem: ProgramMemory;
 
-		const y_module = await WebAssembly.instantiateStreaming(fetch('/bin/argon2.wasm'), {
+		const dp_fetch = fetch('/bin/argon2.wasm');
+
+		const G_INSTANTIATE = {
 			a: {
 				a: (ib_dst: number, ib_src: number, nb_size: number) => k_mem.memcpy_big(ib_dst, ib_src, nb_size),
 				b: (nb_request: number) => k_mem.resize_heap(nb_request),
 			},
-		});
+		};
+
+		// Safari dies with instantiateStreaming when request does not return `application/wasm` content-type
+		let y_module: WebAssembly.WebAssemblyInstantiatedSource;
+		if(B_IOS_WEBEXT || (!B_DEFINED_WINDOW && B_SAFARI_MOBILE)) {
+			const atu8_module = await (await dp_fetch).arrayBuffer();
+			y_module = await WebAssembly.instantiate(atu8_module, G_INSTANTIATE);
+		}
+		else {
+			y_module = await WebAssembly.instantiateStreaming(dp_fetch, G_INSTANTIATE);
+		}
 
 		const h_exports = y_module.instance.exports;
 

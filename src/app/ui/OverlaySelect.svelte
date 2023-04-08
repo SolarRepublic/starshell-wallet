@@ -1,9 +1,8 @@
-<script lang="ts" context="module">
-	export type Status = 'connected' | 'no_permissions' | 'disabled' | 'disconnected' | 'blocked';
-</script>
-
 <script lang="ts">
 	import {yw_blur} from '##/mem';
+	
+	import type {Status} from '../frag/AppContext.svelte';
+	import {H_LOCALIZATION} from '../frag/AppContext.svelte';
 	
 	import SX_ICON_ADD_SMALL from '#/icon/add-small.svg?raw';
 	
@@ -26,24 +25,6 @@
 			duration: 200,
 		};
 	}
-
-	const H_LOCALIZATION: Record<Status, {text:string}> = {
-		connected: {
-			text: 'Connected',
-		},
-		no_permissions: {
-			text: 'No Permissions',
-		},
-		disconnected: {
-			text: 'Disconnected',
-		},
-		disabled: {
-			text: 'Disabled',
-		},
-		blocked: {
-			text: 'Blocked',
-		},
-	};
 
 </script>
 

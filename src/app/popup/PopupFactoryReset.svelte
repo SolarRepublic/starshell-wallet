@@ -19,8 +19,8 @@
 				await factory_reset();
 			}
 			finally {
-				// close this popover
-				globalThis.close();
+				// reload
+				location.reload();
 			}
 		}
 	}

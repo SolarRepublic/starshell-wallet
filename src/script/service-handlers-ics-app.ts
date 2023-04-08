@@ -18,6 +18,7 @@ import {save_query_permit} from '#/chain/query-permit';
 import type {SecretNetwork} from '#/chain/secret-network';
 
 import type {SecretWasm} from '#/crypto/secret-wasm';
+import {B_DESKTOP} from '#/share/constants';
 import {Accounts} from '#/store/accounts';
 import {Apps} from '#/store/apps';
 import {Chains} from '#/store/chains';
@@ -371,7 +372,9 @@ export const H_HANDLERS_ICS_APP: Vocab.HandlersChrome<IcsToService.AppVocab, any
 						},
 						page: page_info_from_sender(g_sender),
 					},
-					open: await position_widow_over_tab(g_sender.tab!.id!),
+					...B_DESKTOP && g_sender.tab? {
+						open: await position_widow_over_tab(g_sender.tab.id!),
+					}: {},
 				}));
 			}
 			catch(e_flow) {
@@ -401,7 +404,9 @@ export const H_HANDLERS_ICS_APP: Vocab.HandlersChrome<IcsToService.AppVocab, any
 		// 		},
 		// 		page: page_info_from_sender(g_sender),
 		// 	},
-		// 	open: await position_widow_over_tab(g_sender.tab!.id!),
+			// ...B_DESKTOP && g_sender.tab? {
+			// 	open: await position_widow_over_tab(g_sender.tab.id!),
+			// }: {},
 		// });
 
 		// console.log(g_request);
@@ -433,7 +438,9 @@ export const H_HANDLERS_ICS_APP: Vocab.HandlersChrome<IcsToService.AppVocab, any
 				},
 				page: page_info_from_sender(g_sender),
 			},
-			open: await position_widow_over_tab(g_sender.tab!.id!),
+			...B_DESKTOP && g_sender.tab? {
+				open: await position_widow_over_tab(g_sender.tab.id!),
+			}: {},
 		});
 
 		if(b_approved) {
@@ -456,7 +463,9 @@ export const H_HANDLERS_ICS_APP: Vocab.HandlersChrome<IcsToService.AppVocab, any
 				},
 				page: page_info_from_sender(g_sender),
 			},
-			open: await position_widow_over_tab(g_sender.tab!.id!),
+			...B_DESKTOP && g_sender.tab? {
+				open: await position_widow_over_tab(g_sender.tab.id!),
+			}: {},
 		});
 
 		if(a_approved) {

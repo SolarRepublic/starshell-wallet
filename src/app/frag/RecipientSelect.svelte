@@ -2,6 +2,7 @@
 	import type {AccountStruct} from '#/meta/account';
 	import type {AgentPath, Chain} from '#/meta/chain';
 	import type {ContactStruct} from '#/meta/contact';
+	import {ContactAgentType} from '#/meta/contact';
 	
 	import Select from 'svelte-select';
 	
@@ -9,7 +10,7 @@
 	import {Agents} from '#/store/agents';
 	import {Chains} from '#/store/chains';
 	import {qs} from '#/util/dom';
-	import {yw_account_ref, yw_chain, yw_chain_namespace} from '##/mem';
+	import {yw_account_ref, yw_chain, yw_chain_namespace, yw_chain_ref} from '##/mem';
 	
 	import RecipientSelectItem from './RecipientSelectItem.svelte';
 	import RecipientSelectSelection from './RecipientSelectSelection.svelte';
@@ -27,7 +28,8 @@
 	let g_item_select: ContactOption;
 
 	let a_contacts: [AgentPath, ContactStruct][];
-
+	let a_options: ContactOption[] = [];
+	
 	const contact_to_option = (g: ContactStruct): ContactOption => ({
 		value: Agents.addressFor(g, $yw_chain),
 		label: g.name,
@@ -40,14 +42,14 @@
 		account: g,
 	});
 
-	async function load_contacts(): Promise<ContactOption[]> {
+	async function load_contacts(): Promise<void> {
 		const ks_agents = await Agents.read();
 
-		const a_options: ContactOption[] = [{
-			value: '',
-			label: '',
-			contact: null!,
-		}];
+		// a_options = [{
+		// 	value: '',
+		// 	label: '',
+		// 	contact: null!,
+		// }];
 
 		// contacts
 		{
@@ -78,13 +80,13 @@
 				}
 			}
 		}
-
-		return a_options;
 	}
 
 	function select(d_event: CustomEvent<ContactOption>) {
 		address = d_event.detail.value;
 		error = '';
+
+		qs(dm_recipient, 'input[type="text"]')?.blur();
 	}
 
 	function clear() {
@@ -92,6 +94,7 @@
 	}
 
 	let s_accepted_input = '';
+	let g_created_option: ContactOption | null = null;
 	let b_hide_cursor = false;
 
 	let b_list_open = false;
@@ -143,15 +146,37 @@
 
 			s_accepted_input = s_manual_input;
 
+			g_created_option = {
+				label: s_manual_input,
+				value: s_manual_input,
+				created: true,
+				contact: {
+					addressData: s_manual_input.replace(/^.*1/, '').slice(0, -6),
+					addressSpace: 'acc',
+					agentType: ContactAgentType.UNKNOWN,
+					chains: [$yw_chain_ref],
+					name: 'Unknown',
+					namespace: 'cosmos',
+					pfp: '',
+					notes: '',
+					origin: 'user',
+				},
+			};
+
+			a_options = [g_created_option, ...a_options.filter(g => !g.created)];
+
 			// select address immediately
 			setTimeout(() => {
-				(qs(dm_sender, '.manual>.address') as HTMLElement).click();
+				(qs(dm_recipient, '.item.first') as HTMLElement).click();
 				b_list_open = false;
+
+				address = s_manual_input;
+				error = '';
 			}, 0);
 		}
 	}
 
-	let dm_sender: HTMLElement;
+	let dm_recipient: HTMLElement;
 	
 	export let showValidation = 0;
 	$: {
@@ -181,16 +206,16 @@
 <style lang="less">
 	@import '../_base.less';
 
-	.sender {
+	.recipient {
 		position: relative;
 
 		.style-svelte-select();
 		.font(regular, 400, 13px);
 
-		--inputPadding: 16px;
+		--input-padding: 16px;
 		--padding: 0 4px;
-		--itemPadding: 0;
-		--selectedItemPadding: 0;
+		--item-padding: 0;
+		--selected-item-padding: 0;
 
 		>input {
 			&::after {
@@ -223,30 +248,55 @@
 				}
 			}
 		}
+
+		.manually-typing {
+			padding: 6px 16px;
+		}
 	}
 </style>
 
 
-<div class="sender" bind:this={dm_sender} class:hide-cursor={b_hide_cursor}>
+<div class="recipient" bind:this={dm_recipient} class:hide-cursor={b_hide_cursor}>
 	{#await load_contacts()}
 		<Load forever />
-	{:then a_contacts}
+	{:then}
 		<Select id="recipient-select"
+			clearable={!!address}
 			placeholder="Address or contact"
 			listOffset={1}
-			isClearable={!!address}
-			isCreatable={!!s_accepted_input}
 			Item={RecipientSelectItem}
 			Selection={RecipientSelectSelection}
-			items={a_contacts}
+			items={a_options}
 			value={g_item_select}
-			noOptionsMessage={'Stop typing in the address. \n Use copy/paste instead!'}
 			bind:filterText={s_manual_input}
 			bind:listOpen={b_list_open}
 			on:select={select}
 			on:clear={clear}
 			containerClasses={error? 'invalid': ''}
-		/>
+		>
+			<div slot="item" let:item={g_item}>
+				<RecipientSelectItem
+					item={g_item}
+				/>
+			</div>
+
+			<div slot="selection" let:selection={g_item}>
+				<RecipientSelectItem
+					item={g_item}
+				/>
+			</div>
+
+			<div slot="empty">
+				<div class="manually-typing">
+					<div>
+						Stop typing in the address.
+					</div>
+					<div class="global_subvalue">
+						Use copy/paste instead!
+					</div>
+				</div>
+			</div>
+		</Select>
 	{/await}
 
 	{#if error}

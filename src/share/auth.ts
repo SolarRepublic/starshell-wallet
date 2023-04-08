@@ -1,27 +1,29 @@
+import type {Incident, TxSynced} from '#/meta/incident';
 import {deduce_token_interfaces, Snip2xToken} from '#/schema/snip-2x-const';
 
 import {NL_PASSPHRASE_MAXIMUM, NL_PASSPHRASE_MINIMUM} from './constants';
 import {AlreadyRegisteredError, CorruptedVaultError, InvalidPassphraseError, RecoverableVaultError, UnregisteredError} from './errors';
 
 import {H_SNIP_HANDLERS} from '#/chain/messages/snip';
-import type {SecretNetwork} from '#/chain/secret-network';
+import {SecretNetwork} from '#/chain/secret-network';
 import {NB_ARGON2_MEMORY, N_ARGON2_ITERATIONS, Vault} from '#/crypto/vault';
 import {PublicStorage, storage_clear, storage_remove} from '#/extension/public-storage';
 import {precedes} from '#/extension/semver';
 import {SessionStorage} from '#/extension/session-storage';
 import {global_broadcast} from '#/script/msg-global';
 import {set_keplr_compatibility_mode} from '#/script/scripts';
-import {H_STORE_INIT_CONTRACTS} from '#/store/_init';
+import {H_STORE_INIT_CHAINS, H_STORE_INIT_CONTRACTS} from '#/store/_init';
 import {Accounts} from '#/store/accounts';
+import {Apps} from '#/store/apps';
 import {Chains} from '#/store/chains';
 import {Contracts} from '#/store/contracts';
 import {Incidents} from '#/store/incidents';
 import {Providers} from '#/store/providers';
 import {QueryCache} from '#/store/query-cache';
 import {F_NOOP, ode, timeout} from '#/util/belt';
-import {canonicalize, text_to_buffer} from '#/util/data';
-import { Apps } from '#/store/apps';
-import type { Incident, TxSynced } from '#/meta/incident';
+import {buffer_to_base93, canonicalize, text_to_buffer} from '#/util/data';
+import { SecretWasm } from '#/crypto/secret-wasm';
+import { open_flow } from '#/script/msg-flow';
 
 
 
@@ -235,6 +237,9 @@ export async function login(sh_phrase: string, b_recover=false, f_update: ((s_st
 		// migrations
 		await run_migrations();
 
+		// kick-off async checks
+		void run_async_checks();
+
 		// fire logged in event
 		global_broadcast({
 			type: 'login',
@@ -285,7 +290,7 @@ async function run_migrations() {
 		}
 
 		// reset descriptorless snip20s
-		if(precedes(g_seen.version, '1.0.11')) {
+		if(precedes(g_seen.version, '1.0.12')) {
 			// recover from any unforseen errors
 			try {
 				// cache of networks created during migration
@@ -308,7 +313,7 @@ async function run_migrations() {
 					const g_account_faux = (await Accounts.entries())[0][1];
 
 					// deduce current token interfaces for orphan
-					const a_interfaces = await deduce_token_interfaces(g_orphan, k_network, g_account_faux);
+					const [a_interfaces] = await deduce_token_interfaces(g_orphan, k_network, g_account_faux);
 
 					// enabled snip20
 					if(a_interfaces.includes('snip20')) {
@@ -366,10 +371,87 @@ async function run_migrations() {
 			}
 			catch(e_resets) {}
 		}
+
+		// overwrite built-in snip20s
+		if(precedes(g_seen.version, '1.0.12')) {
+			for(const [, g_contract] of ode(H_STORE_INIT_CONTRACTS)) {
+				try {
+					await Contracts.merge(g_contract);
+				}
+				catch(e_merge) {}
+			}
+		}
+
+		// set `on` flags for active chains
+		if(precedes(g_seen.version, '1.0.13')) {
+			for(const [p_chain, g_chain] of ode(H_STORE_INIT_CHAINS)) {
+				// add enabled flag to existing chain
+				if(g_chain.on) {
+					try {
+						await Chains.update(p_chain, g => ({
+							...g,
+							on: 1,
+						}));
+					}
+					catch(e_merge) {}
+				}
+				// insert new disabled chain
+				else {
+					await Chains.putAt(p_chain, g_chain);
+				}
+			}
+		}
 	}
 
 	// mark as seen
 	await PublicStorage.markSeen();
+}
+
+
+async function run_async_checks() {
+	// each secretwasm chain
+	for(const [p_chain, g_chain] of await Chains.entries()) {
+		// skip devnets
+		if(g_chain.devnet) continue;
+
+		// secret-enabled
+		if(g_chain.features.secretwasm) {
+			const k_network: SecretNetwork = await Providers.activateStableDefaultFor(g_chain);
+
+			try {
+				const atu8_cons_io_pk = await k_network.secretConsensusIoPubkeyExact();
+
+				const sb93_cons_io_pk = buffer_to_base93(atu8_cons_io_pk);
+
+				// key change
+				if(sb93_cons_io_pk !== g_chain.features.secretwasm.consensusIoPubkey) {
+					// new key matches init
+					if(sb93_cons_io_pk === H_STORE_INIT_CHAINS[p_chain].features.secretwasm!.consensusIoPubkey) {
+						// accept change without prompt
+						await Chains.update(Chains.pathFrom(g_chain), (_g_chain) => {
+							_g_chain.features.secretwasm!.consensusIoPubkey = sb93_cons_io_pk;
+							return _g_chain;
+						});
+					}
+					// init may be outdated
+					else {
+						// consent to change
+						void open_flow({
+							flow: {
+								type: 'acceptConsensusKey',
+								value: {
+									chain: p_chain,
+									key: sb93_cons_io_pk,
+								},
+								page: null,
+							},
+						});
+					}
+				}
+			}
+			catch(e_exact) {}
+		}
+	}
 }
 
 

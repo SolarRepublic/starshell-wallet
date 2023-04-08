@@ -33,6 +33,7 @@ import {
 	SI_STORE_WEB_RESOURCES,
 	SI_STORE_CONTRACTS,
 	B_RELEASE_BETA,
+	SI_STORE_DEVICES,
 } from '#/share/constants';
 
 import {fold, ode, oderac, oderom} from '#/util/belt';
@@ -76,13 +77,16 @@ for(const [p_pfp, g_pfp] of ode(H_STORE_INIT_PFPS)) {
 	}
 }
 
-const S_SNIP20_GAS_LIMIT_LOW = `${150_000n}` as const;
+const S_SNIP20_GAS_LIMIT_SLIM = `${40_000n}` as const;
+const S_SNIP20_GAS_LIMIT_LOW = `${60_000n}` as const;
+const S_SNIP20_GAS_LIMIT_MED = `${150_000n}` as const;
 const S_SNIP20_GAS_LIMIT_MORE = `${175_000n}` as const;
 
 
 export const H_STORE_INIT_CHAINS = type_check<typeof SI_STORE_CHAINS>({
 	...!B_RELEASE_BETA? {
 		'/family.cosmos/chain.secret-4': {
+			on: 1,
 			name: 'Secret Network',
 			pfp: H_LOOKUP_PFP['/media/token/scrt.svg'],
 			namespace: 'cosmos',
@@ -118,7 +122,7 @@ export const H_STORE_INIT_CHAINS = type_check<typeof SI_STORE_CHAINS>({
 			},
 			features: {
 				'secretwasm': {
-					consensusIoPubkey: `m.d(S*[F9klRKRy5I7qK#';VOtCg2jX*b),Y:pIA`,
+					consensusIoPubkey: ']`om+}D]q1rtJy;NRzd^GQ#+ZQ!PV5d,kRqy5XSB',
 					gasPadding: {
 						stepSize: `${10_000n}`,
 					},
@@ -139,22 +143,22 @@ export const H_STORE_INIT_CHAINS = type_check<typeof SI_STORE_CHAINS>({
 						snip722: {},
 					},
 					snip20GasLimits: {
-						transfer: `${180_000n}`,
+						transfer: S_SNIP20_GAS_LIMIT_LOW,  // 60k
 						send: S_SNIP20_GAS_LIMIT_MORE,
-						register_receive: S_SNIP20_GAS_LIMIT_LOW,
+						register_receive: S_SNIP20_GAS_LIMIT_MED,
 						create_viewing_key: S_SNIP20_GAS_LIMIT_MORE,  // 175k
-						set_viewing_key: S_SNIP20_GAS_LIMIT_MORE,  // 175k
-						increase_allowance: S_SNIP20_GAS_LIMIT_LOW,
-						decrease_allowance: S_SNIP20_GAS_LIMIT_LOW,
-						transfer_from: S_SNIP20_GAS_LIMIT_LOW,
+						set_viewing_key: S_SNIP20_GAS_LIMIT_SLIM,  // 40k
+						increase_allowance: S_SNIP20_GAS_LIMIT_MED,
+						decrease_allowance: S_SNIP20_GAS_LIMIT_MED,
+						transfer_from: S_SNIP20_GAS_LIMIT_MED,
 						send_from: S_SNIP20_GAS_LIMIT_MORE,
-						mint: S_SNIP20_GAS_LIMIT_LOW,
-						set_minters: S_SNIP20_GAS_LIMIT_LOW,
-						burn: S_SNIP20_GAS_LIMIT_LOW,
-						burn_from: S_SNIP20_GAS_LIMIT_LOW,
-						deposit: S_SNIP20_GAS_LIMIT_LOW,  // 150k
-						redeem: S_SNIP20_GAS_LIMIT_LOW,
-						revoke_permit: S_SNIP20_GAS_LIMIT_LOW,
+						mint: S_SNIP20_GAS_LIMIT_MED,
+						set_minters: S_SNIP20_GAS_LIMIT_MED,
+						burn: S_SNIP20_GAS_LIMIT_MED,
+						burn_from: S_SNIP20_GAS_LIMIT_MED,
+						deposit: S_SNIP20_GAS_LIMIT_MED,  // 150k
+						redeem: S_SNIP20_GAS_LIMIT_MED,
+						revoke_permit: S_SNIP20_GAS_LIMIT_MED,
 					},
 				},
 				'ibc-go': {},
@@ -178,7 +182,9 @@ export const H_STORE_INIT_CHAINS = type_check<typeof SI_STORE_CHAINS>({
 			providers: [],
 		},
 	}: {},
+
 	'/family.cosmos/chain.pulsar-2': {
+		on: 1,
 		name: 'Secret Pulsar',
 		pfp: H_LOOKUP_PFP['/media/token/scrt.svg'],
 		namespace: 'cosmos',
@@ -214,7 +220,7 @@ export const H_STORE_INIT_CHAINS = type_check<typeof SI_STORE_CHAINS>({
 		},
 		features: {
 			'secretwasm': {
-				consensusIoPubkey: '|dB)LVfX1mgQ<eeI6X*Uxq]/H-KwnPj1dPZ30;iB',
+				consensusIoPubkey: 'Q/-p<DzxO`MwIky9B{_ LKgQ]hr=3dp45Yk9~J!',
 				gasPadding: {
 					stepSize: `${10_000n}`,
 				},
@@ -240,20 +246,20 @@ export const H_STORE_INIT_CHAINS = type_check<typeof SI_STORE_CHAINS>({
 				snip20GasLimits: {
 					transfer: `${180_000n}`,
 					send: S_SNIP20_GAS_LIMIT_MORE,
-					register_receive: S_SNIP20_GAS_LIMIT_LOW,
+					register_receive: S_SNIP20_GAS_LIMIT_MED,
 					create_viewing_key: S_SNIP20_GAS_LIMIT_MORE,  // 175k
 					set_viewing_key: S_SNIP20_GAS_LIMIT_MORE,  // 175k
-					increase_allowance: S_SNIP20_GAS_LIMIT_LOW,
-					decrease_allowance: S_SNIP20_GAS_LIMIT_LOW,
-					transfer_from: S_SNIP20_GAS_LIMIT_LOW,
+					increase_allowance: S_SNIP20_GAS_LIMIT_MED,
+					decrease_allowance: S_SNIP20_GAS_LIMIT_MED,
+					transfer_from: S_SNIP20_GAS_LIMIT_MED,
 					send_from: S_SNIP20_GAS_LIMIT_MORE,
-					mint: S_SNIP20_GAS_LIMIT_LOW,
-					set_minters: S_SNIP20_GAS_LIMIT_LOW,
-					burn: S_SNIP20_GAS_LIMIT_LOW,
-					burn_from: S_SNIP20_GAS_LIMIT_LOW,
-					deposit: S_SNIP20_GAS_LIMIT_LOW,  // 150k
-					redeem: S_SNIP20_GAS_LIMIT_LOW,
-					revoke_permit: S_SNIP20_GAS_LIMIT_LOW,
+					mint: S_SNIP20_GAS_LIMIT_MED,
+					set_minters: S_SNIP20_GAS_LIMIT_MED,
+					burn: S_SNIP20_GAS_LIMIT_MED,
+					burn_from: S_SNIP20_GAS_LIMIT_MED,
+					deposit: S_SNIP20_GAS_LIMIT_MED,  // 150k
+					redeem: S_SNIP20_GAS_LIMIT_MED,
+					revoke_permit: S_SNIP20_GAS_LIMIT_MED,
 				},
 			},
 			'ibc-go': {},
@@ -279,6 +285,94 @@ export const H_STORE_INIT_CHAINS = type_check<typeof SI_STORE_CHAINS>({
 		},
 		providers: [],
 	},
+
+	'/family.cosmos/chain.secretdev-1': {
+		on: 0,
+		name: 'Secret Local Dev',
+		pfp: H_LOOKUP_PFP['/media/token/scrt-dev.svg'],
+		namespace: 'cosmos',
+		reference: 'secretdev-1',
+		bech32s: cosmos_bech32s('secret'),
+		slip44s: [
+			{
+				coinType: 529,
+			},
+			{
+				coinType: 118,
+			},
+		],
+		coins: {
+			SCRT: {
+				decimals: 6,
+				denom: 'uscrt',
+				name: 'Secret',
+				pfp: H_LOOKUP_PFP['/media/token/scrt-dev.svg'],
+			},
+		},
+		gasPrices: {
+			default: 0.1,
+			steps: [
+				0.0125,
+				0.1,
+				0.25,
+			],
+		},
+		features: {
+			'secretwasm': {
+				consensusIoPubkey: '',
+				gasPadding: {
+					stepSize: `${10_000n}`,
+				},
+				interfaceSchemas: {
+					snip20: {
+						name: TokenInterfaceRuntimeSchema.String,
+						symbol: TokenInterfaceRuntimeSchema.String,
+						decimals: TokenInterfaceRuntimeSchema.NaturalNumber,
+					},
+					snip21: {},
+					snip22: {},
+					snip23: {},
+					snip24: {},
+					snip721: {
+						name: TokenInterfaceRuntimeSchema.String,
+						symbol: TokenInterfaceRuntimeSchema.String,
+					},
+					snip722: {},
+				},
+				// gasLimits: fodemtv({
+				// 	'cosmos-sdk/MsgSend': 13_000n,
+				// }, xg => xg+''),
+				snip20GasLimits: {
+					transfer: `${180_000n}`,
+					send: S_SNIP20_GAS_LIMIT_MORE,
+					register_receive: S_SNIP20_GAS_LIMIT_MED,
+					create_viewing_key: S_SNIP20_GAS_LIMIT_MORE,  // 175k
+					set_viewing_key: S_SNIP20_GAS_LIMIT_MORE,  // 175k
+					increase_allowance: S_SNIP20_GAS_LIMIT_MED,
+					decrease_allowance: S_SNIP20_GAS_LIMIT_MED,
+					transfer_from: S_SNIP20_GAS_LIMIT_MED,
+					send_from: S_SNIP20_GAS_LIMIT_MORE,
+					mint: S_SNIP20_GAS_LIMIT_MED,
+					set_minters: S_SNIP20_GAS_LIMIT_MED,
+					burn: S_SNIP20_GAS_LIMIT_MED,
+					burn_from: S_SNIP20_GAS_LIMIT_MED,
+					deposit: S_SNIP20_GAS_LIMIT_MED,  // 150k
+					redeem: S_SNIP20_GAS_LIMIT_MED,
+					revoke_permit: S_SNIP20_GAS_LIMIT_MED,
+				},
+			},
+			'ibc-go': {},
+			'ibc-transfer': {},
+		},
+		fungibleTokenInterfaces: ['snip20', 'snip21', 'snip22', 'snip23', 'snip24'],
+		nonFungibleTokenInterfaces: ['snip721', 'snip722'],
+		testnet: {
+			faucets: {},
+		},
+		devnet: {},
+		providers: [],
+	},
+
 	// '/family.cosmos/chain.theta-testnet-001': {
 	// 	name: 'Cosmos Hub Theta',
 	// 	pfp: H_LOOKUP_PFP['/media/chain/cosmos-hub.svg'],
@@ -547,6 +641,7 @@ export const H_STORE_INITS: {
 		user: [],
 	},
 	[SI_STORE_ACCOUNTS]: {},
+	[SI_STORE_DEVICES]: {},
 	[SI_STORE_AGENTS]: H_STORE_INIT_AGENTS,
 	[SI_STORE_CHAINS]: H_STORE_INIT_CHAINS,
 	[SI_STORE_CONTRACTS]: H_STORE_INIT_CONTRACTS,

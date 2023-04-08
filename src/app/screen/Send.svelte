@@ -24,8 +24,10 @@
 	import {encrypt_private_memo} from '#/crypto/privacy';
 	import {NB_MAX_MEMO, R_BECH32, XT_MINUTES} from '#/share/constants';
 	import {subscribe_store} from '#/store/_base';
+	import {Accounts} from '#/store/accounts';
 	import {Agents} from '#/store/agents';
 	import {G_APP_STARSHELL} from '#/store/apps';
+	import {Chains} from '#/store/chains';
 	import {fold, microtask} from '#/util/belt';
 	import {buffer_to_base93, text_to_buffer} from '#/util/data';
 	import {
@@ -45,6 +47,7 @@
 	
 	import ContactEdit from './ContactEdit.svelte';
 	import ContactsHome from './ContactsHome.svelte';
+	import ContractEdit from './ContractEdit.svelte';
 	import RequestSignature from './RequestSignature.svelte';
 	import SettingsMemos from './SettingsMemos.svelte';
 	import RecipientSelect from '../frag/RecipientSelect.svelte';
@@ -55,13 +58,11 @@
 	
 	import SX_ICON_PERSONAL from '#/icon/account_box.svg?raw';
 	import SX_ICON_CONTRACT from '#/icon/analytics.svg?raw';
-	import SX_ICON_LOADING from '#/icon/loading.svg?raw';
 	import SX_ICON_DROPDOWN from '#/icon/drop-down.svg?raw';
 	import SX_ICON_INFO from '#/icon/info.svg?raw';
+	import SX_ICON_LOADING from '#/icon/loading.svg?raw';
 	import SX_ICON_SHIELD from '#/icon/shield.svg?raw';
 	import SX_ICON_VISIBILITY from '#/icon/visibility.svg?raw';
-    import { Chains } from '#/store/chains';
-    import { Accounts } from '#/store/accounts';
 	
 	
 
@@ -378,6 +379,15 @@
 					accountPath: $yw_account_ref,
 					app: G_APP_STARSHELL,
 					async completed(b_completed) {
+						// pop twice
+						{
+							$yw_navigator.activePage.pop();
+
+							await microtask();
+
+							$yw_navigator.activePage.pop();
+						}
+
 						if(b_completed && b_checked_save_contact) {
 							await microtask();
 
@@ -405,9 +415,6 @@
 									},
 								},
 							});
-						}
-						else {
-							$yw_navigator.activePage.pop();
 						}
 					},
 				},
@@ -476,14 +483,12 @@
 	});
 
 	function adjust_contract_settings() {
-		// k_page.push({
-		// 	creator: Snip,
-		// 	context: {
-		// 		intent: {
-		// 			id: 'send_adjust_memo_settings',
-		// 		},
-		// 	},
-		// });
+		k_page.push({
+			creator: ContractEdit,
+			props: {
+				p_contract: assetPath as ContractPath,
+			},
+		});
 	}
 
 	// reactively update account if user switches in select

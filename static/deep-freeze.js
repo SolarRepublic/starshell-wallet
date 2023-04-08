@@ -87,7 +87,7 @@ if('undefined' === typeof globalThis['__starshell_deeply_frozen']) {
 		Object.defineProperty(z_thing, si_property, g_descriptor);
 	}
 
-	function deep_freeze(z_thing, s_parent, as_blocking=new Set()) {
+	function deep_freeze(z_thing, s_parent, as_blocking=new Set(), as_unfreezable=AS_UNFREEZABLE) {
 		// block infinite recursion
 		if(as_blocking.has(z_thing)) return;
 
@@ -133,7 +133,7 @@ if('undefined' === typeof globalThis['__starshell_deeply_frozen']) {
 
 			// has simple value; recurse
 			if('value' in g_descriptor) {
-				deep_freeze(g_descriptor.value, s_path, as_blocking);
+				deep_freeze(g_descriptor.value, s_path, as_blocking, as_unfreezable);
 			}
 			// anything else
 			else {
@@ -164,7 +164,7 @@ if('undefined' === typeof globalThis['__starshell_deeply_frozen']) {
 					continue;
 				}
 
-				deep_freeze(z_value, s_path, as_blocking);
+				deep_freeze(z_value, s_path, as_blocking, as_unfreezable);
 			}
 		}
 
@@ -172,7 +172,7 @@ if('undefined' === typeof globalThis['__starshell_deeply_frozen']) {
 		if(b_is_global_this) return;
 
 		// nothing, already frozen, or unfreezable skip
-		if(Object.isFrozen(z_thing) || AS_UNFREEZABLE.has(z_thing)) return;
+		if(Object.isFrozen(z_thing) || as_unfreezable.has(z_thing)) return;
 
 		// everything else
 		try {
@@ -191,7 +191,7 @@ if('undefined' === typeof globalThis['__starshell_deeply_frozen']) {
 		// failed to freeze thing
 		catch(e_freeze) {
 			// do not try again
-			AS_UNFREEZABLE.add(z_thing);
+			as_unfreezable.add(z_thing);
 
 			// was not expecting freeze to fail on this thing
 			if(!AS_EXPECT_UNFREEZABLE.has(s_parent)) {
@@ -222,7 +222,7 @@ if('undefined' === typeof globalThis['__starshell_deeply_frozen']) {
 	}
 
 	// freeze everything (excluding any pointers that match unfreezable)
-	deep_freeze(globalThis, 'globalThis', AS_UNFREEZABLE);
+	deep_freeze(globalThis, 'globalThis', AS_UNFREEZABLE, AS_UNFREEZABLE);
 
 	// log
 	console.debug(`Completed deep_freeze of ${c_items_frozen} items`);

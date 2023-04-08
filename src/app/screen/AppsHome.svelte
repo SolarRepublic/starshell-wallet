@@ -14,7 +14,6 @@
 	import {open_external_link} from '#/util/dom';
 	
 	import AppView from './AppView.svelte';
-	import InlineTags from '../frag/InlineTags.svelte';
 	import Header from '../ui/Header.svelte';
 	import LoadingRows from '../ui/LoadingRows.svelte';
 	import Row from '../ui/Row.svelte';

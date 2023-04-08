@@ -25,6 +25,8 @@ import {load_word_list} from '#/crypto/bip39';
 import {SessionStorage} from '#/extension/session-storage';
 import {
 	A_CHAIN_NAMESPACES,
+	B_DESKTOP,
+	B_IPHONE_IOS,
 	N_PX_DIM_ICON,
 	RT_CAIP_2_NAMESPACE,
 	RT_CAIP_2_REFERENCE,
@@ -40,7 +42,7 @@ import {
 	R_FAULTY_CAIP_19,
 	R_TOKEN_SYMBOL,
 } from '#/share/constants';
-import type {AppProfile} from '#/store/apps';
+import {AppProfile, Apps} from '#/store/apps';
 import {Chains} from '#/store/chains';
 import {ode, is_dict} from '#/util/belt';
 import {concat, sha256_sync, text_to_buffer, uuid_v4} from '#/util/data';
@@ -359,8 +361,35 @@ export const ServiceRouter = {
 			h_sessions_valid[si_key] = g_req_write;
 		}
 
-		// go async
-		return new Promise((fk_resolve, fe_reject) => {
+		// check background service is alive on desktop
+		if(B_DESKTOP) {
+			// await new Promise((fk_resolve, fe_reject) => {
+			// 	// service timeout
+			// 	const i_whoami = setTimeout(() => {
+			// 		void open_flow({
+			// 			flow: {
+			// 				type: 'restartService',
+			// 				page: {
+			// 					href: location.href,
+			// 					tabId: -1,
+			// 					windowId: -1,
+			// 				},
+			// 				value: {},
+			// 			},
+			// 		});
+			// 	}, 3e3);
+
+			// 	// contact service
+			// 	f_runtime().sendMessage({
+			// 		type: 'whoami',
+			// 	}, () => {
+			// 		// cancel timeout
+			// 		clearTimeout(i_whoami);
+
+			// 		fk_resolve(void 0);
+			// 	});
+			// });
+
 			// service timeout
 			const i_whoami = setTimeout(() => {
 				void open_flow({
@@ -377,24 +406,37 @@ export const ServiceRouter = {
 			}, 3e3);
 
 			// contact service
-			f_runtime().sendMessage({
+			await f_runtime().sendMessage({
 				type: 'whoami',
-			}, () => {
-				// cancel timeout
-				clearTimeout(i_whoami);
-
-				// send connection request to service
-				f_runtime().sendMessage({
-					type: 'requestConnection',
-					value: {
-						chains: h_chains_valid,
-						sessions: h_sessions_valid,
-						accountPath: p_account,
-					},
-				}, (w_response) => {
-					fk_resolve(w_response);
-				});
 			});
+
+			// cancel timeout
+			clearTimeout(i_whoami);
+		}
+
+		// // go async
+		// return new Promise((fk_resolve, fe_reject) => {
+		// 	// send connection request to service
+		// 	f_runtime().sendMessage({
+		// 		type: 'requestConnection',
+		// 		value: {
+		// 			chains: h_chains_valid,
+		// 			sessions: h_sessions_valid,
+		// 			accountPath: p_account,
+		// 		},
+		// 	}, (w_response) => {
+		// 		fk_resolve(w_response);
+		// 	});
+		// });
+
+		// send connection request to service
+		return await f_runtime().sendMessage({
+			type: 'requestConnection',
+			value: {
+				chains: h_chains_valid,
+				sessions: h_sessions_valid,
+				accountPath: p_account,
+			},
 		});
 	},
 };
@@ -816,6 +858,20 @@ export async function create_app_profile(): Promise<AppProfile> {
 
 						// load chain definition
 						const g_chain = (await Chains.at(p_chain) || h_chains[p_chain]) as ChainStruct;
+
+						// chain not found
+						if(!g_chain) {
+							error(`.accounts["${si_account}"].chain references chain that was not defined/declared: "${g_account.chain}"`);
+							continue;
+						}
+
+						// validate own namespace
+						if('string' !== typeof g_chain.namespace) {
+							error(`Invliad referenced chain namespace type: ${typeof g_chain.namespace}`);
+							continue;
+						}
+
+						// copy namespace
 						g_sanitized.namespace = g_chain.namespace;
 
 						// missing .address property
@@ -905,8 +961,14 @@ export async function create_app_profile(): Promise<AppProfile> {
 					if(is_dict(g_contract)) {
 						// prep sanitized form
 						const g_sanitized = {
+							on: 1,
+							name: 'Unknown Contract',
+							origin: `app:${Apps.pathFor(location.host, location.protocol as 'https')}`,
 							pfp: '',
-						} as ContractStruct;
+							interfaces: {
+								excluded: [],
+							},
+						} as unknown as ContractStruct;
 
 						// missing .chain property
 						if(!('chain' in g_contract)) {
@@ -935,10 +997,15 @@ export async function create_app_profile(): Promise<AppProfile> {
 						// load chain definition
 						const g_chain = (await Chains.at(p_chain) || h_chains[p_chain]) as ChainStruct;
 
+						// chain not found
+						if(!g_chain) {
+							error(`.contracts["${si_contract}"].chain references chain that was not defined/declared: "${g_contract.chain}"`);
+							continue;
+						}
+
 						// ref interfaces schema
 						const h_features = g_chain?.features;
 						const h_interface_schemas: Dict<Dict<TokenInterfaceRuntimeSchema>> = (h_features?.secretwasm || h_features?.['wasm'])?.interfaceSchemas || {};
-
 
 						// missing .address property
 						if(!('address' in g_contract)) {
@@ -967,7 +1034,9 @@ export async function create_app_profile(): Promise<AppProfile> {
 							warn(`DEPRECATION NOTICE:  .contracts["${si_contract}"].snip20  should be rewritten as  .contracts["${si_contract}"].interfaces.snip20`);
 
 							// migrate to interfaces struct
-							(g_contract.interfaces = g_contract.interfaces || {})['snip20'] = g_contract.snip20;
+							(g_contract.interfaces = g_contract.interfaces || {
+								excluded: [],
+							})['snip20'] = g_contract.snip20;
 						}
 
 						// copy interfaces
@@ -975,9 +1044,7 @@ export async function create_app_profile(): Promise<AppProfile> {
 							const h_interfaces = g_contract.interfaces as Dict<Dict>;
 							if(is_dict(h_interfaces)) {
 								// prep output
-								const h_specs: ContractStruct['interfaces'] = g_sanitized.interfaces = {
-									excluded: [],
-								};
+								const h_specs: ContractStruct['interfaces'] = g_sanitized.interfaces;
 
 								// each declared interface
 								for(const [si_interface, h_interface] of ode(h_interfaces)) {

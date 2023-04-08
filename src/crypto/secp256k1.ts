@@ -81,6 +81,11 @@ interface Secp256k1KeyFields {
 // private fields
 const hm_privates = new Map<Secp256k1Key, Secp256k1KeyFields>();
 
+export interface SigningKey {
+	exportPublicKey(b_uncompressed?: boolean): Uint8Array;
+	sign(atu8_message: Uint8Array, b_extra_entropy?: boolean): Promise<Uint8Array>;
+	ecdh(atu8_pk: Uint8Array): Promise<Uint8Array>;
+}
 
 /**
  * Encapsulates a secp256k1 private key.

@@ -60,12 +60,12 @@ export type SerializableArgon2Params = O.Merge<{
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export const Secrets = {
 	/**
-	 * Encrypts arbitrary data using the given PIN
+	 * Encrypts arbitrary data using the given PIN or password
 	 * @param atu8_data 
 	 * @param atu8_pin 
 	 * @returns 
 	 */
-	async encryptWithPin(atu8_data: Uint8Array, atu8_pin: Uint8Array): Promise<[Uint8Array, SecretSecurity.Struct<'pin'>]> {
+	async encryptWithPop(atu8_data: Uint8Array, atu8_pin: Uint8Array, si_type: 'pin'|'password'='pin'): Promise<[Uint8Array, SecretSecurity.Struct<'pin'|'password'>]> {
 		// generate random salt for hashing
 		const atu8_salt = crypto.getRandomValues(new Uint8Array(32));
 
@@ -98,7 +98,7 @@ export const Secrets = {
 
 		// return encrypted data and complemetary security object
 		return [atu8_encrypted, {
-			type: 'pin',
+			type: si_type,
 			hint: '',
 			encryption: {
 				algorithm: 'AES-GCM',
@@ -119,7 +119,7 @@ export const Secrets = {
 	 * @param g_security 
 	 * @returns 
 	 */
-	async decryptWithPin(atu8_data: Uint8Array, atu8_pin: Uint8Array, g_security: SecretSecurity.Struct<'pin'>): Promise<Uint8Array> {
+	async decryptWithPop(atu8_data: Uint8Array, atu8_pin: Uint8Array, g_security: SecretSecurity.Struct<'pin'|'password'>): Promise<Uint8Array> {
 		// ref hashing params
 		const g_params_hashing = g_security.hashing;
 

@@ -2,11 +2,11 @@ import {ThreadId} from '#/app/def';
 import {yw_navigator} from '#/app/mem';
 import ScanQr from '#/app/screen/ScanQr.svelte';
 import {open_flow} from '#/script/msg-flow';
-import {B_WITHIN_PWA} from '#/share/constants';
+import {B_IOS_WEBKIT, B_WITHIN_PWA} from '#/share/constants';
 import {microtask, timeout_exec} from '#/util/belt';
 
 export async function launch_qr_scanner(): Promise<void> {
-	if(B_WITHIN_PWA) {
+	if(B_WITHIN_PWA || B_IOS_WEBKIT) {
 		const k_navigator = yw_navigator.get();
 
 		// activate scratch thread

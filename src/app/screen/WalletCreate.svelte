@@ -2,91 +2,118 @@
 	import {Header, Screen} from './_screens';
 	import {load_page_context} from '../svelte';
 	
-	import {Bip39} from '#/crypto/bip39';
+	import {B_SUPPORTS_LEDGER} from '#/share/constants';
 	
-	import MnemonicCreate from './MnemonicCreate.svelte';
-	import MnemonicImport from './MnemonicImport.svelte';
+	import GuideWalletImportSelector from './GuideWalletImportSelector.svelte';
+	import HardwareController from './HardwareController.svelte';
+	import KeystoneHardwareConfigurator from './KeystoneHardwareConfigurator.svelte';
+	import LedgerLinkAccounts from './LedgerLinkAccounts.svelte';
+	import WalletCreateSoft, {WalletIntent} from './WalletCreateSoft.svelte';
 	import ActionsWall from '../ui/ActionsWall.svelte';
-
-	import CheckboxField from '../ui/CheckboxField.svelte';
-	import Curtain from '../ui/Curtain.svelte';
-	import Tooltip from '../ui/Tooltip.svelte';
 	
-	import SX_ICON_SEED_DERIVATION from '#/icon/seed-derivation.svg?raw';
+	import Curtain from '../ui/Curtain.svelte';
 
+	const {k_page, next_progress} = load_page_context();
 
-	const {k_page} = load_page_context();
+	// progress root
+	const a_progress: [number, number] = [1, 6];
+
+	// push args forwarded to all 'next' screens
+	const gc_push_all = {
+		context: next_progress(a_progress),
+	};
 
 	/**
-	 * Expose binding for agree checkbox
+	 * The user must create an account (means there are no existing accounts)
 	 */
-	export let b_agreed = false;
+	export let b_mandatory = false;
 
 	let b_tooltip_showing = false;
 
-	let b_use_pin = false;
-
-	async function create_new_wallet() {
+	function hard_wallet_ledger() {
 		k_page.push({
-			creator: MnemonicCreate,
+			creator: HardwareController,
 			props: {
-				atu16_indicies: await Bip39.entropyToIndicies(),
-				b_use_pin,
+				a_program: [
+					(k_app, k_page_prg, k_prg) => {
+						// bypass HardwareController on pop
+						k_page_prg.on({
+							restore() {
+								k_page_prg.pop();
+							},
+						});
+
+						// move onto linking accounts
+						k_page_prg.push({
+							creator: LedgerLinkAccounts,
+							props: {
+								k_app,
+							},
+							context: next_progress(a_progress, +2),
+						});
+					},
+				],
 			},
+			...gc_push_all,
 		});
 	}
 
-	function import_mnemonic() {
+	function hard_wallet_keystone() {
 		k_page.push({
-			creator: MnemonicImport,
+			creator: KeystoneHardwareConfigurator,
+			props: {},
+			...gc_push_all,
 		});
 	}
 
+	function soft_wallet(xc_intent: WalletIntent) {
+		k_page.push({
+			creator: WalletCreateSoft,
+			props: {
+				xc_intent,
+				b_mandatory: true,
+			},
+			...gc_push_all,
+		});
+	}
+
+	function import_wallet() {
+		k_page.push({
+			creator: GuideWalletImportSelector,
+			...gc_push_all,
+		});
+	}
 </script>
 
 <style lang="less">
-	.seed-derivation {
-		--icon-diameter: 80%;
-		display: flex;
-		justify-content: center;
-	}
 </style>
 
-<Screen>
-	<Header plain
-		title="Create new seed or restore from existing?"
+<Screen progress={[1, 6]}>
+	<Header plain pops={!b_mandatory}
+		title="Create, import, or connect a wallet?"
 	/>
 
 	<p>
-		A mnemonic "seed" is a secret phrase that can create multiple, distinct accounts.
-		A single seed is like a master password for all your funds.
+		
 	</p>
 
-	<div class="global_svg-icon seed-derivation flex_1">
-		{@html SX_ICON_SEED_DERIVATION}
-	</div>
+	<div class="flex_1" />
 
 	<ActionsWall>
-		<CheckboxField id='use-pin' bind:checked={b_use_pin}>
-			<span>
-				<span>
-					Protect my seed with a custom PIN
-				</span>
-				<span>
-					<Tooltip bind:showing={b_tooltip_showing}>
-						A short PIN encrypts your seed phrase with an additional layer of security.
-						It will only be required when creating new accounts or exporting the mnemonic.
-					</Tooltip>
-				</span>
-			</span>
-		</CheckboxField>
-
-		<button class="primary" on:click={() => create_new_wallet()}>
-			Create new seed
+		<button class="primary" on:click={() => soft_wallet(WalletIntent.NEW)}>
+			Create new wallet
 		</button>
 
-		<button on:click={() => import_mnemonic()}>
-			Restore existing seed
+		<button on:click={() => import_wallet()}>
+			Import existing wallet
+		</button>
+
+		<button disabled={!B_SUPPORTS_LEDGER} on:click={() => hard_wallet_ledger()}>
+			Connect Ledger
+		</button>
+
+		<button on:click={() => hard_wallet_keystone()}>
+			Connect Keystone
 		</button>
 	</ActionsWall>
 

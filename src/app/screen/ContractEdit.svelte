@@ -223,8 +223,20 @@
 			name: $yw_contract_name,
 			pfp: $yw_contract_pfp,
 			on: $yw_contract_on,
-			interface: h_interfaces,
+			interfaces: h_interfaces,
 		};
+
+		// contract is snip20
+		if(h_interfaces.snip20) {
+			Object.assign(h_interfaces.snip20, {
+				symbol: $yw_token_symbol,
+				decimals: $yw_token_decimals,
+				extra: {
+					...h_interfaces.snip20.extra,
+					coingeckoId: $yw_token_coingecko,
+				},
+			});
+		}
 
 		// form is invalid
 		if(!b_form_valid) {
@@ -396,7 +408,7 @@
 					<Load width="100%" height="48px" forever />
 				{/if}
 			{:else}
-				<StarSelect isClearable showIndicator
+				<StarSelect clearable showChevron
 					items={a_coingecko_registry}
 					value={g_selected_coingecko}
 					on:select={d => select_coingecko_id(d.detail)}

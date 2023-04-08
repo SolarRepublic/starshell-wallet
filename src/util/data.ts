@@ -5,7 +5,7 @@ import type {SerializeToJson, JsonValue} from '#/meta/belt';
 import {instantiateRipemd160, instantiateSha256} from '@solar-republic/wasm-secp256k1';
 import {createHash} from 'sha256-uint8array';
 
-import {is_dict, is_dict_es} from './belt';
+import {is_dict, is_dict_es, ode} from './belt';
 
 import {Ripemd160 as Ripemd160Js} from '../crypto/ripemd160';
 import SensitiveBytes from '../crypto/sensitive-bytes';
@@ -645,4 +645,14 @@ export function canonicalize<
 	}
 
 	return z_input;
+}
+
+
+
+function json_stringify_sort(si_key: string, z_value: JsonValue) {
+	return is_dict(z_value)? Object.fromEntries(ode(z_value).sort(([s_a], [s_b]) => s_a < s_b? -1: 1)): z_value;
+}
+
+export function canonicalize_and_serialize_json(w_json: JsonValue): Uint8Array {
+	return text_to_buffer(JSON.stringify(w_json, json_stringify_sort));
 }

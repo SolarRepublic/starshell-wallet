@@ -5,7 +5,7 @@
 	import type {Incident, IncidentStruct} from '#/meta/incident';
 	import type {SecretStruct, SecretPath} from '#/meta/secret';
 	
-	import {Snip2xMessageConstructor, Snip2xToken} from '#/schema/snip-2x-const';
+	import {Snip2xToken} from '#/schema/snip-2x-const';
 	
 	import {Screen} from './_screens';
 	import {yw_account, yw_chain_ref, yw_network, yw_owner} from '../mem';
@@ -22,6 +22,8 @@
 	import {fold, forever, ode} from '#/util/belt';
 	
 	import ContractEdit from './ContractEdit.svelte';
+	import ContractInspect from './ContractInspect.svelte';
+	import HoldingWrap from './HoldingWrap.svelte';
 	import Send from './Send.svelte';
 	import TokenAllowances from './TokenAllowances.svelte';
 	import TokensAdd from './TokensAdd.svelte';
@@ -39,8 +41,6 @@
 	import SX_ICON_CREDIT_CARD from '#/icon/credit-card.svg?raw';
 	import SX_ICON_EDIT from '#/icon/edit.svg?raw';
 	import SX_ICON_EYE from '#/icon/visibility.svg?raw';
-    import HoldingWrap from './HoldingWrap.svelte';
-    import ContractInspect from './ContractInspect.svelte';
 	
 	
 
@@ -54,6 +54,8 @@
 	let s_header_post_title = '';
 	let s_header_subtitle = '';
 	let s_main_title: Promisable<string> = forever('');
+	let b_cache_reloading = true;
+
 	const s_main_post_title = '';
 	let s_main_subtitle: Promisable<string> = forever('');
 
@@ -185,6 +187,12 @@
 				s_header_post_title = 'SNIP-20';
 				s_header_subtitle = `${g_contract_local.name} token`;
 
+				// balance cache
+				const g_cache = await k_token.readCache('balance');
+				if(g_cache) {
+					s_main_title = `${g_cache.data['amount']} ${k_token.symbol}`;
+				}
+
 				// viewing key exists
 				const s_viewing_key = await k_token.viewingKey();
 				if(s_viewing_key) {
@@ -206,7 +214,9 @@
 						if(g_balance) {
 							s_main_title = `${g_balance.s_amount} ${k_token.symbol}`;
 							s_main_subtitle = Promise.all([g_balance.s_fiat, g_balance.s_worth])
-								.then(([s_fiat, s_worth]) => `${s_fiat} (${s_worth} per token)`);
+								.then(([s_fiat, s_worth]) => s_fiat? `${s_fiat} (${s_worth} per token)`: '');
+
+							b_cache_reloading = false;
 						}
 						else {
 							s_main_title = 'Unable to fetch balance';
@@ -266,8 +276,8 @@
 
 		// each incident in store
 		for(const [p_incident, g_incident] of ks_incidents.entries()) {
-			// only interested in transactions
-			if(!['tx_in', 'tx_out'].includes(g_incident.type)) continue;
+			// only interested in transactions and token transfers
+			if(!['tx_in', 'tx_out', 'token_in'].includes(g_incident.type)) continue;
 
 			// destructure incident
 			const {
@@ -277,18 +287,27 @@
 					stage: si_stage,
 					events: h_events,
 				},
-			} = g_incident as Incident.Struct<'tx_in' | 'tx_out'>;
+			} = g_incident as Incident.Struct<'tx_in' | 'tx_out' | 'token_in'>;
 
 			// only this chain
 			if(g_data.chain !== $yw_chain_ref) continue;
 
-			// each execution
-			const a_executions = h_events.executions || [];
-			for(const g_execution of a_executions) {
-				// includes this contract
-				if(sa_contract === g_execution.contract) {
-					// add to list
+			// token_in
+			if('token_in' === si_type) {
+				// for this very contract; add to list
+				if(sa_contract === g_data.bech32) {
 					a_incidents.push(g_incident);
+				}
+			}
+			// transaction
+			else {
+				// each execution
+				const a_executions = h_events!['executions'] || [];
+				for(const g_execution of a_executions) {
+					// includes this contract; add to list
+					if(sa_contract === g_execution.contract) {
+						a_incidents.push(g_incident);
+					}
 				}
 			}
 		}

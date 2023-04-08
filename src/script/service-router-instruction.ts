@@ -5,7 +5,7 @@ import type {AppStruct} from '#/meta/app';
 import {AppApiMode} from '#/meta/app';
 import type {Vocab} from '#/meta/vocab';
 
-import {global_broadcast} from './msg-global';
+import {global_broadcast, global_wait} from './msg-global';
 
 import {parse_sender} from './service-apps';
 
@@ -13,10 +13,58 @@ import {Vault} from '#/crypto/vault';
 import {SessionStorage} from '#/extension/session-storage';
 import {Apps} from '#/store/apps';
 import {remove, timeout, timeout_exec} from '#/util/belt';
+import type { Nilable } from '#/meta/belt';
 
 const debug = (s: string, ...a_args: (string | number | object)[]) => console.debug(`StarShell.service: ${s}`, ...a_args);
 // globalThis.debug = debug;
 
+const H_OFFSCREEN_CONFIGS = {
+	clipboard: {
+		reasons: [chrome.offscreen.Reason.CLIPBOARD],
+		justification: 'Read data from clipboard during user import',
+	},
+};
+
+async function send_offscreen<
+	g_vocab extends IntraExt.OffscreenVocab=IntraExt.OffscreenVocab,
+	w_response extends Vocab.Response<g_vocab>=Vocab.Response<g_vocab>,
+>(si_reason: 'clipboard', g_msg: Vocab.Message<g_vocab>): Promise<w_response | null> {
+	let w_response: w_response | null = null;
+
+	// acquire and then release offscreen lock
+	await navigator.locks.request('chrome:offscreen', async() => {
+		const [, xc_timeout] = await timeout_exec(50e3, async() => {
+			// if offscreen document does not currently exist
+			if(!await chrome.offscreen.hasDocument()) {
+				// open offscreen document
+				await chrome.offscreen.createDocument({
+					url: '/src/entry/offscreen.html',
+					...H_OFFSCREEN_CONFIGS[si_reason],
+				});
+			}
+
+			// send instruction and return response
+			const [w_response_local, xc_timeout_local] = await timeout_exec(2e3, () => (chrome.runtime as Vocab.TypedRuntime<g_vocab>).sendMessage(g_msg));
+
+			// timed out
+			if(xc_timeout_local) {
+				throw new Error(`Offscreen response timed out`);
+			}
+
+			// set response data
+			w_response = w_response_local as w_response;
+		});
+
+		if(xc_timeout) {
+			try {
+				await timeout_exec(1e3, () => chrome.offscreen.closeDocument());
+			}
+			catch(e_close) {}
+		}
+	});
+
+	return w_response;
+}
 
 /**
  * message handlers for service instructions from popup
@@ -201,6 +249,36 @@ export function instruction_handlers(
 				// 	}
 				// }
 			}
+		},
+
+		async readClipboard(gc_read): Promise<string | null> {
+			if('function' === typeof navigator.clipboard?.readText) {
+				return await navigator.clipboard.readText();
+			}
+			else if(!chrome.offscreen?.createDocument) {
+				return null;
+			}
+
+			return await send_offscreen('clipboard', {
+				type: 'readClipboardOffscreen',
+				value: gc_read,
+			});
+		},
+
+		async writeClipboard(gc_write): Promise<string | null> {
+			if('function' === typeof navigator.clipboard?.writeText) {
+				await navigator.clipboard.writeText(gc_write.data);
+
+				return gc_write.data;
+			}
+			else if(!chrome.offscreen?.createDocument) {
+				return null;
+			}
+
+			return await send_offscreen('clipboard', {
+				type: 'writeClipboardOffscreen',
+				value: gc_write,
+			});
 		},
 	};
 }

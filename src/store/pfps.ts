@@ -185,6 +185,19 @@ export const Pfps = create_store_class({
 					},
 				}, gc_render);
 			}
+			// remote img
+			else if(p_pfp.startsWith('img:')) {
+				// picture element
+				return dd('picture', {}, [
+					// default img
+					dd('img', {
+						src: p_pfp.slice('img:'.length),
+						width: gc_render.dim,
+						height: gc_render.dim,
+						alt: gc_render.alt || '',
+					}),
+				]);
+			}
 			// store ref
 			else {
 				const g_pfp = ks_pfps? ks_pfps.at(p_pfp as Resource.Path<Pfp>): await Pfps.at(p_pfp as Resource.Path<Pfp>);

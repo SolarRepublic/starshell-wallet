@@ -12,7 +12,7 @@
 	
 	import {Accounts} from '#/store/accounts';
 	import {Chains} from '#/store/chains';
-	import {ode, oderac, ofe} from '#/util/belt';
+	import {fodemtv, ode, oderac, ofe} from '#/util/belt';
 	import {dd, open_external_link} from '#/util/dom';
 	
 	import Address from '../frag/Address.svelte';
@@ -99,7 +99,7 @@
 		h_pfps_chain = await load_pfps(ks_chains.raw);
 
 		// convert chain dict to list of select options
-		return oderac(ks_chains.raw, chain_to_option);
+		return ode(ks_chains.raw).filter(([, g]) => g.on).map(([p, g]) => chain_to_option(p, g));
 	}
 	
 	
@@ -195,6 +195,7 @@
 		<Load forever />
 	{:then a_chains_select}
 		<StarSelect id="chain-select"
+			searchable={false}
 			pfpMap={h_pfps_chain}
 			placeholder="Select chain"
 			items={a_chains_select}
@@ -211,6 +212,7 @@
 		<Load forever />
 	{:then a_accounts_select}
 		<StarSelect id="account-select"
+			searchable={false}
 			pfpMap={h_pfps_account}
 			placeholder="Select account"
 			secondaryClass='balance'

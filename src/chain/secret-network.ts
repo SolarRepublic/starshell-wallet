@@ -48,14 +48,37 @@ export class SecretNetwork extends CosmosNetwork {
 		return `${Chains.caip2From(g_chain)}:#query_permit:${s_permit_name}`;
 	}
 
-	async secretConsensusIoPubkey(): Promise<Uint8Array> {
+	async secretConsensusIoPubkeyExact(): Promise<Uint8Array> {
 		if(!this._g_chain.features['secretwasm']) {
 			throw new Error(`Cannot get consensus IO pubkey on non-secret chain "${this._g_chain.reference}"`);
 		}
 
-		const g_registration = await wgrpc_retry(() => new RegistrationQueryClient(this._y_grpc).registrationKey({}));
+		// instantiate registration client
+		const y_reg = new RegistrationQueryClient(this._y_grpc);
 
-		return SecretWasm.extractConsensusIoPubkey(g_registration.key);
+		// attempt to fetch tx key from node
+		const g_tx = await wgrpc_retry(() => y_reg.txKey({}));
+
+		if(32 === g_tx?.key?.byteLength) {
+			return g_tx.key;
+		}
+
+		throw new Error(`Node did not return a consensus key`);
+	}
+
+	async secretConsensusIoPubkey(): Promise<Uint8Array> {
+		// attempt to fetch tx key from node
+		try {
+			return this.secretConsensusIoPubkeyExact();
+		}
+		catch(e_key) {}
+
+		// otherwise, fallback to extracting from registration
+		{
+			const g_registration = await wgrpc_retry(() => new RegistrationQueryClient(this._y_grpc).registrationKey({}));
+
+			return SecretWasm.extractConsensusIoPubkey(g_registration.key);
+		}
 	}
 
 	async secretWasm(g_account: AccountStruct): Promise<SecretWasm> {
@@ -95,7 +118,7 @@ export class SecretNetwork extends CosmosNetwork {
 		const atu8_consensus_pk = base93_to_buffer(sxb93_consensus_pk);
 
 		// account has signed a wasm seed; load secretwasm
-		let k_wasm = await utility_key_child(g_account, 'secretNetworkKeys', 'transactionEncryptionKey',
+		let k_wasm = await utility_key_child(g_account, 'walletSecurity', 'transactionEncryptionKey',
 			atu8_seed => new SecretWasm(atu8_consensus_pk, atu8_seed));
 
 		// no pre-existing tx encryption key; generate a random seed

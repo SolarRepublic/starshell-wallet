@@ -41,7 +41,7 @@ interface ExecContractMsg {
 }
 
 export const ComputeMessages: MessageDict = {
-	query_permit(g_msg, {g_chain, p_app, g_app}) {
+	query_permit(g_msg, {g_chain, p_app, g_app, g_account}) {
 		const g_permit = g_msg as Snip24PermitMsg['value'];
 
 		return {
@@ -67,6 +67,7 @@ export const ComputeMessages: MessageDict = {
 							bech32s: g_permit.allowed_tokens,
 							g_app,
 							g_chain,
+							g_account,
 						},
 					],
 				} as DescribedMessage;
@@ -489,6 +490,7 @@ export const ComputeMessages: MessageDict = {
 							label: 'Contract',
 							g_app,
 							g_chain,
+							g_account,
 						},
 						kv('Action', si_action),
 						JsonPreviewer.render(h_args, {
@@ -596,6 +598,7 @@ export const ComputeMessages: MessageDict = {
 							bech32s: [sa_contract],
 							g_app,
 							g_chain,
+							g_account,
 							label: 'Token / Contract',
 						},
 						{

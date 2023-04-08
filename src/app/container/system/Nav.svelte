@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type {ParametricSvelteConstructor} from '#/meta/svelte';
 
+	import {B_IOS_NATIVE, P_FALLBACK_BROWSER_HOMEPAGE} from '#/share/constants';
 	import {ode, oderac} from '#/util/belt';
 	import {H_THREADS, ThreadId} from '##/def';
 	import {
@@ -16,15 +17,16 @@
 		yw_thread,
 	} from '##/mem';
 	
-	
 	import SX_ICON_CONTACTS from '#/icon/account_box.svg?raw';
 	import SX_ICON_CUBES from '#/icon/cubes.svg?raw';
 	import SX_ICON_EXPAND from '#/icon/expand.svg?raw';
+	import SX_ICON_GLOBE from '#/icon/globe.svg?raw';
 	import SX_ICON_HISTORY from '#/icon/history.svg?raw';
 	import SX_ICON_MENU from '#/icon/menu.svg?raw';
 	import SX_ICON_NFT from '#/icon/nfts.svg?raw';
 	import SX_ICON_TOKENS from '#/icon/tokens.svg?raw';
-	
+    import { Settings } from '#/store/settings';
+    import type { WebKitMessenger } from '#/script/webkit-polyfill';
 	
 
 	// nav bar definition
@@ -41,9 +43,16 @@
 			svg: SX_ICON_TOKENS,
 			label: 'Tokens',
 		},
-		[ThreadId.APPS]: {
-			svg: SX_ICON_CUBES,
-			label: 'Apps',
+		...B_IOS_NATIVE? {
+			browser: {
+				svg: SX_ICON_GLOBE,
+				label: 'Browser',
+			},
+		}: {
+			[ThreadId.APPS]: {
+				svg: SX_ICON_CUBES,
+				label: 'Apps',
+			},
 		},
 		menu: {
 			svg: SX_ICON_MENU,
@@ -92,6 +101,20 @@
 			case 'menu': {
 				// expand menu
 				$yw_menu_expanded = true;
+
+				break;
+			}
+
+			// browser
+			case 'browser': {
+				(async() => {
+					const p_homepage = await Settings.get('p_browser_homepage') || P_FALLBACK_BROWSER_HOMEPAGE;
+	
+					void (globalThis.opener_handler as WebKitMessenger).post({
+						url: '',
+						args: [p_homepage],
+					});
+				})();
 
 				break;
 			}

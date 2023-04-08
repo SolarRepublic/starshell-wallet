@@ -164,6 +164,9 @@ body {
 	width: 100%;
 	height: 100%;
 
+	// limit the maximum height to a sensible value
+	max-height: 1200px;
+
 	background-color: var(--theme-color-bg);
 	color: white;
 
@@ -686,6 +689,12 @@ b {
 	font-weight: 600;
 }
 
+.error-text {
+	color: var(--theme-color-caution);
+	font-size: 12px;
+	text-align: center;
+}
+
 .validation-message {
 	.font(tiny);
 	color: var(--theme-color-caution);
@@ -814,7 +823,7 @@ strong {
 input {
 	font-size: inherit;
 
-	&[type="text"]:not(.atypical),&[type="password"],&[type="number"] {
+	&[type="text"]:not(.atypical),&[type="search"]:not(.atypical),&[type="password"],&[type="number"] {
 		.form-entry();
 
 		&.global_compact {

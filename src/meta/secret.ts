@@ -10,31 +10,37 @@ import type {Snip24Permission} from '#/schema/snip-24-def';
 import type {Bip44Path} from '#/crypto/bip44';
 import type { SerializableArgon2Params } from '#/store/secrets';
 
+type PinOrPassword = {
+	/**
+	 * Encryption struct
+	 */
+	encryption: {
+		algorithm: 'AES-GCM';
+		salt: string;
+	};
+
+	/**
+	 * Hashing struct
+	 */
+	hashing: Merge<{
+		algorithm: 'argon2';
+	}, SerializableArgon2Params>;
+
+	/**
+	 * Hint for the PIN
+	 */
+	hint: string;
+};
+
 type SecurityTypeRegistry = {
 	none: {};
 
 	pin: {
-		struct: {
-			/**
-			 * Encryption struct
-			 */
-			encryption: {
-				algorithm: 'AES-GCM';
-				salt: string;
-			};
+		struct: PinOrPassword;
+	};
 
-			/**
-			 * Hashing struct
-			 */
-			hashing: Merge<{
-				algorithm: 'argon2';
-			}, SerializableArgon2Params>;
-
-			/**
-			 * Hint for the PIN
-			 */
-			hint: string;
-		};
+	password: {
+		struct: PinOrPassword;
 	};
 
 	phrase: {
@@ -103,7 +109,7 @@ type SecretTypeRegistry = {
 			/**
 			 * Mnemonics can be protected by a PIN or not at all
 			 */
-			security: SecretSecurity.Struct<'pin' | 'none'>;
+			security: SecretSecurity.Struct<'pin' | 'password' | 'none'>;
 		};
 	};
 

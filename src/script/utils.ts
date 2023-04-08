@@ -1,4 +1,4 @@
-import {B_FIREFOX_ANDROID, NL_DATA_ICON_MAX, R_DATA_IMAGE_URL_WEB, SI_EXTENSION_ID_KEPLR} from '#/share/constants';
+import {B_FIREFOX_ANDROID, B_IPHONE_IOS, NL_DATA_ICON_MAX, R_DATA_IMAGE_URL_WEB, SI_EXTENSION_ID_KEPLR} from '#/share/constants';
 import {timeout_exec} from '#/util/belt';
 
 /**
@@ -25,6 +25,10 @@ export function locate_script(s_pattern: string): null | string {
 		if('string' === typeof z_resource) {
 			if(z_resource.startsWith(s_pattern)) {
 				return z_resource;
+			}
+			// ios
+			else if(B_IPHONE_IOS && z_resource.startsWith(s_pattern.replace(/^assets\//, ''))) {
+				return 'assets/'+z_resource;
 			}
 		}
 		// in manifest v3

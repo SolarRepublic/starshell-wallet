@@ -13,7 +13,7 @@ class WebKitMessenger {
 			addEventListener(`@${_si_handler}`, (d_event) => {
 				const g_msg = d_event.detail;
 
-				debug(`Recieved webkit '${_si_handler}' event: %o`, g_msg);
+				debug(`Received webkit '${_si_handler}' event: %o`, g_msg);
 				debug(`Pending '${_si_handler}' listeners: %o`, this._h_pending);
 
 				const si_response = g_msg.id;

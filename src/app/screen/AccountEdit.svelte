@@ -3,6 +3,8 @@
 	import type {Bech32} from '#/meta/chain';
 	import type {PfpTarget} from '#/meta/pfp';
 	
+	import type {ParametricSvelteConstructor} from '#/meta/svelte';
+	
 	import {Screen} from './_screens';
 	import {syserr} from '../common';
 	import {ThreadId} from '../def';
@@ -43,6 +45,17 @@
 
 	export let b_mandatory = false;
 
+	export let a_queue: Array<{
+		creator: ParametricSvelteConstructor;
+		props?: {
+			accountPath: AccountPath;
+			oneway?: boolean;
+			fresh?: boolean;
+			b_mandatory?: boolean;
+		};
+		context?: {};
+	}> = [];
+
 	let s_name = '';
 	let sa_account: Bech32 | string;
 	let p_pfp: PfpTarget;
@@ -59,6 +72,7 @@
 	const {
 		k_page,
 		completed,
+		a_progress,
 	} = load_flow_context();
 
 	let atu8_art_seed = crypto.getRandomValues(new Uint8Array(32));
@@ -218,7 +232,20 @@
 		// trigger account edit
 		void yw_account.invalidate();
 
-		if(completed) {
+		// queue
+		if(a_queue.length) {
+			const gc_push = a_queue[0];
+
+			// push next
+			k_page.push({
+				...gc_push,
+				props: {
+					...gc_push.props,
+					a_queue: a_queue.slice(1),
+				},
+			});
+		}
+		else if(completed) {
 			completed(true);
 		}
 		else {
@@ -309,7 +336,7 @@
 	}
 </style>
 
-<Screen progress={b_mandatory? [5, 5]: null}>
+<Screen progress={a_progress}>
 	<Header plain pops={!fresh && !oneway}
 		title="{accountPath && !fresh? 'Edit': 'New'} account"
 		postTitle={accountPath && !fresh? s_name: ''}

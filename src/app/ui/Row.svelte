@@ -455,7 +455,9 @@
 					{#await name}
 						<PfpDisplay path={pfp} name={'?'} dim={pfpDim} {appRelated} />
 					{:then s_name}
-						<PfpDisplay path={pfp} name={s_name} dim={pfpDim} filter={resource?.['testnet']? 'testnet': ''} {appRelated} />
+						<!-- <PfpDisplay path={pfp} name={s_name} dim={pfpDim} filter={resource?.['testnet']? 'testnet': ''} {appRelated} /> -->
+
+						<PfpDisplay path={pfp} name={s_name} dim={pfpDim} resource={resource} {appRelated} />
 					{/await}
 				</slot>
 			</span>

@@ -45,6 +45,7 @@
 	import Spacer from '../ui/Spacer.svelte';
 	
 	import SX_ICON_LAUNCH from '#/icon/launch.svg?raw';
+	import { yw_account } from '../mem';
 
 
 	const {
@@ -329,7 +330,7 @@
 
 			const sa_owner = Chains.addressFor(g_account.pubkey, g_chain);
 
-			const g_contract = await produce_contract(sa_contract, g_chain);
+			const g_contract = await produce_contract(sa_contract, g_chain, null, g_account);
 
 			const a_fields_inbound_above: FieldConfig[] = [
 				{
@@ -341,6 +342,7 @@
 					type: 'contracts',
 					bech32s: [sa_contract],
 					g_chain,
+					g_account,
 					label: 'Token',
 				},
 			];

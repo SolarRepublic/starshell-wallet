@@ -1,4 +1,6 @@
 <script lang="ts">
+	import {onDestroy} from 'svelte';
+	
 	import {syserr} from '../common';
 	import {yw_context_popup, yw_popup} from '../mem';
 	import {load_page_context} from '../svelte';
@@ -6,6 +8,7 @@
 	import {Bip39} from '#/crypto/bip39';
 	import RuntimeKey from '#/crypto/runtime-key';
 	
+	import {read_clipboard, write_clipboard} from '#/extension/browser';
 	import {text_to_buffer} from '#/util/data';
 	
 	import MnemonicSecurity from './MnemonicSecurity.svelte';
@@ -19,19 +22,43 @@
 	import StaticSelect from '../ui/StaticSelect.svelte';
 	
 
+	export let b_use_pin = false;
+
 	let atu16_indicies: Uint16Array;
 
 	let b_valid = false;
 
 	let nl_words = 12;
 
+	let i_selected = 0;
+
 	let sh_extension = '';
 	let s_hint_extension = '';
 
-	const {
-		k_page,
-	} = load_page_context();
+	let s_autoimport = '';
 
+	const {k_page, a_progress, next_progress} = load_page_context();
+
+	let b_clear_clipboard = false;
+
+	// initial load
+	(async function load() {
+		// passive import
+		const s_clipboard = await read_clipboard();
+		if(s_clipboard) {
+			s_autoimport = s_clipboard;
+		}
+	})();
+
+	function clear_clipboard() {
+		b_clear_clipboard = true;
+	}
+
+	// paste listener
+	document.addEventListener('paste', clear_clipboard);
+	onDestroy(() => {
+		document.removeEventListener('paste', clear_clipboard);
+	});
 
 	async function process_mnemonic() {
 		if(!b_valid) {
@@ -85,6 +112,14 @@
 		// create runtime key for pacakge precursor
 		const kr_precursor = await RuntimeKey.createRaw(atu8_encoded, atu8_encoded.byteLength << 3);
 
+		// clear clipboard
+		if(b_clear_clipboard) {
+			try {
+				await write_clipboard(`Mnemonic was cleared from clipboard by StarShell for security reasons`);
+			}
+			catch(e_clear) {}
+		}
+
 		// clear
 		k_page.push({
 			creator: MnemonicSecurity,
@@ -93,22 +128,30 @@
 				kr_precursor,
 				s_hint_extension,
 				b_imported: true,
+				b_use_pin,
 			},
+			context: next_progress(),
 		});
+	}
+
+	function import_paste(d_event: CustomEvent<{nl_words: number}>) {
+		i_selected = [12, 15, 18, 21, 24].indexOf(d_event.detail.nl_words);
 	}
 </script>
 
 
-<Screen progress={[2, 5]}>
+<Screen progress={a_progress}>
 	<Header plain
 		title="Type, paste or import your mnemonic seed"
 	/>
 
 	<Field short name="Word count">
-		<StaticSelect a_options={[12, 15, 18, 21, 24]} bind:z_selected={nl_words} />
+		<StaticSelect a_options={[12, 15, 18, 21, 24]} bind:z_selected={nl_words} {i_selected} />
 	</Field>
 
-	<Mnemonic {nl_words}
+	<Mnemonic on:paste={import_paste}
+		bind:s_autoimport
+		bind:b_clear_clipboard
 		bind:atu16_indicies={atu16_indicies}
 		bind:b_valid={b_valid}
 		bind:sh_extension

@@ -1,37 +1,21 @@
-<script context="module" lang="ts">
-
-	export type SignaturePreset = '' | 'snip24' | 'snip20ViewingKey'
-	| 'wasm/MsgExecuteContract' | 'wasm/MsgInstantiateContract';
-
-	export interface CompletedProtoSignature {
-		proto: SignedDoc;
-	}
-
-	export interface CompletedAminoSignature {
-		amino: AdaptedAminoResponse;
-	}
-
-	export type CompletedSignature = Partial<U.Merge<CompletedAminoSignature | CompletedProtoSignature>>;
-
-</script>
-
 <script lang="ts">
 	import type {Coin} from '@cosmjs/amino';
 	import type {KeplrSignOptions} from '@keplr-wallet/types';
 	import type {TxResponse} from '@solar-republic/cosmos-grpc/dist/cosmos/base/abci/v1beta1/abci';
 	import type {SimulateResponse} from '@solar-republic/cosmos-grpc/dist/cosmos/tx/v1beta1/service';
 	
-	import type {L, U} from 'ts-toolbelt';
-	
-	import type {AccountStruct} from '#/meta/account';
+	import type {AccountStruct, HardwareAccountLocation} from '#/meta/account';
 	import type {Dict, JsonObject, Promisable} from '#/meta/belt';
 	import type {Bech32, CoinInfo, FeeConfig, FeeConfigAmount, FeeConfigPriced} from '#/meta/chain';
 	import type {Cw} from '#/meta/cosm-wasm';
-	import type {IncidentStruct, MsgEventRegistry, TxError, TxPending} from '#/meta/incident';
-	import type {AdaptedAminoResponse, AdaptedStdSignDoc, GenericAminoMessage} from '#/schema/amino';
-	import type {Snip24PermitMsg} from '#/schema/snip-24-def';
+	import type {IncidentStruct, MsgEventRegistry, TxPending} from '#/meta/incident';
+	import type {AdaptedStdSignDoc, GenericAminoMessage} from '#/schema/amino';
 	
-	import {Fee, TxBody} from '@solar-republic/cosmos-grpc/dist/cosmos/tx/v1beta1/tx';
+	import {Secp256k1Signature} from '@cosmjs/crypto';
+	import {SignMode} from '@solar-republic/cosmos-grpc/dist/cosmos/tx/signing/v1beta1/signing';
+	import {Fee, TxBody, TxRaw} from '@solar-republic/cosmos-grpc/dist/cosmos/tx/v1beta1/tx';
+	
+	
 	import BigNumber from 'bignumber.js';
 	import {onDestroy} from 'svelte';
 	import {slide} from 'svelte/transition';
@@ -39,7 +23,7 @@
 	import {Screen} from './_screens';
 	import {syserr} from '../common';
 	import {JsonPreviewer} from '../helper/json-previewer';
-	import {yw_account, yw_network, yw_progress, yw_provider, yw_provider_ref, yw_settings} from '../mem';
+	import {yw_account, yw_network, yw_progress, yw_settings} from '../mem';
 	
 	import {type LoadedAppContext, load_app_context} from '#/app/svelte';
 	import {Coins} from '#/chain/coin';
@@ -62,10 +46,15 @@
 	import {address_to_name} from '#/chain/messages/_util';
 	import type {AminoMsgSend} from '#/chain/messages/bank';
 	import {H_INTERPRETTERS} from '#/chain/msg-interpreters';
-	import type {SecretNetwork} from '#/chain/secret-network';
-	import {sign_amino, type SignedDoc} from '#/chain/signing';
+	import type {CompletedSignature} from '#/chain/signature';
+	import {sign_amino} from '#/chain/signing';
 	import type {WsTxResultError} from '#/cosmos/tm-json-rpc-ws-def';
 	import {pubkey_to_bech32} from '#/crypto/bech32';
+	import {parse_bip44} from '#/crypto/bip44';
+	import {is_hwa, parse_hwa} from '#/crypto/hardware-signing';
+	// import type {LedgerApp} from '#/crypto/ledger';
+	import {keystone_sign_request} from '#/crypto/keystone';
+	import type {AppInfoResponse, LedgerApp, LedgerResponseOk} from '#/crypto/ledger';
 	import {decrypt_private_memo} from '#/crypto/privacy';
 	import {SecretWasm} from '#/crypto/secret-wasm';
 	import SensitiveBytes from '#/crypto/sensitive-bytes';
@@ -74,18 +63,19 @@
 	import {open_flow} from '#/script/msg-flow';
 	import {global_broadcast, global_receive, global_wait} from '#/script/msg-global';
 	import {H_TX_ERROR_HANDLERS} from '#/script/service-tx-abcis';
-	import {B_IOS_NATIVE, XT_MINUTES, X_SIMULATION_GAS_MULTIPLIER} from '#/share/constants';
+	import {B_DEVELOPMENT, B_IOS_NATIVE, B_WITHIN_IAB_NAV_IFRAME, XT_MINUTES, X_SIMULATION_GAS_MULTIPLIER} from '#/share/constants';
 	import {Accounts} from '#/store/accounts';
 	import {Apps} from '#/store/apps';
 	import {Chains} from '#/store/chains';
 	import {Incidents} from '#/store/incidents';
-	import {Providers} from '#/store/providers';
-	import {Settings} from '#/store/settings';
-	import {forever, is_dict, ode, proper, timeout, timeout_exec} from '#/util/belt';
-	import {base64_to_buffer, buffer_to_base93} from '#/util/data';
+	import {forever, is_dict, ode, timeout, timeout_exec} from '#/util/belt';
+	import {base64_to_buffer, base93_to_buffer, buffer_to_base93} from '#/util/data';
 	import {format_fiat} from '#/util/format';
 	
 	import FatalError from './FatalError.svelte';
+	import HardwareController, {type ProgramHelper} from './HardwareController.svelte';
+	import KeystoneHardwareConfigurator from './KeystoneHardwareConfigurator.svelte';
+	import type {KeystoneProgramHelper} from './KeystoneHardwareConfigurator.svelte';
 	import SigningData from './SigningData.svelte';
 	import AppBanner from '../frag/AppBanner.svelte';
 	import ActionsLine from '../ui/ActionsLine.svelte';
@@ -97,7 +87,7 @@
 	import Load from '../ui/Load.svelte';
 	import Row from '../ui/Row.svelte';
 	import Tooltip from '../ui/Tooltip.svelte';
-	
+    import { semver_cmp } from '#/extension/semver';
 
 	
 	const g_context = load_app_context<CompletedSignature | null>();
@@ -119,7 +109,7 @@
 	 * Will be set if SIGN_MODE_LEGACY_AMINO_JSON is being used
 	 */
 	export let amino: AdaptedStdSignDoc | null = null;
-	const g_amino = amino;
+	let g_amino = amino;
 
 	export let protoMsgs: ProtoMsg[];
 	let a_msgs_proto = protoMsgs;
@@ -142,6 +132,8 @@
 	export let keplrSignOptions: KeplrSignOptions = {};
 
 	const b_use_suggested_gas = true === keplrSignOptions?.preferNoSetFee;
+
+	let s_simulation_suspended = '';
 
 	// get fee coin from chain
 	const [si_coin, g_info] = Chains.feeCoin(g_chain);
@@ -438,6 +430,12 @@
 			// resolve account
 			const g_account = await dp_account;
 
+			// hardware; do not simulate
+			if(is_hwa(g_account.secret)) {
+				s_simulation_suspended = 'Cannot simulate';
+				return;
+			}
+
 			let g_signed!: {auth: Uint8Array};
 			try {
 				// sign
@@ -733,6 +731,8 @@
 		}
 	}
 
+	class UserPopError extends Error {}
+
 	async function attempt_approve() {
 		const g_account = await dp_account;
 
@@ -741,7 +741,7 @@
 		}
 
 		// using feegrant requires a forecast; force user to wait
-		if(!b_no_fee && s_granter && b_use_grant && !s_gas_forecast && !s_err_sim) {
+		if(!b_no_fee && s_granter && b_use_grant && !s_gas_forecast && !s_err_sim && !s_simulation_suspended) {
 			// reset ui
 			b_approving = false;
 
@@ -754,17 +754,48 @@
 		// prep signed transaction hash
 		let si_txn = '';
 
+		// resolve tx granter
+		const s_granter_local = await tx_granter();
+
+		// prep fee struct
+		const g_fee = {
+			gasLimit: s_gas_limit,
+			amount: [{
+				denom: g_fee_coin_info.denom,
+				amount: s_fee_total,
+			}],
+			payer: '',
+			granter: s_granter_local,
+		};
+
 		const sa_sender = pubkey_to_bech32(g_account.pubkey, g_chain.bech32s.acc);
 
 		let a_equivalent_amino_msgs!: GenericAminoMessage[];
 
 		let g_completed!: CompletedSignature;
 
-		// amino
+		// hardware
+		const b_hardware = is_hwa(g_account.secret);
+		if(b_hardware) {
+			// need to convert to amino
+			if(!g_amino) {
+				g_amino = {
+					msgs: a_msgs_proto.map(g_proto => proto_to_amino(g_proto, g_chain.bech32s.acc)),
+					memo,
+					fee: {
+						amount: [{
+							denom: g_fee_coin_info.denom,
+							amount: s_fee_total,
+						}],
+					},
+					chain_id: g_chain.reference,
+				} as AdaptedStdSignDoc;
+			}
+		}
+
+		// amino signing mode
 		if(g_amino) {
 			a_equivalent_amino_msgs = g_amino.msgs;
-
-			const s_granter_local = await tx_granter();
 
 			if(!b_no_fee) {
 				g_amino.fee.gas = s_gas_limit;
@@ -777,8 +808,143 @@
 
 			// attempt to sign
 			try {
+				const {auth:atu8_auth, signer:g_signer} = await $yw_network.authInfo(g_account, {
+					amount: g_amino.fee.amount,
+					gasLimit: g_amino.fee.gas,
+					granter: s_granter,
+				}, SignMode.SIGN_MODE_LEGACY_AMINO_JSON);
+
+				Object.assign(g_amino, {
+					account_number: g_signer.accountNumber+'',
+					sequence: g_signer.sequence+'',
+					chain_id: g_signer.chainId,
+				});
+
 				// sign amino
-				const g_signature = await sign_amino(g_account, g_amino);
+				const g_signature = await sign_amino(g_account, g_amino, b_hardware? atu8_msg => new Promise((fk_resolve, fe_reject) => {
+					// parse hwa location
+					const g_pwa = parse_hwa(g_account.secret as HardwareAccountLocation);
+
+					// parse hd path
+					const a_path = parse_bip44(g_pwa.bip44);
+
+					// reset ui in case user pops
+					b_approving = false;
+
+					// prep pop bail-out
+					const f_release = k_page.on({
+						restore() {
+							fe_reject(new UserPopError());
+						},
+					});
+
+					// ledger
+					if('ledger' === g_pwa.vendor) {
+						// present signing UI
+						k_page.push({
+							creator: HardwareController,
+							props: {
+								g_account,
+								a_program: [
+									async(k_app: LedgerApp, k_page_prg, k_prg: ProgramHelper) => {
+										k_prg.status(`Review and sign the transaction`);
+
+										k_prg.emulate(g_amino!);
+
+										let atu8_txkey!: Uint8Array;
+										for(const g_msg of g_amino!.msgs) {
+											if(['wasm/MsgExecuteContract', 'wasm/MsgInstantiateContract'].includes(g_msg.type)) {
+												try {
+													const sb64_msg = (g_msg.value['msg'] || g_msg.value['init_msg']) as string;
+
+													atu8_txkey = await SecretWasm.encryptionKeyFromMsg(g_account, g_chain, base64_to_buffer(sb64_msg));
+												}
+												catch(e_derive) {}
+											}
+										}
+
+										// prompt signing
+										let g_signed;
+
+										// whether or not the app supports decrypting msgs
+										const b_supports_txk = await (async() => {
+											try {
+												// get app version
+												const g_vir = await k_app.device.virInfo() as AppInfoResponse;
+
+												// Secret app
+												if(!g_vir.error && 'Secret' === g_vir.name) {
+													// >= v2.35.0
+													return semver_cmp(g_vir.version, '2.35.0') >= 0 || B_DEVELOPMENT;
+												}
+											}
+											catch(e_version) {}
+
+											return false;
+										})();
+
+										// app is capable of decrypting message
+										if(atu8_txkey && b_supports_txk) {
+											g_signed = await k_app.sign(a_path, atu8_msg, atu8_txkey);
+										}
+										// not capable of decrypting message
+										else {
+											g_signed = await k_app.sign(a_path, atu8_msg);
+										}
+
+										// re-disable ui
+										b_approving = true;
+
+										// release pop bail-out
+										f_release();
+
+										// pop controller page
+										k_page_prg.pop();
+
+										// signature is DER encoded
+										const atu8_signature = Secp256k1Signature.fromDer(g_signed.signature).toFixedLength();
+
+										// resolve with signature
+										fk_resolve(atu8_signature);
+									},
+								],
+							},
+						});
+					}
+					// qr
+					else {
+						k_page.push({
+							creator: KeystoneHardwareConfigurator,
+							props: {
+								a_program: [
+									async(k_page_prg, k_prg: KeystoneProgramHelper) => {
+										k_prg.status(`Review and sign the transaction`);
+
+										// create sign request
+										const y_request = await keystone_sign_request(g_account, atu8_msg, g_chain);
+
+										// play request and capture signature
+										const {
+											atu8_signature,
+										} = await k_prg.play(y_request.toUR(), g_account.pubkey);
+
+										// release pop bail-out
+										f_release();
+
+										// pop controller page
+										k_page_prg.pop();
+
+										// resolve with signature
+										fk_resolve(atu8_signature);
+									},
+								],
+							},
+						});
+					}
+				}): null);
+
+				// convert amino messages to proto
+				a_msgs_proto = a_equivalent_amino_msgs.map(g => amino_to_base(g).encode());
 
 				// set completed data
 				g_completed = {
@@ -788,43 +954,50 @@
 					},
 				};
 
-				// TODO: finalize amino doc
+				// // encode tx body
+				// const atu8_body = encode_proto(TxBody, {
+				// 	messages: a_msgs_proto,
+				// 	memo: memo,
+				// 	timeoutHeight: `${b_use_expiration && xt_prev_block? n_block_prev + n_blocks_wait: 0}`,
+				// });
+
+				// // produce transaction bytes and hash
+				// const {
+				// 	sxb16_hash,
+				// } = $yw_network.finalizeTxRaw({
+				// 	body: atu8_body,
+				// 	auth: atu8_auth,
+				// 	signature: base64_to_buffer(g_signature.signature),
+				// });
+
+				const {
+					atu8_tx,
+					sxb16_hash,
+				} = $yw_network.packAmino(g_amino, atu8_auth, base64_to_buffer(g_signature.signature));
+
+				si_txn = sxb16_hash;
+
+				g_completed.amino.direct = atu8_tx;
+				console.debug(`Produced transaction hash of ${si_txn}`);
 			}
 			// signing error
 			catch(e_sign) {
-				k_page.push({
-					creator: FatalError,
-					props: {
-						text: `While attempting to sign an Amino document: ${e_sign.stack}`,
-					},
-				});
+				if(!(e_sign instanceof UserPopError)) {
+					k_page.push({
+						creator: FatalError,
+						props: {
+							text: `While attempting to sign an Amino document: ${e_sign.stack}`,
+						},
+					});
+				}
 
 				// do not complete
 				return;
 			}
-
-
-			try {
-				const {auth:atu8_auth} = await $yw_network.authInfoAmino(g_account, {
-					amount: g_amino.fee.amount,
-					gasLimit: g_amino.fee.gas,
-					granter: s_granter,
-				});
-
-				const {
-					sxb16_hash,
-				} = $yw_network.packAmino(g_amino, atu8_auth, base64_to_buffer(g_completed.amino.signature.signature));
-
-				si_txn = sxb16_hash;
-				console.debug(`Produced transaction hash of ${si_txn}`);
-			}
-			// offline doc
-			catch(e_convert) {
-
-			}
 		}
-		// proto
-		else if(a_msgs_proto?.length) {
+
+		// proto signing
+		if(!g_amino && a_msgs_proto?.length) {
 			// attempt to sign
 			try {
 				// encode tx body
@@ -835,15 +1008,7 @@
 				});
 
 				// sign direct
-				const g_signed = await $yw_network.signDirect(g_account, g_chain, atu8_body, {
-					gasLimit: s_gas_limit,
-					amount: [{
-						denom: g_fee_coin_info.denom,
-						amount: s_fee_total,
-					}],
-					payer: '',
-					granter: await tx_granter(),
-				});
+				const g_signed = await $yw_network.signDirect(g_account, g_chain, atu8_body, g_fee);
 
 				// set completed data
 				g_completed = {
@@ -926,11 +1091,6 @@
 
 		// transaction will be broadcast
 		if(si_txn) {
-			// convert amino messages to proto
-			if(g_amino) {
-				a_msgs_proto = a_equivalent_amino_msgs.map(g => amino_to_base(g).encode());
-			}
-
 			// record outgoing tx
 			await Incidents.record({
 				type: 'tx_out',
@@ -997,7 +1157,7 @@
 
 			CONTACTING_BACKGROUND: {
 				// skip on ios
-				if(B_IOS_NATIVE) break CONTACTING_BACKGROUND;
+				if(B_IOS_NATIVE || B_WITHIN_IAB_NAV_IFRAME) break CONTACTING_BACKGROUND;
 
 				try {
 					const k_client = await ServiceClient.connect('self');
@@ -1071,15 +1231,36 @@
 		if(g_completed) {
 			// wallet should broadcast transaction
 			if(broadcast) {
-				const g_proto = (g_completed as CompletedProtoSignature).proto;
-				if(g_proto) {
+				const {
+					proto: g_proto_tx,
+					amino: g_amino_tx,
+				} = g_completed;
+
+				// amino
+				if(!g_proto_tx && g_amino_tx) {
+					let g_response: TxResponse;
+					try {
+						// broadcast transaction
+						[g_response] = await $yw_network.broadcastRaw(g_completed.amino.direct);
+					}
+					catch(e_broadcast) {
+						throw syserr(e_broadcast as Error);
+					}
+
+					// error
+					if(g_response.code) {
+						await handle_check_tx_error(g_response);
+					}
+				}
+				// direct
+				else if(g_proto_tx) {
 					let g_response: TxResponse;
 					try {
 						// broadcast transaction
 						[g_response] = await $yw_network.broadcastDirect({
-							body: g_proto.doc.bodyBytes,
-							auth: g_proto.doc.authInfoBytes,
-							signature: g_proto.signature,
+							body: g_proto_tx.doc.bodyBytes,
+							auth: g_proto_tx.doc.authInfoBytes,
+							signature: g_proto_tx.signature,
 						});
 					}
 					catch(e_broadcast) {
@@ -1091,12 +1272,13 @@
 						await handle_check_tx_error(g_response);
 					}
 				}
-				else {
-					throw syserr({
-						title: 'Amino broadcasting not yet implemented',
-						text: 'At this screen only',
-					});
-				}
+				// // amino
+				// else {
+				// 	throw syserr({
+				// 		title: 'Amino broadcasting not yet implemented',
+				// 		text: 'At this screen only',
+				// 	});
+				// }
 			}
 
 			completed?.(true, g_completed);
@@ -1360,7 +1542,9 @@
 					</div>
 					<div style="text-align:right;">
 						<div class="font-variant_tiny" style="color:var(--theme-color-{s_err_sim? 'caution': 'text-med'});">
-							{#if !a_sims.length}
+							{#if s_simulation_suspended}
+								{s_simulation_suspended}
+							{:else if !a_sims.length}
 								{#if s_err_sim}
 									Simulation failed
 								{:else}

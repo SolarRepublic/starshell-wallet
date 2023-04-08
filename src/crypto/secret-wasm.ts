@@ -66,6 +66,12 @@ const hm_privates = new Map<SecretWasm, PrivateFields>();
 const ATU8_NETSCAPE_COMMENT_OID = Uint8Array.from([0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x86, 0xf8, 0x42, 0x01, 0x0d]);
 
 
+const destructure_msg = (atu8_encoded: Uint8Array) => ({
+	atu8_nonce: atu8_encoded.subarray(0, 32),
+	atu8_pk: atu8_encoded.subarray(32, 64),
+	atu8_ciphertext: atu8_encoded.subarray(64),
+});
+
 /**
  * This code was ported from {@link https://github.com/scrtlabs/secret.js}
  */
@@ -74,15 +80,16 @@ export class SecretWasm {
 		// byte offset
 		let ib_offset = buffer_to_hex(atu8_cert).indexOf(buffer_to_hex(ATU8_NETSCAPE_COMMENT_OID)) / 2;
 
+		// oid not found
 		if(!Number.isInteger(ib_offset)) {
-			throw new Error('Error parsing certificate - malformed certificate');
+			throw new Error('Error parsing certificate - malformed certificate. OID not found');
 		}
 
 		ib_offset += 12; // 11 + TAG (0x04)
 
 		// we will be accessing offset + 2, so make sure it's not out-of-bounds
 		if(ib_offset + 2 >= atu8_cert.length) {
-			throw new Error('Error parsing certificate - malformed certificate');
+			throw new Error('Error parsing certificate - malformed certificate. Offset out of bounds');
 		}
 
 		let nb_part = atu8_cert[ib_offset];
@@ -93,7 +100,7 @@ export class SecretWasm {
 
 		// check cert length
 		if(ib_offset + nb_part + 1 >= atu8_cert.length) {
-			throw new Error('Error parsing certificate - malformed certificate');
+			throw new Error('Error parsing certificate - malformed certificate. Bad length');
 		}
 
 		// extract payload
@@ -139,9 +146,11 @@ export class SecretWasm {
 		const atu8_encoded = base64_to_buffer(sxb64_msg);
 
 		// destructore [nonce, pk, ciphertext]
-		const atu8_nonce = atu8_encoded.subarray(0, 32);
-		const atu8_pk = atu8_encoded.subarray(32, 64);
-		const atu8_ciphertext = atu8_encoded.subarray(64);
+		const {
+			atu8_nonce,
+			atu8_pk,
+			atu8_ciphertext,
+		} = destructure_msg(atu8_encoded);
 
 		// fetch account
 		const g_account = await Accounts.at(p_account);
@@ -155,7 +164,7 @@ export class SecretWasm {
 		}
 
 		// borrow tx encryption key and instantiate secretwasm
-		const k_wasm = await utility_key_child(g_account, 'secretNetworkKeys', 'transactionEncryptionKey',
+		const k_wasm = await utility_key_child(g_account, 'walletSecurity', 'transactionEncryptionKey',
 			atu8_seed => new SecretWasm(atu8_consensus_io_pk, atu8_seed));
 
 		// utility key missing
@@ -184,6 +193,7 @@ export class SecretWasm {
 		return {
 			codeHash: sx_code_hash,
 			message: sx_json,
+			nonce: atu8_nonce,
 		};
 	}
 
@@ -197,7 +207,7 @@ export class SecretWasm {
 		const atu8_consensus_io_pk = base93_to_buffer(g_chain.features.secretwasm!.consensusIoPubkey);
 
 		// borrow tx encryption key and instantiate secretwasm
-		const k_wasm = await utility_key_child(g_account, 'secretNetworkKeys', 'transactionEncryptionKey',
+		const k_wasm = await utility_key_child(g_account, 'walletSecurity', 'transactionEncryptionKey',
 			atu8_seed => new SecretWasm(atu8_consensus_io_pk, atu8_seed));
 
 		if(!k_wasm) {
@@ -219,9 +229,11 @@ export class SecretWasm {
 
 	static async decryptMsg(g_account: AccountStruct, g_chain: ChainStruct, atu8_msg: Uint8Array): Promise<DecryptedMessage> {
 		// destructore [nonce, pk, ciphertext]
-		const atu8_nonce = atu8_msg.subarray(0, 32);
-		const atu8_pk = atu8_msg.subarray(32, 64);
-		const atu8_ciphertext = atu8_msg.subarray(64);
+		const {
+			atu8_nonce,
+			atu8_pk,
+			atu8_ciphertext,
+		} = destructure_msg(atu8_msg);
 
 		// decrypt the ciphertex
 		const atu8_plaintext = await SecretWasm.decryptBuffer(g_account, g_chain, atu8_ciphertext, atu8_nonce);
@@ -241,6 +253,23 @@ export class SecretWasm {
 			nonce: atu8_nonce,
 			consensus_pk: atu8_pk,
 		};
+	}
+
+	static async encryptionKeyFromMsg(g_account: AccountStruct, g_chain: ChainStruct, atu8_msg: Uint8Array): Promise<Uint8Array> {
+		// decode consensus io pk from chain
+		const atu8_consensus_io_pk = base93_to_buffer(g_chain.features.secretwasm!.consensusIoPubkey);
+
+		// borrow tx encryption key and instantiate secretwasm
+		const k_wasm = await utility_key_child(g_account, 'walletSecurity', 'transactionEncryptionKey',
+			atu8_seed => new SecretWasm(atu8_consensus_io_pk, atu8_seed));
+
+		// destructure nonce
+		const {
+			atu8_nonce,
+		} = destructure_msg(atu8_msg);
+
+		// return encryption key
+		return k_wasm!.encryptionKey(atu8_nonce);
 	}
 
 	static async decryptComputeError(g_account: AccountStruct, g_chain: ChainStruct, s_message: string, atu8_nonce: Uint8Array): Promise<string> {

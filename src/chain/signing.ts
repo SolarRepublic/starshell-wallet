@@ -1,10 +1,14 @@
 import type {AccountStruct} from '#/meta/account';
+import type {JsonValue} from '#/meta/belt';
 import type {AdaptedStdSignature, AdaptedStdSignDoc} from '#/schema/amino';
 
 import {encodeSecp256k1Signature, serializeSignDoc} from '@cosmjs/amino';
 import {SignDoc} from '@solar-republic/cosmos-grpc/dist/cosmos/tx/v1beta1/tx';
 
+import type {SigningKey} from '#/crypto/secp256k1';
 import {Accounts} from '#/store/accounts';
+import {is_dict, ode} from '#/util/belt';
+import {text_to_buffer} from '#/util/data';
 
 
 export interface SignedDoc {
@@ -41,7 +45,8 @@ export async function sign_direct_doc(
 
 export async function sign_amino(
 	g_account: AccountStruct,
-	g_amino: AdaptedStdSignDoc
+	g_amino: AdaptedStdSignDoc,
+	f_sign?: SigningKey['sign'] | null
 ): Promise<AdaptedStdSignature> {
 	// get account's signing key
 	const k_key = await Accounts.getSigningKey(g_account);
@@ -50,7 +55,7 @@ export async function sign_amino(
 	const atu8_amino = serializeSignDoc(g_amino);
 
 	// sign doc as buffer
-	const atu8_signature = await k_key.sign(atu8_amino);
+	const atu8_signature = f_sign? await f_sign(atu8_amino): await k_key.sign(atu8_amino);
 
 	// produce signed doc bytes
 	return encodeSecp256k1Signature(k_key.exportPublicKey(), atu8_signature) as AdaptedStdSignature;

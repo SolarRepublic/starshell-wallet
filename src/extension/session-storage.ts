@@ -6,13 +6,14 @@ import type {Vocab} from '#/meta/vocab';
 
 import type {ScreenInfo} from '#/extension/browser';
 import type {IcsToService} from '#/script/messages';
-import {do_webkit_polyfill} from '#/script/webkit-polyfill';
-import {B_CHROME_SESSION_CAPABLE, B_IS_BACKGROUND, B_IOS_NATIVE} from '#/share/constants';
 import type {AppProfile} from '#/store/apps';
 
-if(B_IOS_NATIVE) {
-	do_webkit_polyfill((s: string, ...a_args: any[]) => console.debug(`StarShell.session-storage: ${s}`, ...a_args));
-}
+/* eslint-disable i/order */
+import {B_CHROME_SESSION_CAPABLE, B_IS_BACKGROUND, B_IOS_NATIVE, B_IOS_WEBKIT} from '#/share/constants';
+
+import {do_webkit_polyfill} from '#/script/webkit-polyfill';
+do_webkit_polyfill((s: string, ...a_args: any[]) => console.debug(`StarShell.session-storage: ${s}`, ...a_args));
+/* eslint-enable */
 
 export type SessionStorageRegistry = NonNullableFlat<MergeAll<{
 	/**
@@ -53,6 +54,15 @@ export type SessionStorageRegistry = NonNullableFlat<MergeAll<{
 	// unconditional polyfill mode flag
 	keplr_polyfill_mode_enabled: {
 		wrapped: boolean;
+	};
+
+	keplr_operational: {
+		wrapped: boolean;
+	};
+
+	// hosts to yield for
+	keplr_yield_hosts: {
+		wrapped: string[];
 	};
 
 	// when the PWA was installed and opened
@@ -156,7 +166,8 @@ function resolve_storage_mechanism(b_force_background=false) {
 			session: chrome.storage.StorageArea;
 		}).session;
 
-		const g_fallback = B_IOS_NATIVE? no_fallback(): resolve_storage_mechanism(true);
+		// do not create a fallback on native iOS nor in dApp webkit view
+		const g_fallback = B_IOS_NATIVE || B_IOS_WEBKIT? no_fallback(): resolve_storage_mechanism(true);
 
 		const g_exports: ExtSessionStorage = {
 			async get<si_key extends SessionStorageKey>(si_key: si_key): Promise<SessionStorage.Wrapped<si_key> | null> {

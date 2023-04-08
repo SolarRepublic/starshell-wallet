@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type {AccountStruct, AccountPath} from '#/meta/account';
+	import type {AccountStruct, AccountPath, HardwareAccountLocation, ParsedHardwareAccountLocation} from '#/meta/account';
 	import type {SecretPath, SecretStruct} from '#/meta/secret';
 	
 	import {Screen} from './_screens';
@@ -9,17 +9,19 @@
 	import {Accounts} from '#/store/accounts';
 	import {Secrets} from '#/store/secrets';
 
+	import MnemonicExport from './MnemonicExport.svelte';
 	import ActionsWall from '../ui/ActionsWall.svelte';
 	import Header from '../ui/Header.svelte';
 	import Load from '../ui/Load.svelte';
-    import MnemonicExport from './MnemonicExport.svelte';
+    import { is_hwa, parse_hwa } from '#/crypto/hardware-signing';
 
 
 	export let p_account: AccountPath;
 
 	let g_account: AccountStruct;
 
-	let p_secret: SecretPath<'private_key' | 'bip32_node'>;
+	let p_secret: SecretPath<'private_key' | 'bip32_node'> | HardwareAccountLocation;
+	let g_hwa: ParsedHardwareAccountLocation;
 	let g_secret: SecretStruct<'private_key' | 'bip32_node'>;
 
 	let p_mnemonic: SecretPath<'mnemonic'>;
@@ -44,14 +46,19 @@
 
 		p_secret = g_account.secret;
 
-		g_secret = await Secrets.metadata(p_secret);
-		if('bip32_node' === g_secret.type) {
-			p_mnemonic = g_secret.mnemonic;
-			g_mnemonic = await Secrets.metadata(p_mnemonic);
+		if(is_hwa(p_secret)) {
+			g_hwa = parse_hwa(p_secret);
 		}
-		// automatically push to private key export
 		else {
-			export_private_key();
+			g_secret = await Secrets.metadata(p_secret);
+			if('bip32_node' === g_secret.type) {
+				p_mnemonic = g_secret.mnemonic;
+				g_mnemonic = await Secrets.metadata(p_mnemonic);
+			}
+			// automatically push to private key export
+			else {
+				export_private_key();
+			}
 		}
 	}
 

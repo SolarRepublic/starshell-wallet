@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type {Coin} from '@solar-republic/cosmos-grpc/dist/cosmos/base/v1beta1/coin';
 	
+	import type {O} from 'ts-toolbelt';
+	
 	import type {AccountPath} from '#/meta/account';
 	import type {Dict, JsonObject, Promisable} from '#/meta/belt';
 	import type {ContractStruct, CoinInfo, FeeConfig, ContractPath, Bech32, ChainPath} from '#/meta/chain';
@@ -28,7 +30,7 @@
 	import {token_balance} from '#/chain/token';
 	import {open_window} from '#/extension/browser';
 	import {global_receive} from '#/script/msg-global';
-	import {XT_SECONDS} from '#/share/constants';
+	import {B_LOCALHOST, H_PARAMS, XT_SECONDS} from '#/share/constants';
 	import {Accounts} from '#/store/accounts';
 	import {G_APP_STARSHELL} from '#/store/apps';
 	import {Chains} from '#/store/chains';
@@ -49,9 +51,7 @@
 	import Portrait from '../frag/Portrait.svelte';
 	import TokenRow from '../frag/TokenRow.svelte';
 	import PopupNotice from '../popup/PopupNotice.svelte';
-	import PopupSolver from '../popup/PopupSolver.svelte';
-	import Row from '../ui/Row.svelte';	
-    import type { O } from 'ts-toolbelt';
+	import Row from '../ui/Row.svelte';
 	
 	const G_RETRYING_TOKEN = {
 		name: 'Retrying...',
@@ -354,7 +354,6 @@
 						}, 5e3);
 
 						if(k_page === $yw_navigator.activePage) {
-							// $yw_popup = PopupSolver;
 							void open_window(chrome.runtime.getURL('src/entry/navigation.html'), {
 								popout: true,
 								height: 75 + 26,
@@ -538,6 +537,9 @@
 			if(e_network instanceof Error) {
 				// provider offline
 				if(e_network.message.includes('Response closed without headers')) {
+					// ignore in dev
+					if(B_LOCALHOST) return a_balances = [];
+
 					// test network connectivity
 					const d_abort = new AbortController();
 					let xc_aborted = 0;
@@ -885,7 +887,12 @@
 				h_token_balances = h_token_balances;
 
 				// set fiat promise
-				void g_balance.yg_fiat.then(yg => fk_fiat(yg));
+				void g_balance.yg_fiat.then((yg) => {
+					fk_fiat(yg);
+
+					// invalidate balances
+					h_token_balances = h_token_balances;
+				});
 
 				// determine if it is mintable
 				if(g_balance.yg_amount.eq(0) && $yw_network.chain.testnet) {

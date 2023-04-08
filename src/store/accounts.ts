@@ -1,6 +1,6 @@
 import type {Replace} from 'ts-toolbelt/out/String/Replace';
 
-import type {AccountStruct, AccountPath} from '#/meta/account';
+import type {AccountStruct, AccountPath, HardwareAccountLocation} from '#/meta/account';
 import type {Bech32, ChainStruct, ChainNamespaceKey, ChainPath} from '#/meta/chain';
 
 import {
@@ -14,10 +14,14 @@ import {Secrets} from './secrets';
 import {Settings} from './settings';
 
 import {Bip32} from '#/crypto/bip32';
+import {HardwareSigningKey, is_hwa} from '#/crypto/hardware-signing';
 import RuntimeKey from '#/crypto/runtime-key';
+import type {SigningKey} from '#/crypto/secp256k1';
 import {Secp256k1Key} from '#/crypto/secp256k1';
 import {SI_STORE_ACCOUNTS} from '#/share/constants';
+
 import {ode} from '#/util/belt';
+
 
 type PathFor<
 	si_family extends ChainNamespaceKey,
@@ -58,45 +62,51 @@ export const Accounts = create_store_class({
 			return (await Accounts.read()).find(sa_owner, g_chain);
 		}
 
-		static async getSigningKey(g_account: AccountStruct): Promise<Secp256k1Key> {
+		static async getSigningKey(g_account: AccountStruct): Promise<SigningKey> {
 			// ref account secret path
 			const p_secret = g_account.secret;
 
-			// fetch secret
-			return await Secrets.borrowPlaintext(p_secret, async(kn_secret, g_secret) => {
-				// depending on secret type
-				const si_type = g_secret.type;
+			// hardware
+			if(is_hwa(g_account.secret)) {
+				return HardwareSigningKey.init(g_account);
+			}
+			else {
+				// fetch secret
+				return await Secrets.borrowPlaintext(p_secret, async(kn_secret, g_secret) => {
+					// depending on secret type
+					const si_type = g_secret.type;
 
-				// prep private key
-				let kk_sk: RuntimeKey;
+					// prep private key
+					let kk_sk: RuntimeKey;
 
-				// private key; return imported signing key
-				if('private_key' === si_type) {
-					kk_sk = await RuntimeKey.createRaw(kn_secret.data);
-				}
-				// bip32 node
-				else if('bip32_node' === si_type) {
-					// import node
-					const k_node = await Bip32.import(kn_secret);
+					// private key; return imported signing key
+					if('private_key' === si_type) {
+						kk_sk = await RuntimeKey.createRaw(kn_secret.data);
+					}
+					// bip32 node
+					else if('bip32_node' === si_type) {
+						// import node
+						const k_node = await Bip32.import(kn_secret);
 
-					// copy out it's private key
-					kk_sk = await k_node.privateKey.clone();
+						// copy out it's private key
+						kk_sk = await k_node.privateKey.clone();
 
-					// destroy the bip32 node
-					k_node.destroy();
-				}
-				// mnemonic; invalid
-				else if('mnemonic' === si_type) {
-					throw new Error(`Account should not directly use its mnemonic as its secret.`);
-				}
-				// other/unknown
-				else {
-					throw new Error(`Unknown secret type '${si_type as string}'`);
-				}
+						// destroy the bip32 node
+						k_node.destroy();
+					}
+					// mnemonic; invalid
+					else if('mnemonic' === si_type) {
+						throw new Error(`Account should not directly use its mnemonic as its secret.`);
+					}
+					// other/unknown
+					else {
+						throw new Error(`Unknown secret type '${si_type as string}'`);
+					}
 
-				// return imported signing key (and allow public key to be exported)
-				return await Secp256k1Key.import(kk_sk, true);
-			});
+					// return imported signing key (and allow public key to be exported)
+					return await Secp256k1Key.import(kk_sk, true);
+				});
+			}
 		}
 
 		/**

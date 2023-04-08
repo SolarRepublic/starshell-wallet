@@ -1,11 +1,17 @@
-import type {IntraExt} from './messages';
+import type {FlowToNav, IntraExt} from './messages';
 import type {Union} from 'ts-toolbelt';
 
-import type {JsonValue, Promisable} from '#/meta/belt';
+import type {JsonValue, Nilable, Promisable} from '#/meta/belt';
 import type {Vocab} from '#/meta/vocab';
 
-const d_broadcast_global: Vocab.TypedBroadcast<IntraExt.GlobalVocab> = new BroadcastChannel('global');
+// import {B_IOS_NATIVE, B_IOS_WEBKIT} from '#/share/constants';
 
+
+// const d_broadcast_global: Vocab.TypedBroadcast<IntraExt.GlobalVocab> = B_IOS_NATIVE || B_IOS_WEBKIT
+// 	? new WebkitMobileBroadcastChannel('global')
+// 	: new BroadcastChannel('global');
+
+const d_broadcast_global: Vocab.TypedBroadcast<IntraExt.GlobalVocab> = new BroadcastChannel('global');
 
 /**
  * Broadcast a message on the global broadcast channel
@@ -14,24 +20,26 @@ export function global_broadcast(g_msg: Vocab.Message<IntraExt.GlobalVocab>): vo
 	// broadcast out
 	d_broadcast_global.postMessage(g_msg);
 
-	// echo locally
-	d_broadcast_global.dispatchEvent(new MessageEvent('message', {
+	// wrap local message
+	const g_local: Vocab.MessageValue<FlowToNav.WindowVocab, 'broadcast'> = {
 		data: g_msg,
-	}));
+		uuid: crypto.randomUUID(),
+	};
+
+	// echo locally
+	d_broadcast_global.dispatchEvent(new MessageEvent('message', g_local));
 }
 
+type SimulatedBroadcast = CustomEvent<Vocab.Message<FlowToNav.WindowVocab, 'broadcast'>>;
 
 /**
  * Register a set of event handlers on the global broadcast channel
  */
 export function global_receive(h_handlers: Partial<Vocab.Handlers<IntraExt.GlobalVocab>>): VoidFunction {
-	// create listener
-	const f_listener: Vocab.BroadcastListener<IntraExt.GlobalVocab> = (d_event) => {
-		// ref message data
-		const g_msg = d_event.data as typeof d_event.data | null | {type: undefined};
-
+	// create router
+	const f_router = (g_msg: Nilable<{type: undefined} | Vocab.Message<IntraExt.GlobalVocab>>) => {
 		// invalid event data
-		if(!g_msg || !g_msg.type) {
+		if(!g_msg?.type) {
 			throw new Error('Ignored invalid message received on global broadcast channel');
 		}
 
@@ -50,6 +58,10 @@ export function global_receive(h_handlers: Partial<Vocab.Handlers<IntraExt.Globa
 		// handle
 		void (f_handler as (w_value: JsonValue) => Promisable<void>)(w_value);
 	};
+
+	// create listener
+	const f_listener: Vocab.BroadcastListener<IntraExt.GlobalVocab> = d_event => f_router(
+		(d_event.data || (d_event as unknown as SimulatedBroadcast).detail) as Nilable<typeof d_event.data | {type: undefined}>);
 
 	// add listener
 	d_broadcast_global.addEventListener('message', f_listener);

@@ -16,11 +16,12 @@
 	import SensitiveBytes from '#/crypto/sensitive-bytes';
 	
 	import {global_broadcast} from '#/script/msg-global';
-	import {add_root_utility_key, bip32_test_signature, create_account} from '#/share/account';
+	import {add_root_utility_key, bip32_test_signature, create_account, root_utility_document_set} from '#/share/account';
 	
 	import {R_BIP_44} from '#/share/constants';
+	import {Chains} from '#/store/chains';
 	import {Secrets} from '#/store/secrets';
-	import {microtask} from '#/util/belt';
+	import {microtask, ode} from '#/util/belt';
 	import {buffer_to_base64, serialize_private_key} from '#/util/data';
 	
 	import AccountEdit from './AccountEdit.svelte';
@@ -36,7 +37,7 @@
 	import SX_ICON_GEAR from '#/icon/settings.svg?raw';
 
 
-	const {k_page} = load_page_context();
+	const {k_page, a_progress, next_progress} = load_page_context();
 
 	/**
 	 * The user must create an account (means there are no existing accounts)
@@ -144,8 +145,7 @@
 					enter: (atu8_pin: Uint8Array) => Secrets.borrow(p_secret_mnemonic, async(kn_encrypted) => {
 						// attempt to decrypt with pin
 						try {
-							const _atu8_package = await Secrets.decryptWithPin(kn_encrypted.data, atu8_pin, g_security);
-							fk_resolve(_atu8_package);
+							fk_resolve(await Secrets.decryptWithPop(kn_encrypted.data, atu8_pin, g_security));
 							return true;
 						}
 						catch(e_decrypt) {
@@ -157,6 +157,10 @@
 				// show popup
 				$yw_popup = PopupPin;
 			}
+			// // mnemonic is protected by password
+			// else if('password' === g_security.type) {
+				
+			// }
 			// mnemonic is not protected
 			else {
 				void Secrets.borrow(p_secret_mnemonic, (kn_package) => {
@@ -227,17 +231,15 @@
 		}
 
 		// create account using new seed
-		const [p_account, g_account] = await create_account(p_secret_node, buffer_to_base64(atu8_pk33), '');
+		const [p_account, g_account] = await create_account(p_secret_node, buffer_to_base64(atu8_pk33));
 
 		// initialize utility keys
 		{
-			await add_root_utility_key(g_account, 'walletSecurity', `
-				Allows the wallet to generate repeatable data for security features such as anti-phishing art.
-			`.trim());
+			const g_set = root_utility_document_set(Chains.addressFor(g_account.pubkey, 'secret'));
 
-			await add_root_utility_key(g_account, 'secretNetworkKeys', `
-				Allows the wallet to generate repeatable keys for transactions and SNIP-20s on Secret Network, its testnets, and any forks.
-			`.trim());
+			for(const [si_name, atu8_doc] of ode(g_set)) {
+				await add_root_utility_key(g_account, si_name, atu8_doc);
+			}
 		}
 
 		// trigger login event globally to reload service tasks
@@ -254,6 +256,7 @@
 				oneway: true,
 				b_mandatory: true,
 			},
+			context: next_progress(),
 		});
 	}
 
@@ -321,6 +324,9 @@
 	function new_seed() {
 		k_page.push({
 			creator: WalletCreate,
+			props: {
+				b_mandatory,
+			},
 		});
 	}
 
@@ -361,8 +367,8 @@
 	}
 </style>
 
-<Screen slides progress={b_mandatory? [4, 5]: null}>
-	<Header plain={b_mandatory} pops={!b_mandatory}
+<Screen slides progress={a_progress}>
+	<Header plain pops={!b_mandatory}
 		title={b_mandatory? 'Create new account': 'Add account'}
 	/>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import {createEventDispatcher, onDestroy} from 'svelte';
 	import {slide} from 'svelte/transition';
 	
 	import {yw_context_popup, yw_popup, yw_progress} from '../mem';
@@ -8,6 +9,7 @@
 	import {Bip39} from '#/crypto/bip39';
 	import {ATU8_DUMMY_PHRASE, ATU8_SHA256_STARSHELL} from '#/share/constants';
 	import {F_NOOP, microtask, timeout} from '#/util/belt';
+	import {buffer_to_text} from '#/util/data';
 	import {open_external_link} from '#/util/dom';
 	
 	import MnemonicInput from './MnemonicInput.svelte';
@@ -20,7 +22,10 @@
 	import SX_ICON_DOWNLOAD from '#/icon/download.svg?raw';
 	import SX_ICON_GEAR from '#/icon/settings.svg?raw';
 	import SX_ICON_UPLOAD from '#/icon/upload.svg?raw';
+	import Toast from '../ui/Toast.svelte';
+
 	
+	const dispatch = createEventDispatcher();
 	
 	
 	export let atu16_indicies: Uint16Array = new Uint16Array(24).fill(0xff_ff);
@@ -31,7 +36,7 @@
 
 	export let i_reveal = 0xff_ff;
 
-	let b_revealing = 0xff_ff !== i_reveal;
+	const b_revealing = 0xff_ff !== i_reveal;
 
 	export let nl_words = 24;
 
@@ -173,6 +178,65 @@
 		b_advanced = !b_advanced;
 		if(!b_advanced) sh_extension = '';
 	}
+
+
+	export let s_autoimport = '';
+	export let b_clear_clipboard = false;
+
+	let s_toast = '';
+
+	$: if(s_autoimport?.length) {
+		(async() => {
+			// encode mnemonic
+			const kn_mnemonic = Bip39.encodeMnemonicStringToBuffer(s_autoimport);
+
+			// clear autoimport binding
+			s_autoimport = '';
+
+			// count number of words
+			const nl_words_local = buffer_to_text(kn_mnemonic.data).replace(/\0+$/, '').trim().split(/\s+/g).length;
+
+			// valid mnemonic
+			const b_valid_local = await Bip39.validateMnemonic(() => kn_mnemonic.clone().data, nl_words_local);
+			if(b_valid_local) {
+				// import mnemonic
+				const atu16_set = await Bip39.mnemonicToIndicies(() => kn_mnemonic.data);
+				atu16_indicies.fill(0xff_ff);
+				atu16_indicies.set(atu16_set, 0);
+				atu16_indicies = atu16_indicies;
+
+				// adjust word count
+				nl_words = nl_words_local;
+
+				// set validity
+				b_valid = true;
+
+				// clear clipboard on next
+				b_clear_clipboard = true;
+
+				// make toast
+				s_toast = 'Imported from clipboard';
+
+				// dispatch event to parent
+				dispatch('paste', {
+					nl_words,
+				});
+			}
+		})();
+	}
+
+	function paste(d_event) {
+		const s_data = d_event.clipboardData.getData('text');
+		if(s_data) {
+			s_autoimport = s_data;
+		}
+	}
+
+	// capture paste
+	document.addEventListener('paste', paste);
+	onDestroy(() => {
+		document.removeEventListener('paste', paste);
+	});
 </script>
 
 <style lang="less">
@@ -188,6 +252,7 @@
 		.hide-scrollbar();
 
 		flex: 0;
+		position: relative;
 
 		display: flex;
 		flex-direction: row;
@@ -308,39 +373,43 @@
 
 	<div class="mnemonic-words">
 		{#each Array.from({length:2}, (w, i) => i) as i_group}
-			<div class="column">
-				{#each atu16_indicies.subarray(0, nl_rows) as xb_index, i_sub}
-					{@const i_word = i_sub+(i_group * nl_rows)}
-					{@const b_lock = i_word >= nl_words}
+			{#key atu16_indicies}
+				<div class="column">
+					{#each atu16_indicies.subarray(0, nl_rows) as xb_index, i_sub}
+						{@const i_word = i_sub+(i_group * nl_rows)}
+						{@const b_lock = i_word >= nl_words}
 
-					<!-- create a random amount of fake inputs around each actual input to mitigate attacks on browser's field cache -->
-					{#each noise(i_word * 2) as i_fake}
-						<div class="display_none">
-							<MnemonicInput atu16_indicies={atu16_indicies_fake} i_index={i_fake} />
+						<!-- create a random amount of fake inputs around each actual input to mitigate attacks on browser's field cache -->
+						{#each noise(i_word * 2) as i_fake}
+							<div class="display_none">
+								<MnemonicInput atu16_indicies={atu16_indicies_fake} i_index={i_fake} />
+							</div>
+						{/each}
+
+						<div class="item" class:warning={a_absents[i_word]} class:opacity_20%={b_lock || (b_revealing && i_word > i_reveal)}>
+							<span class="index">
+								{i_word+1}.
+							</span>
+							<MnemonicInput atu16_indicies={atu16_indicies} i_index={i_word >= i_reveal? 0xff_ff: i_word}
+								b_readonly={b_readonly || b_lock}
+								b_locked={b_lock}
+								bind:b_valid={a_valids[i_word]}
+								bind:b_absent={a_absents[i_word]}
+								on:change={inputs_changed}
+							/>
 						</div>
-					{/each}
 
-					<div class="item" class:warning={a_absents[i_word]} class:opacity_20%={b_lock || (b_revealing && i_word > i_reveal)}>
-						<span class="index">
-							{i_word+1}.
-						</span>
-						<MnemonicInput atu16_indicies={atu16_indicies} i_index={i_word >= i_reveal? 0xff_ff: i_word}
-							b_readonly={b_readonly || b_lock}
-							b_locked={b_lock}
-							bind:b_valid={a_valids[i_word]}
-							bind:b_absent={a_absents[i_word]}
-							on:change={inputs_changed}
-						/>
-					</div>
-
-					{#each noise((i_word * 2) + 1) as i_fake}
-						<div class="display_none">
-							<MnemonicInput atu16_indicies={atu16_indicies_fake} i_index={i_fake} />
-						</div>
+						{#each noise((i_word * 2) + 1) as i_fake}
+							<div class="display_none">
+								<MnemonicInput atu16_indicies={atu16_indicies_fake} i_index={i_fake} />
+							</div>
+						{/each}
 					{/each}
-				{/each}
-			</div>
+				</div>
+			{/key}
 		{/each}
+
+		<Toast s_text={s_toast} />
 	</div>
 
 	{#if !b_revealing}

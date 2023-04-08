@@ -4,6 +4,10 @@ interface Part {
 	tag: string;
 }
 
+export function semver_cmp(s_version_a: string, s_version_b: string): number {
+	return new Version(s_version_a).compare(new Version(s_version_b));
+}
+
 export function precedes(s_version_a: string, s_version_b: string): boolean {
 	return new Version(s_version_a).precedes(new Version(s_version_b));
 }
@@ -16,7 +20,7 @@ export class Version {
 	private readonly _a_parts: Part[];
 
 	constructor(s_version: string) {
-		this._a_parts = s_version.split(/\./).map((s_part) => {
+		this._a_parts = s_version.replace(/^v/, '').split(/\./).map((s_part) => {
 			const a_subs = s_part.split('-');
 			return {
 				value: +a_subs[0],

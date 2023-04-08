@@ -126,6 +126,7 @@
 		{:then}
 			{#each ode(h_accounts) as [p_account, g_account]}
 				<Row
+					resource={g_account}
 					name={g_account.name}
 					pfp={g_account.pfp}
 					on:click={toggleChildCheckbox}

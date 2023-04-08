@@ -34,6 +34,6 @@ export function bech32_to_buffer(sa_addr: Bech32): Uint8Array {
 	return fromBech32(sa_addr).data;
 }
 
-export function buffer_to_bech32(atu8_data: Uint8Array, s_hrp: string): string {
-	return toBech32(s_hrp, atu8_data);
+export function buffer_to_bech32(atu8_data: Uint8Array, s_hrp: string): Bech32 {
+	return toBech32(s_hrp, atu8_data) as Bech32;
 }

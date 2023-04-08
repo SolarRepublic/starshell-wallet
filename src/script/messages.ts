@@ -29,6 +29,8 @@ import type {ConnectionHandleConfig} from '#/provider/connection';
 
 
 import type {AppProfile} from '#/store/apps';
+import type { Bip44Data } from '#/crypto/bip44';
+import type { DevicePath } from '#/meta/device';
 
 
 
@@ -707,6 +709,9 @@ export namespace IntraExt {
 				sa_contract: Bech32;
 			};
 		};
+
+		// sent once the offscreen document is ready to receive messages
+		offscreenOnline: {};
 	}>;
 
 
@@ -866,6 +871,41 @@ export namespace IntraExt {
 				accountPath: AccountPath;
 			};
 		};
+
+		/**
+		 * 
+		 */
+		acceptConsensusKey: {
+			value: {
+				chain: ChainPath;
+				key: string;
+			};
+		};
+
+		/**
+		 * in chrome, requesting new WebUSB device requires a window with URL visible
+		 */
+		requestDevice: {
+			value: {
+				props: {
+					g_intent?: {
+						id: 'setup-new-device';
+						props?: JsonObject;
+						context?: JsonObject;
+					};
+				};
+				context?: JsonValue;
+			};
+			response: DevicePath;
+		};
+
+		ledgerSign: {
+			value: {
+				coinType: number;
+				message: string;
+				path: Bip44Data;
+			};
+		};
 	}, {
 		each: {
 			message: {
@@ -1000,12 +1040,91 @@ export namespace IntraExt {
 				broadcast: AsJson<Vocab.Message<GlobalVocab>>;
 			};
 		};
+
+		/**
+		 * Instructs the service worker to read from the clipboard
+		 */
+		readClipboard: {
+			value: {
+				format: 'text';
+			};
+			response: string | null;
+		};
+
+		/**
+		 * Instructs the service worker to read from the clipboard
+		 */
+		writeClipboard: {
+			value: {
+				format: 'text';
+				data: string;
+			};
+			response: string | null;
+		};
+	}>;
+
+	export type OffscreenVocab = Vocab.New<{
+		ping: {
+			value: JsonValue;
+			response: JsonValue;
+		};
+
+		/**
+		 * Read data from the clipboard
+		 */
+		readClipboardOffscreen: {
+			value: {
+				format: 'text';
+			};
+			response: string | null;
+		};
+
+		/**
+		 * Write data to the clipboard
+		 */
+		writeClipboardOffscreen: {
+			value: {
+				format: 'text';
+				data: string;
+			};
+			response: string | null;
+		};
 	}>;
 
 	export type WebKitGlobal = Vocab.New<{
+		/**
+		 * Notifies other frames that the background frame is ready to receive connection requests
+		 */
+		online: {};
+
+		/**
+		 * Requests a new connection
+		 */
 		connect: {
 			value: {
 				name: string;
+			};
+		};
+
+		/**
+		 * Sends a single message, proxying `chrome.runtime.sendMessage`
+		 */
+		sendMessage: {
+			value: {
+				id: string;
+				sender: AsJson<chrome.runtime.MessageSender>;
+				data: JsonValue;
+			};
+		};
+
+		/**
+		 * Responds to a single message, proxying the callback of `chrome.runtime.sendMessage`
+		 */
+		respondMessage: {
+			value: {
+				id: string;
+				sender: AsJson<chrome.runtime.MessageSender>;
+				data: JsonValue;
 			};
 		};
 	}>;
@@ -1155,6 +1274,16 @@ export namespace ExtToNative {
 		close: {};
 	}>;
 
+	export type ScriptingVocab = Vocab.New<{
+		registerContentScripts: {
+			value: AsJson<chrome.scripting.RegisteredContentScript[]>;
+		};
+
+		executeScript: {
+			value: AsJson<chrome.scripting.ScriptInjection<any[], unknown>>;
+		};
+	}>;
+
 	export type NotificationVocab = Vocab.New<{
 		create: {
 			value: {
@@ -1169,4 +1298,77 @@ export namespace ExtToNative {
 			};
 		};
 	}>;
+
+	export interface BrowsingContext extends JsonObject {
+		href: string;
+		name: string;
+		description: string;
+	}
+
+	export type WitnessVocab = Vocab.New<{
+		capture: {
+			value: {
+				browsing_context: BrowsingContext;
+			};
+		};
+	}>;
+}
+
+/**
+ * Messages sent from flow iframe to navigation view
+ */
+export namespace FlowToNav {
+	export type WindowVocab = Vocab.New<{
+		close: {
+			value: {};
+		};
+
+		broadcast: {
+			value: {
+				data: Vocab.Message<IntraExt.GlobalVocab>;
+				uuid: string;
+			};
+		};
+	}>;
+}
+
+/**
+ * Messages sent between frames within the same view (on mobile platforms when running within webkit)
+ */
+export namespace IntraView {
+	/**
+	 * Messages broadcast by the background frame
+	 */
+	export type BackgroundBroadcastVocab = Vocab.New<{
+		/**
+		 * Signals that the background frame is now ready to accept port requests
+		 */
+		online: {};
+	}>;
+
+	/**
+	 * Messages sent directly to the background frame from another frame
+	 */
+	export type DirectedToBackgroundVocab = Vocab.New<{
+		/**
+		 * Requests a new connection
+		 */
+		connect: {
+			value: AsJson<chrome.runtime.ConnectInfo>;
+		};
+	}>;
+
+
+	export type RuntimePortVocab = Vocab.New<{
+		disconnect: {};
+
+		postMessage: {
+			value: JsonValue;
+		};
+	}>;
+
+	export type RuntimePortMessage = {
+		id: string;
+		data: Vocab.Message<RuntimePortVocab>;
+	};
 }

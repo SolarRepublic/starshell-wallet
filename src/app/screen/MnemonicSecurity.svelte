@@ -36,6 +36,7 @@
 	let b_busy = false;
 
 	let sh_pin = '';
+	let sh_password = '';
 	let b_pin_valid = false;
 	let b_lock_pins = false;
 
@@ -47,6 +48,8 @@
 	const {
 		k_page,
 		completed,
+		a_progress,
+		next_progress,
 	} = load_flow_context();
 
 	// 22 words
@@ -180,7 +183,7 @@
 				const atu8_package = concat([atu8_precursor, atu8_mnemonic]);
 
 				// encrypt with pin
-				const [atu8_encrypted, g_security] = await Secrets.encryptWithPin(atu8_package, atu8_pin);
+				const [atu8_encrypted, g_security] = await Secrets.encryptWithPop(atu8_package, atu8_pin, 'pin');
 
 				// done with hashing and encryption
 				f_done();
@@ -228,6 +231,7 @@
 				props: {
 					p_mnemonic_selected: p_secret,
 				},
+				context: next_progress(a_progress, +0),
 			});
 		}
 	}
@@ -239,7 +243,7 @@
 </style>
 
 
-<Screen progress={[3, 5]}>
+<Screen progress={a_progress}>
 	{#if b_use_pin}
 		<Header plain
 			title='Set a PIN code for this mnemonic seed'

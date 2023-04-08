@@ -7,7 +7,6 @@ import {SessionStorage} from './session-storage';
 
 // import {Vault} from '#/crypto/vault';
 import type {PageInfo, Pwa} from '#/script/messages';
-import {do_webkit_polyfill} from '#/script/webkit-polyfill';
 import {
 	G_USERAGENT,
 	XT_SECONDS,
@@ -19,16 +18,13 @@ import {
 	B_FIREFOX_ANDROID,
 	B_IOS_NATIVE,
 	H_PARAMS,
+	B_IOS_WEBKIT,
 } from '#/share/constants';
 
-// TODO: remove do_webkit_polyfill import from everywhere except for common import
-if(B_IOS_NATIVE) {
-	do_webkit_polyfill((s: string, ...a_args: any[]) => console.debug(`StarShell.browser: ${s}`, ...a_args));
-}
-
-import {F_NOOP} from '#/util/belt';
+import {F_NOOP, timeout_exec} from '#/util/belt';
 import {buffer_to_base64, text_to_buffer} from '#/util/data';
 import {open_external_link, parse_params, stringify_params} from '#/util/dom';
+import { ServiceClient } from './service-comms';
 
 
 export type PopoutWindowHandle = {
@@ -135,6 +131,16 @@ export interface OpenWindowConfig extends JsonObject {
 	 */
 	popout?: boolean | undefined;
 
+	/**
+	 * Create a normal window with the URL bar
+	 */
+	chrome?: boolean | undefined;
+
+	/**
+	 * Open the window as a tab
+	 */
+	tab?: boolean | undefined;
+
 	position?: PositionConfig | undefined;
 
 	/**
@@ -190,7 +196,7 @@ export async function open_window(p_url: string, gc_open?: OpenWindowConfig): Pr
 	}
 
 	// use popover
-	if(gc_open?.popover && !B_FIREFOX_ANDROID) {
+	if(gc_open?.popover && !B_FIREFOX_ANDROID && !B_IOS_NATIVE && !B_IOS_WEBKIT) {
 		// update url with extended search params
 		const d_url_popover = new URL(p_url);
 		d_url_popover.search = stringify_params({
@@ -288,7 +294,7 @@ export async function open_window(p_url: string, gc_open?: OpenWindowConfig): Pr
 		};
 	}
 	// windows is available
-	else if('function' === typeof chrome.windows?.create) {
+	else if('function' === typeof chrome.windows?.create && !gc_open?.tab) {
 		// extend search params
 		h_params.within = 'popout';
 
@@ -319,7 +325,7 @@ export async function open_window(p_url: string, gc_open?: OpenWindowConfig): Pr
 
 		// create window
 		const g_window = await chrome.windows.create({
-			type: 'popup',
+			type: gc_open?.chrome? 'normal': 'popup',
 			url: p_url,
 			focused: true,
 			width: n_px_width,
@@ -335,9 +341,7 @@ export async function open_window(p_url: string, gc_open?: OpenWindowConfig): Pr
 
 		try {
 			// fetch its view
-			const dv_popup = await chrome.windows.get(g_window.id, {
-				windowTypes: ['popup'],
-			});
+			const dv_popup = await chrome.windows.get(g_window.id);
 
 			// no view
 			if(!dv_popup) {
@@ -367,7 +371,11 @@ export async function open_window(p_url: string, gc_open?: OpenWindowConfig): Pr
 				tab: dt_created,
 			};
 		}
-		catch(e_create) {}
+		catch(e_create) {
+			console.warn({
+				e_create,
+			});
+		}
 	}
 
 	// cannot create windows, but can create tabs
@@ -543,4 +551,75 @@ export async function try_reloading_page(g_page: {tabId?: number|undefined}): Pr
 	catch(e_reload) {}
 
 	return false;
+}
+
+
+export async function read_clipboard(): Promise<string | null> {
+	try {
+		// new service client
+		const k_client = await ServiceClient.connect('self');
+
+		// attempt to read from clipboard
+		const [s_data, xc_timeout] = await timeout_exec(6e3, () => k_client.request({
+			type: 'readClipboard',
+			value: {
+				format: 'text',
+			},
+		}));
+
+		// service is dead
+		if(xc_timeout) throw new Error(`Timed out while trying to read clipboard`);
+
+		// attempt to close the client
+		try {
+			k_client.close();
+		}
+		catch(e_close) {}
+
+		// return
+		return s_data as string;
+	}
+	// service is dead or unreachable
+	catch(e_connect) {
+		console.warn({e_connect});
+	}
+
+	// nothing
+	return null;
+}
+
+
+export async function write_clipboard(s_text: string): Promise<string | null> {
+	try {
+		// new service client
+		const k_client = await ServiceClient.connect('self');
+
+		// attempt to read from clipboard
+		const [s_data, xc_timeout] = await timeout_exec(6e3, () => k_client.request({
+			type: 'writeClipboard',
+			value: {
+				format: 'text',
+				data: s_text,
+			},
+		}));
+
+		// service is dead
+		if(xc_timeout) throw new Error(`Timed out while trying to write clipboard`);
+
+		// attempt to close the client
+		try {
+			k_client.close();
+		}
+		catch(e_close) {}
+
+		// return
+		return s_data as string;
+	}
+	// service is dead or unreachable
+	catch(e_connect) {
+		console.warn({e_connect});
+	}
+
+	// nothing
+	return null;
 }

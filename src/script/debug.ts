@@ -10,9 +10,11 @@ import {MsgExecuteContract as SecretMsgExecuteContract} from '@solar-republic/co
 
 import BigNumber from 'bignumber.js';
 
-import {Policies} from './ics-witness-imports';
 import {global_broadcast, global_receive} from './msg-global';
 import {set_keplr_compatibility_mode} from './scripts';
+
+// use compiled release so that inline-require doesn't pull ts source
+import {SIV, WebCryptoProvider} from 'miscreant/release/index';
 
 import {argon_hash_sample} from '#/app/svelte';
 import {amino_to_base, encode_proto, proto_to_amino} from '#/chain/cosmos-msgs';
@@ -38,7 +40,9 @@ import {Accounts} from '#/store/accounts';
 import {Apps} from '#/store/apps';
 import {Chains} from '#/store/chains';
 import {Contracts} from '#/store/contracts';
+import {Devices} from '#/store/devices';
 import {Histories, Incidents} from '#/store/incidents';
+import {Policies} from '#/store/policies';
 import {Providers} from '#/store/providers';
 import {QueryCache} from '#/store/query-cache';
 import {Secrets} from '#/store/secrets';
@@ -76,6 +80,7 @@ export function enable_debug_mode(): void {
 		Histories,
 		Incidents,
 		Providers,
+		Devices,
 
 		EntropyProducer,
 		SecretWasm,
@@ -136,6 +141,21 @@ export function enable_debug_mode(): void {
 
 		is_starshell_muted,
 		is_keplr_extension_enabled,
+
+		async decryptRawWasm(atu8_txk: Uint8Array, atu8_ciphertext: Uint8Array): Promise<Uint8Array> {
+			const y_provider = new WebCryptoProvider(globalThis.crypto);
+
+			// import key
+			const y_siv = await SIV.importKey(atu8_txk, 'AES-SIV', y_provider);
+
+			// decrypt ciphertext
+			try {
+				return y_siv.open(atu8_ciphertext, [new Uint8Array(0)]);
+			}
+			catch(e_decrypt) {
+				throw new Error(`AES-SIV decryption failed, "${e_decrypt.stack}".\nciphertext: ${buffer_to_base64(atu8_ciphertext)}\ntx key: ${buffer_to_base64(atu8_txk)}`);
+			}
+		},
 
 		async hash_passphrase() {
 			await Argon2.hash({

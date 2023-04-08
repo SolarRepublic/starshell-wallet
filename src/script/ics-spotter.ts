@@ -11,7 +11,10 @@ import type {Vocab} from '#/meta/vocab';
 
 
 /**
- * The spotter's sole purpose is to silently forward advertisement requests from the page to the service.
+ * The spotter's primary purpose is to silently forward advertisement requests from the page to the service.
+ * This script is also responsible for:
+ *  - spotting WHIP-005 inputs
+ *  - forwarding active page context data to the navigation view on mobile devices.
  */
 (function() {
 	// ref and cast runtime
@@ -27,6 +30,7 @@ import type {Vocab} from '#/meta/vocab';
 	const {
 		SI_STORE_ACCOUNTS,
 		SI_STORE_CHAINS,
+		B_IOS_WEBKIT,
 		R_CAIP_2,
 
 		pubkey_to_bech32,
@@ -36,6 +40,7 @@ import type {Vocab} from '#/meta/vocab';
 
 		Apps,
 		Chains,
+		SessionStorage,
 
 		dd, qsa,
 
@@ -43,7 +48,9 @@ import type {Vocab} from '#/meta/vocab';
 		WritableStoreMap,
 
 		Vault,
+		WebKitMessenger,
 	} = inline_require('./ics-spotter-imports.ts') as typeof ImportHelper;
+
 
 	const Accounts = create_store_class({
 		store: SI_STORE_ACCOUNTS,
@@ -460,6 +467,42 @@ import type {Vocab} from '#/meta/vocab';
 		// not logged in
 		else {
 			// TODO: present login prompt
+		}
+
+		// set basic app profile metadata for iOS
+		if(B_IOS_WEBKIT) {
+			let s_name = document.title;
+			try {
+				s_name = document.head?.querySelector?.('meta[name="application-name"][content]')?.['content']
+					|| document.head?.querySelector?.('meta[property="og:site_name"][content]')?.['content']
+					|| s_name;
+			}
+			catch(e_name) {}
+
+			let s_description = '';
+			try {
+				s_description = document.head?.querySelector?.('meta[name="description"][content]')?.['content']
+					|| document.head?.querySelector?.('meta[property="og:description"][content]')?.['content']
+					|| s_description;
+			}
+			catch(e_name) {}
+
+			// load app pfp
+			await load_app_pfp();
+
+			// submit page context to navigation view
+			void new WebKitMessenger('witness', true).post({
+				type: 'capture',
+				value: {
+					browsing_context: {
+						href: location.href,
+						name: s_name,
+						description: s_description,
+					},
+				},
+			});
+
+			void create_app_profile();
 		}
 	}
 

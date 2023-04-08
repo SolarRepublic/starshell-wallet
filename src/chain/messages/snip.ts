@@ -102,7 +102,7 @@ function wrap_handlers<as_keys extends string>(h_configs: Partial<SnipConfigs>):
 		const g_contract_loaded = await Contracts.at(p_contract);
 
 		// load contract def
-		const g_contract = g_contract_loaded || await produce_contract(sa_contract, g_chain, g_app);
+		const g_contract = g_contract_loaded || await produce_contract(sa_contract, g_chain, g_app, g_account);
 
 		// prep snip20 struct
 		const g_snip20 = g_contract.interfaces?.snip20;
@@ -175,7 +175,7 @@ export const H_SNIP_HANDLERS: Partial<SnipHandlers> = wrap_handlers<Snip2x.AnyMe
 
 	increase_allowance(h_args) {
 		// TODO: implement
-
+b
 		return {
 			apply: () => ({
 				title: '🔺 Increased Allowance',
@@ -308,7 +308,7 @@ export const H_SNIP_HANDLERS: Partial<SnipHandlers> = wrap_handlers<Snip2x.AnyMe
 				try {
 					const k_network: SecretNetwork = await Providers.activateDefaultFor(g_chain);
 
-					const a_deductions = await deduce_token_interfaces(g_contract, k_network, g_account);
+					await deduce_token_interfaces(g_contract, k_network, g_account);
 				}
 				catch(e_deduce) {}
 

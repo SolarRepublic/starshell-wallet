@@ -5,7 +5,7 @@
 	import {Screen} from './_screens';
 	import {syserr} from '../common';
 	import {yw_popup, yw_progress} from '../mem';
-	import {load_flow_context, make_progress_timer} from '../svelte';
+	import {load_flow_context, load_page_context, make_progress_timer} from '../svelte';
 	
 	import ActionsLine from '#/app/ui/ActionsLine.svelte';
 	import Field from '#/app/ui/Field.svelte';
@@ -22,6 +22,7 @@
 	import {stringify_params} from '#/util/dom';
 	
 	import PopupFactoryReset from '../popup/PopupFactoryReset.svelte';
+    import DebugIos from './DebugIos.svelte';
 	
 
 	// will be set if part of flow
@@ -176,9 +177,17 @@
 		return exit();
 	}
 
+	const {
+		k_page,
+	} = load_page_context();
+
 	let b_factory_reset_showing = false;
 	let c_logo_clicks = 0;
 	function logo_click() {
+		// k_page.push({
+		// 	creator: DebugIos,
+		// });
+
 		if(B_DEVELOPMENT && ++c_logo_clicks >= 2) {
 			sh_password = ' '.repeat(8);
 			void attempt_unlock();

@@ -1,8 +1,12 @@
+/* eslint-disable i/order */
 import type {SvelteComponent} from 'svelte';
 
 import type {AppStruct} from '#/meta/app';
 import type {Dict, JsonObject} from '#/meta/belt';
 import type {Vocab} from '#/meta/vocab';
+import type {PageConfig} from '#/app/nav/page';
+import type {IntraExt} from '#/script/messages';
+import type {StarShellDefaults} from '#/store/web-resource-cache';
 
 import {dm_log, domlog} from './fallback';
 
@@ -13,18 +17,25 @@ window.addEventListener('error', (d_event) => {
 	console.error(d_event.error);
 });
 
+import {B_LOCALHOST, XT_SECONDS, P_STARSHELL_DEFAULTS, R_CAIP_2, B_IOS_WEBKIT} from '#/share/constants';
+
+import {do_webkit_polyfill} from '#/script/webkit-polyfill';
+
+do_webkit_polyfill();
+/* eslint-enable */
+
 import {AppApiMode} from '#/meta/app';
 
 import SystemSvelte from '#/app/container/System.svelte';
 import {ThreadId} from '#/app/def';
 import {initialize_store_caches, yw_navigator} from '#/app/mem';
-import type {PageConfig} from '#/app/nav/page';
 import AccountCreateSvelte from '#/app/screen/AccountCreate.svelte';
 import AuthenticateSvelte from '#/app/screen/Authenticate.svelte';
 import BlankSvelte from '#/app/screen/Blank.svelte';
-
+import HardwareController from '#/app/screen/HardwareController.svelte';
 import ImportMnemonicSvelte from '#/app/screen/ImportMnemonic.svelte';
 import JsonPreviewDemo from '#/app/screen/JsonPreviewDemo.svelte';
+import LedgerLinkAccounts from '#/app/screen/LedgerLinkAccounts.svelte';
 import PreRegisterSvelte from '#/app/screen/PreRegister.svelte';
 import RestrictedSvelte from '#/app/screen/Restricted.svelte';
 import WalletCreateSvelte from '#/app/screen/WalletCreate.svelte';
@@ -33,20 +44,17 @@ import {Vault} from '#/crypto/vault';
 import {check_restrictions} from '#/extension/restrictions';
 import {ServiceClient} from '#/extension/service-comms';
 import {SessionStorage} from '#/extension/session-storage';
-import type {IntraExt} from '#/script/messages';
 import {global_broadcast, global_receive} from '#/script/msg-global';
 import {dev_register, login} from '#/share/auth';
-import {B_LOCALHOST, B_IOS_NATIVE, XT_SECONDS, P_STARSHELL_DEFAULTS, R_CAIP_2} from '#/share/constants';
 import {Accounts} from '#/store/accounts';
 import {Apps} from '#/store/apps';
 import {Chains} from '#/store/chains';
 import {Secrets} from '#/store/secrets';
 import {Settings} from '#/store/settings';
-import type {StarShellDefaults} from '#/store/web-resource-cache';
 import {WebResourceCache} from '#/store/web-resource-cache';
-import {forever, F_NOOP, microtask, ode, timeout, timeout_exec} from '#/util/belt';
+import {F_NOOP, ode, timeout, timeout_exec} from '#/util/belt';
 import {parse_params, qs} from '#/util/dom';
-
+import KeystoneTest from '#/app/screen/KeystoneTest.svelte';
 
 
 const debug = true? (s: string, ...a: any[]) => console.debug(`StarShell.popup: ${s}`, ...a): () => {};
@@ -161,7 +169,11 @@ let i_health = 0;
 let b_busy = false;
 
 // init service client
-const dp_connect = B_IOS_NATIVE? forever<ServiceClient>(): ServiceClient.connect('self');
+// const dp_connect = B_IOS_NATIVE? forever<ServiceClient>(): ServiceClient.connect('self');
+const dp_connect = ServiceClient.connect('self');
+void dp_connect.then((k_client) => {
+	globalThis._k_service_client = k_client;
+});
 
 // reload the entire system
 async function reload(b_override_restriction=false) {
@@ -253,26 +265,32 @@ async function reload(b_override_restriction=false) {
 			type: 'mnemonic',
 		});
 
-		// no mnemonics load mnemonic creation
-		if(!a_mnemonics.length) {
-			gc_page_start = {
-				creator: WalletCreateSvelte,
-			};
+		// no accounts
+		if(!Object.keys(ks_accounts.raw).length) {
+			// mnemonic exists; load account creation
+			if(a_mnemonics.length) {
+				gc_page_start = {
+					creator: AccountCreateSvelte,
+					props: {
+						b_mandatory: true,
+					},
+				};
+	
+				// set complete function in context
+				h_context.completed = reload;
+			}
+			// no mnemonics; load wallet creation
+			else {
+				gc_page_start = {
+					creator: WalletCreateSvelte,
+					props: {
+						b_mandatory: true,
+					},
+				};
 
-			// set complete function in context
-			h_context.completed = reload;
-		}
-		// no accounts; load account creation
-		else if(!Object.keys(ks_accounts.raw).length) {
-			gc_page_start = {
-				creator: AccountCreateSvelte,
-				props: {
-					b_mandatory: true,
-				},
-			};
-
-			// set complete function in context
-			h_context.completed = reload;
+				// set complete function in context
+				h_context.completed = reload;
+			}
 		}
 		// account exists; load default homescreen
 		else {
@@ -408,6 +426,31 @@ async function reload(b_override_restriction=false) {
 								break;
 							}
 
+							case 'ledger': {
+								k_navigator.activePage.push({
+									creator: HardwareController,
+									props: {},
+								});
+								break;
+							}
+
+							case 'keystone': {
+								k_navigator.activePage.push({
+									creator: KeystoneTest,
+								});
+								break;
+							}
+
+							case 'ledger-import': {
+								k_navigator.activePage.push({
+									creator: LedgerLinkAccounts,
+									props: {
+										b_dev: true,
+									},
+								});
+								break;
+							}
+
 							case 'json': {
 								k_navigator.activePage.push({
 									creator: JsonPreviewDemo,
@@ -435,13 +478,51 @@ async function reload(b_override_restriction=false) {
 		catch(e_hide) {}
 
 		// listen for heartbeat
-		if(!B_IOS_NATIVE) {
-			const d_service: Vocab.TypedRuntime<IntraExt.ServiceInstruction> = chrome.runtime;
-			let i_service_health = 0;
-			function health_check() {
-				clearTimeout(i_service_health);
+		// if(!B_IOS_NATIVE) {
+		const d_service: Vocab.TypedRuntime<IntraExt.ServiceInstruction> = chrome.runtime;
+		let i_service_health = 0;
+		function health_check() {
+			console.debug('Service health check');
+			clearTimeout(i_service_health);
 
-				i_service_health = window.setTimeout(async() => {
+			i_service_health = window.setTimeout(async() => {
+				// in webkit view
+				if(B_IOS_WEBKIT) {
+					console.warn(`Idle service worker`);
+
+// 					debugger;
+
+// 					// // notify of service delinquency
+// 					// global_broadcast({
+// 					// 	type: 'unresponsiveService',
+// 					// });
+
+// 					// remove background page(s)
+// 					for(const dm_background of Array.from(document.body.querySelectorAll('iframe.background-service'))) {
+// 						dm_background.remove();
+// 					}
+
+// 					// re-initialize
+// 					const dm_background = dd('iframe', {
+// 						src: '/background.html?within=webview',
+// 						style: `
+// 							display: none;
+// 						`,
+// 					});
+
+// 					// add to page
+// 					document.body.append(dm_background);
+
+// 					await timeout(3e3);
+// debugger;
+// 					await ServiceClient.connect('self');
+// 					debugger;
+// 					await timeout(5e3);
+// 					debugger;
+// 					health_check();
+				}
+				// desktop
+				else {
 					console.warn(`Waking idle service worker`);
 
 					let k_client!: ServiceClient;
@@ -462,20 +543,21 @@ async function reload(b_override_restriction=false) {
 							type: 'unresponsiveService',
 						});
 					}
-				}, 2e3);
-			}
-
-			global_receive({
-				heartbeat() {
-					health_check();
-				},
-			});
-
-			// user is logged in, ensure the service is running
-			if(b_launch) {
-				health_check();
-			}
+				}
+			}, 2e3);
 		}
+
+		global_receive({
+			heartbeat() {
+				health_check();
+			},
+		});
+
+		// user is logged in, ensure the service is running
+		if(b_launch) {
+			health_check();
+		}
+		// }
 	}
 
 	yw_navigator.once(navigator_updated);
@@ -501,11 +583,11 @@ async function reload(b_override_restriction=false) {
 
 // app is running as local development for UI inspecting
 if(B_LOCALHOST) {
-	if(h_params.autoskip) {
-		console.log('Autoskipping registration');
-		const s_password = ' '.repeat(8);
+	(async() => {
+		if('autoskip' in h_params) {
+			console.log('Autoskipping registration');
+			const s_password = ' '.repeat(8);
 
-		(async() => {
 			try {
 				await login(s_password);
 			}
@@ -516,12 +598,12 @@ if(B_LOCALHOST) {
 			}
 
 			await reload();
-		})();
-	}
-	else {
-		// start system
-		void reload();
-	}
+		}
+		else {
+			// start system
+			await reload();
+		}
+	})();
 }
 else {
 	domlog('Loading system from popup');

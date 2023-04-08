@@ -8,7 +8,7 @@ import type {Bech32} from '#/meta/chain';
 import {
 	BaseAccount,
 	ModuleAccount,
-	ModuleCredential,
+	// ModuleCredential,
 	Params as AuthParams,
 } from '@solar-republic/cosmos-grpc/dist/cosmos/auth/v1beta1/auth';
 
@@ -20,7 +20,7 @@ import {
 	GenericAuthorization,
 	Grant as AuthzGrant,
 	GrantAuthorization,
-	GrantQueueItem,
+	// GrantQueueItem,
 } from '@solar-republic/cosmos-grpc/dist/cosmos/authz/v1beta1/authz';
 
 import {
@@ -46,8 +46,8 @@ import {
 import {
 	MsgSend,
 	MsgMultiSend,
-	MsgUpdateParams as BankMsgUpdateParams,
-	MsgSetSendEnabled,
+	// MsgUpdateParams as BankMsgUpdateParams,
+	// MsgSetSendEnabled,
 } from '@solar-republic/cosmos-grpc/dist/cosmos/bank/v1beta1/tx';
 
 import {
@@ -60,15 +60,15 @@ import {
 	MsgUpdateParams as ConsensusMsgUpdateParams,
 } from '@solar-republic/cosmos-grpc/dist/cosmos/consensus/v1/tx';
 
-import {
-	MsgAuthorizeCircuitBreaker,
-	MsgTripCircuitBreaker,
-	MsgResetCircuitBreaker,
-} from '@solar-republic/cosmos-grpc/dist/cosmos/crisis/v1/tx';
+// import {
+// 	MsgAuthorizeCircuitBreaker,
+// 	MsgTripCircuitBreaker,
+// 	MsgResetCircuitBreaker,
+// } from '@solar-republic/cosmos-grpc/dist/cosmos/crisis/v1/tx';
 
 import {
 	MsgVerifyInvariant,
-	MsgUpdateParams as CrisisMsgUpdateParams,
+	// MsgUpdateParams as CrisisMsgUpdateParams,
 } from '@solar-republic/cosmos-grpc/dist/cosmos/crisis/v1beta1/tx';
 
 import {
@@ -91,9 +91,10 @@ import {
 	MsgWithdrawDelegatorReward,
 	MsgWithdrawValidatorCommission,
 	MsgFundCommunityPool,
-	MsgUpdateParams as DistributionMsgUpdateParams,
-	MsgCommunityPoolSpend,
-	MsgDepositValidatorRewardsPool,
+	MsgSetAutoRestake,
+	// MsgUpdateParams as DistributionMsgUpdateParams,
+	// MsgCommunityPoolSpend,
+	// MsgDepositValidatorRewardsPool,
 } from '@solar-republic/cosmos-grpc/dist/cosmos/distribution/v1beta1/tx';
 
 import {
@@ -203,7 +204,7 @@ import {
 
 import {
 	MsgUnjail,
-	MsgUpdateParams as SlashingMsgUpdateParams,
+	// MsgUpdateParams as SlashingMsgUpdateParams,
 } from '@solar-republic/cosmos-grpc/dist/cosmos/slashing/v1beta1/tx';
 
 import {
@@ -224,7 +225,7 @@ import {
 	Redelegation,
 	Params as StakingParams,
 	Pool,
-	ValidatorUpdates,
+	// ValidatorUpdates,
 } from '@solar-republic/cosmos-grpc/dist/cosmos/staking/v1beta1/staking';
 
 import {
@@ -233,8 +234,8 @@ import {
 	MsgDelegate,
 	MsgBeginRedelegate,
 	MsgUndelegate,
-	MsgCancelUnbondingDelegation,
-	MsgUpdateParams as StakingMsgUpdateParams,
+	// MsgCancelUnbondingDelegation,
+	// MsgUpdateParams as StakingMsgUpdateParams,
 } from '@solar-republic/cosmos-grpc/dist/cosmos/staking/v1beta1/tx';
 
 import {
@@ -249,7 +250,7 @@ import {
 	Tx,
 	TxRaw,
 	SignDoc,
-	SignDocDirectAux,
+	// SignDocDirectAux,
 	TxBody,
 	AuthInfo,
 	SignerInfo,
@@ -257,8 +258,8 @@ import {
 	ModeInfo_Single,
 	ModeInfo_Multi,
 	Fee,
-	Tip,
-	AuxSignerData,
+	// Tip,
+	// AuxSignerData,
 } from '@solar-republic/cosmos-grpc/dist/cosmos/tx/v1beta1/tx';
 
 import {
@@ -275,8 +276,8 @@ import {
 
 import {
 	MsgCreateVestingAccount,
-	MsgCreatePermanentLockedAccount,
-	MsgCreatePeriodicVestingAccount,
+	// MsgCreatePermanentLockedAccount,
+	// MsgCreatePeriodicVestingAccount,
 } from '@solar-republic/cosmos-grpc/dist/cosmos/vesting/v1beta1/tx';
 
 import {
@@ -443,9 +444,9 @@ const H_ROOT_DEFS = {
 					ModuleAccount: {
 						methods: ModuleAccount,
 					},
-					ModuleCredential: {
-						methods: ModuleCredential,
-					},
+					// ModuleCredential: {
+					// 	methods: ModuleCredential,
+					// },
 					Params: {
 						methods: AuthParams,
 					},
@@ -465,9 +466,9 @@ const H_ROOT_DEFS = {
 					GrantAuthorization: {
 						methods: GrantAuthorization,
 					},
-					GrantQueueItem: {
-						methods: GrantQueueItem,
-					},
+					// GrantQueueItem: {
+					// 	methods: GrantQueueItem,
+					// },
 
 					MsgGrant: {
 						methods: AuthzMsgGrant,
@@ -513,12 +514,12 @@ const H_ROOT_DEFS = {
 					MsgMultiSend: {
 						methods: MsgMultiSend,
 					},
-					MsgUpdateParams: {
-						methods: BankMsgUpdateParams,
-					},
-					MsgSetSendEnabled: {
-						methods: MsgSetSendEnabled,
-					},
+					// MsgUpdateParams: {
+					// 	methods: BankMsgUpdateParams,
+					// },
+					// MsgSetSendEnabled: {
+					// 	methods: MsgSetSendEnabled,
+					// },
 				},
 
 				'capability.v1beta1': {
@@ -540,24 +541,24 @@ const H_ROOT_DEFS = {
 				},
 
 				'crisis.v1': {
-					MsgAuthorizeCircuitBreaker: {
-						methods: MsgAuthorizeCircuitBreaker,
-					},
-					MsgTripCircuitBreaker: {
-						methods: MsgTripCircuitBreaker,
-					},
-					MsgResetCircuitBreaker: {
-						methods: MsgResetCircuitBreaker,
-					},
+					// MsgAuthorizeCircuitBreaker: {
+					// 	methods: MsgAuthorizeCircuitBreaker,
+					// },
+					// MsgTripCircuitBreaker: {
+					// 	methods: MsgTripCircuitBreaker,
+					// },
+					// MsgResetCircuitBreaker: {
+					// 	methods: MsgResetCircuitBreaker,
+					// },
 				},
 
 				'crisis.v1beta1': {
 					MsgVerifyInvariant: {
 						methods: MsgVerifyInvariant,
 					},
-					MsgUpdateParams: {
-						methods: CrisisMsgUpdateParams,
-					},
+					// MsgUpdateParams: {
+					// 	methods: CrisisMsgUpdateParams,
+					// },
 				},
 
 				'distribution.v1beta1': {
@@ -610,15 +611,18 @@ const H_ROOT_DEFS = {
 					MsgFundCommunityPool: {
 						methods: MsgFundCommunityPool,
 					},
-					MsgUpdateParams: {
-						methods: DistributionMsgUpdateParams,
+					MsgSetAutoRestake: {
+						methods: MsgSetAutoRestake,
 					},
-					MsgCommunityPoolSpend: {
-						methods: MsgCommunityPoolSpend,
-					},
-					MsgDepositValidatorRewardsPool: {
-						methods: MsgDepositValidatorRewardsPool,
-					},
+					// MsgUpdateParams: {
+					// 	methods: DistributionMsgUpdateParams,
+					// },
+					// MsgCommunityPoolSpend: {
+					// 	methods: MsgCommunityPoolSpend,
+					// },
+					// MsgDepositValidatorRewardsPool: {
+					// 	methods: MsgDepositValidatorRewardsPool,
+					// },
 				},
 
 				'evidence.v1beta': {
@@ -837,9 +841,9 @@ const H_ROOT_DEFS = {
 					MsgUnjail: {
 						methods: MsgUnjail,
 					},
-					MsgUpdateParams: {
-						methods: SlashingMsgUpdateParams,
-					},
+					// MsgUpdateParams: {
+					// 	methods: SlashingMsgUpdateParams,
+					// },
 				},
 
 				'staking.v1beta1': {
@@ -894,9 +898,9 @@ const H_ROOT_DEFS = {
 					Pool: {
 						methods: Pool,
 					},
-					ValidatorUpdates: {
-						methods: ValidatorUpdates,
-					},
+					// ValidatorUpdates: {
+					// 	methods: ValidatorUpdates,
+					// },
 
 					MsgCreateValidator: {
 						methods: MsgCreateValidator,
@@ -913,12 +917,12 @@ const H_ROOT_DEFS = {
 					MsgUndelegate: {
 						methods: MsgUndelegate,
 					},
-					MsgCancelUnbondingDelegation: {
-						methods: MsgCancelUnbondingDelegation,
-					},
-					MsgUpdateParams: {
-						methods: StakingMsgUpdateParams,
-					},
+					// MsgCancelUnbondingDelegation: {
+					// 	methods: MsgCancelUnbondingDelegation,
+					// },
+					// MsgUpdateParams: {
+					// 	methods: StakingMsgUpdateParams,
+					// },
 				},
 
 				'tx.v1beta1': {
@@ -947,9 +951,9 @@ const H_ROOT_DEFS = {
 					SignDoc: {
 						methods: SignDoc,
 					},
-					SignDocDirectAux: {
-						methods: SignDocDirectAux,
-					},
+					// SignDocDirectAux: {
+					// 	methods: SignDocDirectAux,
+					// },
 					TxBody: {
 						methods: TxBody,
 					},
@@ -971,12 +975,12 @@ const H_ROOT_DEFS = {
 					Fee: {
 						methods: Fee,
 					},
-					Tip: {
-						methods: Tip,
-					},
-					AuxSignerData: {
-						methods: AuxSignerData,
-					},
+					// Tip: {
+					// 	methods: Tip,
+					// },
+					// AuxSignerData: {
+					// 	methods: AuxSignerData,
+					// },
 				},
 
 				'upgrade.v1beta': {
@@ -1005,12 +1009,12 @@ const H_ROOT_DEFS = {
 					MsgCreateVestingAccount: {
 						methods: MsgCreateVestingAccount,
 					},
-					MsgCreatePermanentLockedAccount: {
-						methods: MsgCreatePermanentLockedAccount,
-					},
-					MsgCreatePeriodicVestingAccount: {
-						methods: MsgCreatePeriodicVestingAccount,
-					},
+					// MsgCreatePermanentLockedAccount: {
+					// 	methods: MsgCreatePermanentLockedAccount,
+					// },
+					// MsgCreatePeriodicVestingAccount: {
+					// 	methods: MsgCreatePeriodicVestingAccount,
+					// },
 
 					BaseVestingAccount: {
 						methods: BaseVestingAccount,

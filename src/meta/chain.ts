@@ -208,6 +208,8 @@ export type Chain<
 > = Resource.New<{
 	segments: [ChainNamespace.Segment<si_namespace>, Chain.Segment<si_reference>];
 	struct: [{
+		on: 0 | 1;
+
 		/**
 		 * The chain's CAIP-2 namespace identifier <https://github.com/ChainAgnostic/CAIPs/blob/master/CAIPs/caip-2.md>
 		 */
@@ -261,10 +263,11 @@ export type Chain<
 		testnet?: {
 			faucets?: Dict<{}>;
 		};
+		devnet?: {};
 		mainnet?: {
 			feegrants?: Dict<{}>;
 		};
-		blockExplorer: BlockExplorerConfig;
+		blockExplorer?: BlockExplorerConfig;
 	}, Nameable, Pfpable];
 }>;
 

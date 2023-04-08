@@ -84,6 +84,9 @@ export class NetworkFeed {
 
 		// each chain
 		for(const [p_chain, g_chain] of ks_chains.entries()) {
+			// skip disabled (devnets might not support wgrpc)
+			if(!g_chain.on) continue;
+
 			// skip cosmos
 			if('/family.cosmos/chain.theta-testnet-001' === p_chain) continue;
 

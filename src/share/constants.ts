@@ -7,7 +7,6 @@ import UAParser from 'ua-parser-js';
 
 import {sha256_sync_insecure, text_to_buffer} from '#/util/data';
 
-
 export const B_IS_BACKGROUND = 'clients' in globalThis && 'function' === typeof globalThis['Clients'] && globalThis['clients'] instanceof globalThis['Clients'];
 export const B_IS_SERVICE_WORKER = 'function' === typeof globalThis['ServiceWorkerGlobalScope'] && globalThis instanceof globalThis['ServiceWorkerGlobalScope'];
 
@@ -51,14 +50,30 @@ export const N_BROWSER_VERSION_MAJOR = (() => {
 })();
 
 /**
+ * `true` if `window` is defined
+ */
+export const B_DEFINED_WINDOW = 'object' === typeof window && globalThis === window;
+
+/**
  * Indicates that chrome/browser web extension gloal is available
  */
-export const B_WEBEXT = 'undefined' !== typeof chrome;
+export const B_WEBEXT = 'undefined' !== typeof chrome && chrome['_original'];
 
 /**
  * Indicates the device type is mobile
  */
 export const B_MOBILE = 'mobile' === G_USERAGENT.device.type;
+
+/**
+ * Desktop
+ */
+export const B_DESKTOP = !B_MOBILE;
+
+/**
+ * Within a WebKit view on mobile
+ */
+export const B_MOBILE_WEBKIT_VIEW = 'object' === typeof globalThis['location'] && 'proxy:' === location.protocol && '' === location.host;
+export const B_MOBILE_APP_TOP_IS_MAIN = B_MOBILE_WEBKIT_VIEW && B_DEFINED_WINDOW && new URL(window.top!.location.href).pathname.endsWith('/popup.html');
 
 /**
  * Indicates the browser is WebKit
@@ -71,6 +86,8 @@ export const B_FIREFOX_ANDROID = 'Firefox' === G_USERAGENT.browser.name && 'Andr
 export const B_CHROMIUM_ANDROID = 'Chrome' === G_USERAGENT.browser.name && 'Android' === G_USERAGENT.os.name;
 export const B_CHROME_SESSION_CAPABLE = 'Chrome' === G_USERAGENT.browser.name && (N_BROWSER_VERSION_MAJOR >= 108);
 
+
+export const B_SUPPORTS_LEDGER = 'function' === typeof navigator.usb?.getDevices;
 
 export const B_LOCALHOST = 'object' === typeof location && 'localhost' === location.hostname;
 const H_ENV = import.meta.env;
@@ -91,10 +108,26 @@ interface WebExtParams {
 	within?: 'popout' | 'pwa' | 'tab' | 'webview';
 }
 
-export const B_WITHIN_IFRAME = 'object' === typeof window && globalThis === window && window.top !== window;
+/**
+ * `true` if the window is within an iframe
+ */
+export const B_WITHIN_IFRAME = B_DEFINED_WINDOW && window.top !== window;
 
-// set to true if the window is within a web extension popover
+/**
+ * `true` if the window is within a web extension popover
+ */
 export const B_WITHIN_WEBEXT_POPOVER = !('within' in H_PARAMS) || 'popover' === H_PARAMS.within;
+
+/**
+ * `true` if the window is within a tab
+ */
+export const B_WITHIN_TAB = 'tab' === H_PARAMS.within;
+
+/**
+ * `true` if the window is within an iframe in the in-app browser's navigation view
+ */
+export const B_WITHIN_IAB_NAV_IFRAME = 'iab-nav' === H_PARAMS.iframe;
+
 
 // set to true if the window is within a pwa
 export const B_WITHIN_PWA = B_WITHIN_IFRAME && 'pwa' === H_PARAMS.within;
@@ -114,9 +147,14 @@ export const B_IOS_NATIVE = !B_WEBEXT && B_WEBKIT && B_WITHIN_WEBVIEW;
 /**
  * Indicates the app is operating as the web extension on iOS
  */
- export const B_IOS_WEBEXT = B_WEBEXT && B_IPHONE_IOS;
+export const B_IOS_WEBEXT = B_WEBEXT && B_IPHONE_IOS;
 
- 
+/**
+ * Indicates the script is running in an ios webkit view
+ */
+export const B_IOS_WEBKIT = B_WEBKIT && B_IPHONE_IOS;
+
+
 // firefox android toolbar is 56px high
 export const N_PX_FIREFOX_TOOLBAR = 56;
 
@@ -226,6 +264,18 @@ export const R_CAIP_19 = /^([-a-z0-9]{3,8}):([-a-zA-Z0-9]{1,32})\/([-a-z0-9]{3,8
 
 export const R_FAULTY_CAIP_19 = /^([-a-z0-9]{3,8}):([-a-zA-Z0-9]{1,32}):([-a-z0-9]{3,8})\/([-a-zA-Z0-9]{1,64})$/;
 
+/**
+ * BC Uniform Resource identifier {@link https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-005-ur.md Uniform Resources (UR)}
+ * See also: {@link https://github.com/BlockchainCommons/Research/blob/master/papers/bcr-2020-006-urtypes.md Registry of UR Types}
+ * 
+ * Capture groups:
+ *  1. ur type
+ *  2. ur seqNum
+ *  3. ur seqLen
+ *  4. ur message/fragment
+ */
+export const R_UR = /^ur:([a-z0-9-]+)\/(?:(\d+)-(\d+)\/)?(.*)$/i;
+
 
 // chain id pattern w/ versioning (cosmos standard pending) <https://github.com/cosmos/cosmos-sdk/issues/5363>
 export const R_CHAIN_ID_VERSION = /^([a-zA-Z0-9][a-zA-Z0-9-]*?)-([1-9][0-9]{0,44})$/;
@@ -276,6 +326,9 @@ export const P_STARSHELL_DEFAULTS = 'https://raw.githubusercontent.com/SolarRepu
 
 // dapps repo
 export const P_STARSHELL_DAPPS = 'https://raw.githubusercontent.com/SolarRepublic/wallet-apps-registry/main/global.json';
+
+// fallback browser homepage
+export const P_FALLBACK_BROWSER_HOMEPAGE = 'https://start.duckduckgo.com/';
 
 // transfer amount string regex
 export const R_TRANSFER_AMOUNT = /^(\d+)(.+)/;
@@ -336,6 +389,7 @@ export const SI_STORE_AGENTS: StoreKey<'agents'> = 'agents';
 export const SI_STORE_CONTRACTS: StoreKey<'contracts'> = 'contracts';
 export const SI_STORE_SETTINGS: StoreKey<'settings'> = 'settings';
 export const SI_STORE_ACCOUNTS: StoreKey<'accounts'> = 'accounts';
+export const SI_STORE_DEVICES: StoreKey<'devices'> = 'devices';
 export const SI_STORE_QUERY_CACHE: StoreKey<'query_cache'> = 'query_cache';
 export const SI_STORE_TAGS: StoreKey<'tags'> = 'tags';
 export const SI_STORE_MEDIA: StoreKey<'media'> = 'media';
@@ -368,3 +422,15 @@ export enum ConnectionHealth {
 	DELINQUENT = 4,
 	DISCONNECTED = 5,
 }
+
+export const H_LEDGER_COIN_TYPE_DEFAULTS: Dict<{hrp:string; app:string}> = {
+	118: {
+		hrp: 'cosmos',
+		app: 'Cosmos',
+	},
+	529: {
+		hrp: 'secret',
+		app: 'Secret',
+	},
+};
+

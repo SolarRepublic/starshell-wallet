@@ -21,7 +21,7 @@
 
 	let s_hint_extension = '';
 
-	const {k_page} = load_page_context();
+	const {k_page, a_progress, next_progress} = load_page_context();
 
 	async function next() {
 		// text encode passphrase
@@ -42,11 +42,12 @@
 				b_extension: !!sh_extension.length,
 				b_use_pin,
 			},
+			context: next_progress(),
 		});
 	}
 </script>
 
-<Screen progress={[1, 5]}>
+<Screen progress={a_progress}>
 	<Mnemonic b_readonly
 		bind:atu16_indicies={atu16_indicies}
 		bind:sh_extension={sh_extension}

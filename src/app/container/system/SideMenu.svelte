@@ -1,4 +1,4 @@
-<script lang="ts">	
+<script lang="ts">
 	import {onDestroy, onMount} from 'svelte';
 	
 	import {ThreadId} from '#/app/def';
@@ -9,14 +9,17 @@
 	import PopupFactoryReset from '#/app/popup/PopupFactoryReset.svelte';
 	import {open_window, P_POPUP} from '#/extension/browser';
 	import {launch_qr_scanner} from '#/extension/sensors';
+	import type {WebKitMessenger} from '#/script/webkit-polyfill';
 	import {logout} from '#/share/auth';
-	import {B_WITHIN_WEBEXT_POPOVER} from '#/share/constants';
+	import {B_IOS_NATIVE, B_MOBILE, B_WITHIN_WEBEXT_POPOVER, P_FALLBACK_BROWSER_HOMEPAGE} from '#/share/constants';
+	import {Settings} from '#/store/settings';
 	
 	import SX_ICON_ACCOUNTS from '#/icon/account_circle.svg?raw';
 	import SX_ICON_CONNECTIONS from '#/icon/account_tree.svg?raw';
 	import SX_ICON_TAGS from '#/icon/bookmarks.svg?raw';
 	import SX_ICON_CLOSE from '#/icon/close.svg?raw';
 	import SX_ICON_CUBES from '#/icon/cubes.svg?raw';
+	import SX_ICON_GLOBE from '#/icon/globe.svg?raw';
 	import SX_ICON_CHAINS from '#/icon/mediation.svg?raw';
 	import SX_ICON_NUCLEAR from '#/icon/nuclear.svg?raw';
 	import SX_ICON_POPOUT from '#/icon/pop-out.svg?raw';
@@ -91,6 +94,16 @@
 				activate(ThreadId.PROVIDERS);
 			},
 		},
+		...B_IOS_NATIVE? [
+			{
+				label: 'Apps',
+				icon: SX_ICON_CUBES,
+				click() {
+					activate(ThreadId.APPS);
+				},
+			},
+		]: [],
+
 		// {
 		// 	label: 'Tags',
 		// 	icon: SX_ICON_TAGS,
@@ -126,17 +139,32 @@
 				$yw_menu_expanded = false;
 			},
 		},
-		{
-			label: B_WITHIN_WEBEXT_POPOVER? 'Pop Out': 'New Tab',
-			icon: SX_ICON_POPOUT,
-			async click() {
-				// open pop-out
-				await open_window(P_POPUP, {popout:true});
+		...B_IOS_NATIVE? [
+			{
+				label: 'Web Browser',
+				icon: SX_ICON_GLOBE,
+				async click() {
+					const p_homepage = await Settings.get('p_browser_homepage') || P_FALLBACK_BROWSER_HOMEPAGE;
 
-				// close this popup
-				globalThis.close();
+					void (globalThis.opener_handler as WebKitMessenger).post({
+						url: '',
+						args: [p_homepage],
+					});
+				},
 			},
-		},
+		]: [
+			{
+				label: B_WITHIN_WEBEXT_POPOVER? 'Pop Out': 'New Tab',
+				icon: SX_ICON_POPOUT,
+				async click() {
+					// open pop-out
+					await open_window(P_POPUP, {popout:true});
+
+					// close this popup
+					globalThis.close();
+				},
+			},
+		],
 	];
 
 	const A_SESSION_ITEMS = [

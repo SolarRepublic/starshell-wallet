@@ -65,6 +65,7 @@ export async function save_query_permit(
 			title: '🎟️ Query Permit Signed',
 			message: `Owners of this permit will have the ${a_permissions.join(', ')} permission${1 === a_permissions.length? '': 's'} for ${a_bech32s.length} contract${1 === a_bech32s.length? '': 's'}.`,
 		},
+		timeout: 0,
 	});
 
 	return [p_secret, p_incident];

@@ -153,7 +153,7 @@
 			// contract not found
 			if(!g_contract) {
 				// retry with production
-				g_contract = await produce_contract(sa_contract, g_chain, g_app);
+				g_contract = await produce_contract(sa_contract, g_chain, g_app, g_account);
 
 				// still not found
 				if(!g_contract) {
@@ -189,7 +189,7 @@
 				// contract not found
 				if(!g_contract) {
 					// retry with production
-					g_contract = await produce_contract(sa_contract, g_chain, g_app);
+					g_contract = await produce_contract(sa_contract, g_chain, g_app, g_account);
 
 					// still not found
 					if(!g_contract) {

@@ -12,7 +12,7 @@
 	import {system_notify} from '#/extension/notifications';
 	import {global_receive} from '#/script/msg-global';
 	import {NetworkFeed} from '#/script/service-feed';
-	import {ConnectionHealth, SI_VERSION} from '#/share/constants';
+	import {B_IOS_NATIVE, B_IOS_WEBKIT, B_RELEASE_BETA, ConnectionHealth, SI_VERSION} from '#/share/constants';
 	
 	import {Chains} from '#/store/chains';
 	import {Histories} from '#/store/incidents';
@@ -81,6 +81,9 @@
 		const ks_chains = await Chains.read();
 
 		for(const [p_chain, g_chain] of ks_chains.entries()) {
+			// skip disabled (devnets might not support wgrpc)
+			if(!g_chain.on) continue;
+
 			const g_connection = h_connections[p_chain] = {
 				s_height: '[...]',
 				n_txs: 0,
@@ -239,6 +242,11 @@
 									xc_health: ConnectionHealth.DELINQUENT,
 									s_network_status: 'Delinquent',
 								});
+
+								// TODO: remove in favor of automatic restart
+								if(B_IOS_WEBKIT) {
+									s_err_fix = 'restart';
+								}
 							}
 						}, g_connection.xt_avg_block_time * 2);
 					}
@@ -291,7 +299,12 @@
 	}
 
 	function restart(d_event: MouseEvent) {
-		chrome.runtime?.reload?.();
+		if(B_IOS_NATIVE) {
+			location.reload();
+		}
+		else {
+			chrome.runtime?.reload?.();
+		}
 	}
 
 	let b_shift_key = false;
@@ -678,7 +691,7 @@
 			<div class="main">
 				<div class="app">
 					<div>
-						StarShell v{SI_VERSION}
+						StarShell{B_RELEASE_BETA? ' Beta': ''} v{SI_VERSION}
 					</div>
 				</div>
 

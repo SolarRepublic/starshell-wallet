@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type {AccountStruct, AccountPath} from '#/meta/account';
+	import type {AccountStruct, AccountPath, ParsedHardwareAccountLocation} from '#/meta/account';
 	import type {Promisable} from '#/meta/belt';
 	import type {Bech32} from '#/meta/chain';
 	import type {SecretPath, SecretStruct} from '#/meta/secret';
@@ -8,6 +8,7 @@
 	import {popup_receive, yw_chain} from '../mem';
 	import {load_page_context} from '../svelte';
 	
+	import {is_hwa, parse_hwa} from '#/crypto/hardware-signing';
 	import {Accounts} from '#/store/accounts';
 	import {Chains} from '#/store/chains';
 	import {Secrets} from '#/store/secrets';
@@ -29,6 +30,7 @@
 	const p_account = accountPath;
 
 	let g_account: AccountStruct;
+	let g_hwa: ParsedHardwareAccountLocation;
 	let g_secret: SecretStruct;
 
 
@@ -46,7 +48,31 @@
 		const ks_accounts = await Accounts.read();
 
 		g_account = ks_accounts.at(p_account)!;
-		g_secret = await Secrets.metadata(g_account.secret)!;
+
+		const p_secret = g_account.secret;
+
+		if(is_hwa(p_secret)) {
+			g_hwa = parse_hwa(p_secret);
+		}
+		else {
+			gc_actions.export = {
+				label: 'Export',
+				async trigger() {
+					const g_node = await Secrets.metadata(g_account.secret as SecretPath<'bip32_node'>);
+
+					const g_mnemonic = await Secrets.metadata(g_node.mnemonic);
+
+					k_page.push({
+						creator: MnemonicExport,
+						props: {
+							g_mnemonic,
+						},
+					});
+				},
+			};
+
+			g_secret = await Secrets.metadata(p_secret)!;
+		}
 	}
 
 	const gc_actions: Actions = {
@@ -74,21 +100,6 @@
 					creator: AccountEdit,
 					props: {
 						accountPath: p_account,
-					},
-				});
-			},
-		},
-		export: {
-			label: 'Export',
-			async trigger() {
-				const g_node = await Secrets.metadata(g_account.secret as SecretPath<'bip32_node'>);
-
-				const g_mnemonic = await Secrets.metadata(g_node.mnemonic);
-
-				k_page.push({
-					creator: MnemonicExport,
-					props: {
-						g_mnemonic,
 					},
 				});
 			},

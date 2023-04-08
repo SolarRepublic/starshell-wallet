@@ -21,6 +21,7 @@
 
 	import SX_ICON_CHECKED from '#/icon/checked.svg?raw';
 	import SX_ICON_UNCHECKED from '#/icon/unchecked.svg?raw';
+    import { slide } from 'svelte/transition';
 
 	/**
 	 * HTML element id
@@ -145,6 +146,7 @@
 		}
 
 		label {
+			width: 100%;
 			padding-left: 0.25em;
 		}
 	}
@@ -156,6 +158,7 @@
 	on:keydown={handle_fieldset_keydown}
 	class:disabled={disabled}
 	style={rootStyle}
+	transition:slide
 >
 	<span class="checkbox">
 		<span class="icon">

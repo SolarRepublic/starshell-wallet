@@ -194,6 +194,9 @@ export function buildBrowserManifest(b_prod=false) {
 			'scripting',
 			'unlimitedStorage',
 			'notifications',
+			'clipboardRead',
+			'clipboardWrite',
+			'offscreen',
 		],
 	};
 
@@ -204,6 +207,7 @@ export function buildBrowserManifest(b_prod=false) {
 		'src/script/mcs-pwa.ts',
 		'src/entry/flow.html',
 		'src/entry/navigation.html',
+		'src/entry/offscreen.html',
 
 		// allow content scripts to load the word list
 		'data/bip-0039-english.txt',
@@ -247,7 +251,10 @@ export function buildBrowserManifest(b_prod=false) {
 		},
 
 		content_security_policy: csp({
-			'script-src': [...H_CONTENT_SECURITY_POLICY['script-src'], `'unsafe-eval'`],
+			'script-src': [
+				...H_CONTENT_SECURITY_POLICY['script-src'],
+				// `'unsafe-eval'`,
+			],
 		}),
 	};
 
@@ -257,6 +264,8 @@ export function buildBrowserManifest(b_prod=false) {
 		manifest_version: 3,
 
 		action: G_BROWSER_ACTION,
+
+		// options_page: G_BROWSER_ACTION.default_popup,
 
 		permissions: [
 			...G_MANIFEST_COMMON.permissions,
@@ -315,7 +324,10 @@ export function buildBrowserManifest(b_prod=false) {
 				...GC_MANIFEST_V2,
 				background: GC_MANIFEST_V2.background,
 				content_security_policy: csp({
-					'script-src': [...H_CONTENT_SECURITY_POLICY['script-src'], `'unsafe-eval'`],
+					'script-src': [
+						...H_CONTENT_SECURITY_POLICY['script-src'],
+						// `'unsafe-eval'`,
+					],
 					'frame-ancestors': [
 						SX_CSP_SELF,
 						'https://launch.starshell.net',
@@ -328,7 +340,7 @@ export function buildBrowserManifest(b_prod=false) {
 				browser_specific_settings: {
 					gecko: {
 						id: b_prod
-							? 'wallet@starshell.net'
+							? 'firefox@starshell.net'
 							: 'wallet-beta@starshell.net',
 					},
 				},
@@ -339,7 +351,10 @@ export function buildBrowserManifest(b_prod=false) {
 			manifest: {
 				...GC_MANIFEST_V2,
 				content_security_policy: csp({
-					'script-src': [...H_CONTENT_SECURITY_POLICY['script-src'], `'unsafe-eval'`],
+					'script-src': [
+						...H_CONTENT_SECURITY_POLICY['script-src'],
+						`'unsafe-eval'`,
+					],
 					'connect-src': [
 						SX_CSP_SELF,
 						...[

@@ -7,7 +7,8 @@ import {open_flow} from './msg-flow';
 
 import {Vault} from '#/crypto/vault';
 import type {PositionConfig} from '#/extension/browser';
-import {B_MOBILE, R_DOMAIN_LOCALHOST} from '#/share/constants';
+import {SessionStorage} from '#/extension/session-storage';
+import {B_IOS_WEBKIT, B_MOBILE, R_DOMAIN_LOCALHOST} from '#/share/constants';
 import type {AppProfile} from '#/store/apps';
 import {Apps} from '#/store/apps';
 import type {AppPolicyResult} from '#/store/policies';
@@ -28,18 +29,27 @@ export enum RetryCode {
 
 export function page_info_from_sender(g_sender: MessageSender): PageInfo {
 	// destructure tab
-	const {
-		id: i_tab,
-		url: p_page,
-		windowId: i_window,
-	} = g_sender.tab!;
+	if(g_sender.tab) {
+		const {
+			id: i_tab,
+			url: p_page,
+			windowId: i_window,
+		} = g_sender.tab;
 
-	// prep page descriptor for reload page
-	return {
-		windowId: i_window,
-		tabId: i_tab!,
-		href: g_sender.url || p_page!,
-	};
+		// prep page descriptor for reload page
+		return {
+			windowId: i_window,
+			tabId: i_tab!,
+			href: g_sender.url || p_page!,
+		};
+	}
+	else {
+		return {
+			windowId: 0,
+			tabId: 0,
+			href: g_sender.url!,
+		};
+	}
 }
 
 export function parse_sender(p_sender: string): ['file' | 'http' | 'https', string] {
@@ -307,7 +317,8 @@ export async function check_app_permissions(
 
 	// allow certain properties to be updated by the app each time a request comes in
 	{
-		g_app.name = g_profile?.name || g_app.name || g_sender.tab!.title || '';
+		g_app.name = g_profile?.name || g_app.name || g_sender.tab?.title
+			|| (await SessionStorage.get(`profile:${new URL(g_page.href).origin}`))?.name || '';
 		g_app.api = b_keplr? AppApiMode.KEPLR: g_app.api;
 	}
 
@@ -344,6 +355,9 @@ export async function request_advertisement(g_profile: AppProfile | undefined, g
 	// app is not registered and not trusted; requires user approval
 	REQUEST_ADVERTISEMENT:
 	if(!b_registered && !g_policy.trusted) {
+		// in-app browser is unconditional polyfill
+		if(B_IOS_WEBKIT) break REQUEST_ADVERTISEMENT;
+
 		// request is via keplr polyfill
 		if(b_keplr) {
 			// read compatibility mode setting

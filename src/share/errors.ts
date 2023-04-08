@@ -16,7 +16,7 @@ export class ContractDecryptionError extends Error {}
 
 export class ResourceNonExistentError extends Error {
 	constructor(p_resource: Resource.Path) {
-		super(`The request resource does not exist: ${p_resource}`);
+		super(`The requested resource does not exist: ${p_resource}`);
 	}
 }
 

@@ -408,7 +408,7 @@ export namespace Vocab {
 		h_incoming extends Vocab=h_outgoing,
 	> extends BroadcastChannel {
 		// outgoing messages
-		postMessage<g_msg extends Message<h_outgoing>>(g_msg: g_msg);
+		postMessage<g_msg extends Message<h_outgoing>>(g_msg: g_msg, transferList?: ReadonlyArray<Transferable>);
 
 		// incoming messages
 		set onmessage(f_listener: ((d_event: MessageEvent<Message<h_incoming>>) => void) | null);
@@ -424,6 +424,26 @@ export namespace Vocab {
 
 		// default
 		addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+	}
+
+	/**
+	 * === _**@starshell/meta**_ ===
+	 * 
+	 * ```ts
+	 * Vocab.TypedChannel<
+	 * 	outgoing: Vocab,
+	 * 	incoming?: Vocab,
+	 * >
+	 * ```
+	 * 
+	 * Creates a typed {@link MessageChannel} suitable for the given `outgoing` and optionally `incoming` vocabs.
+	 */
+	export interface TypedChannel<
+		h_outgoing extends Vocab,
+		h_incoming extends Vocab=h_outgoing,
+	> extends MessageChannel {
+		port1: TypedPort<h_outgoing, h_incoming>;
+		port2: TypedPort<h_outgoing, h_incoming>;
 	}
 
 

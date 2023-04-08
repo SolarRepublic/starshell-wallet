@@ -11,5 +11,13 @@ export default {
   
       f_handle(g_warn);
     },
+
+    // typescript: {
+    //   reportDiagnostics: false,
+
+    //   compilerOptions: {
+    //     noEmit: true,
+    //   },
+    // }, 
   }),
 };

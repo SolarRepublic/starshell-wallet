@@ -63,7 +63,6 @@
 	 * If `true`, includes a back button to pop this page from the stack
 	 */
 	export let pops = false;
-	const b_pops = pops;
 
 	/**
 	 * If `true`, includes an exit button to reset the stack
@@ -347,6 +346,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
+		z-index: 10;
 
 		&.blur {
 			>*:not(.top) {
@@ -560,7 +560,7 @@
 	<!-- top row -->
 	<div class="top">
 		<!-- leftmost action/button -->
-		{#if b_pops}
+		{#if pops}
 			<span class="back" on:click={() => k_page.pop()}>
 				{@html SX_ICON_ARROW_LEFT}
 			</span>
@@ -677,7 +677,7 @@
 									<svelte:fragment slot="rows">
 										<Row
 											resource={g_cause.app}
-											detail={g_cause.app.name}
+											detail={g_cause.app.host}
 											on:click={async(d_event) => {
 												if(g_cause.registered) {
 													$yw_overlay_app = false;
@@ -863,7 +863,7 @@
 										{#await Chains.read()}
 											...
 										{:then ks_chains} 
-											{#each ks_chains.entries().filter(([,g]) => !g.testnet) as [p_chain, g_chain]}
+											{#each ks_chains.entries().filter(([,g]) => g.on && !g.testnet) as [p_chain, g_chain]}
 												<Row
 													resource={g_chain}
 													detail='Default Provider'
@@ -885,7 +885,7 @@
 										{#await Chains.read()}
 											...
 										{:then ks_chains} 
-											{#each ks_chains.entries().filter(([,g]) => g.testnet) as [p_chain, g_chain]}
+											{#each ks_chains.entries().filter(([,g]) => g.on && g.testnet) as [p_chain, g_chain]}
 												<Row
 													resource={g_chain}
 													detail='Default Provider'

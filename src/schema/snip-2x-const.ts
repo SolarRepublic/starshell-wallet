@@ -53,6 +53,7 @@ import {
 	uuid_v4,
 } from '#/util/data';
 import {RateLimitingPool} from '#/util/rate-limiting-pool';
+import { SignMode } from '@solar-republic/cosmos-grpc/dist/cosmos/tx/signing/v1beta1/signing';
 
 export type TransferHistoryData = Dict<TransferHistoryItem>;
 
@@ -95,7 +96,7 @@ export const Snip2xUtil = {
 		z_nonce: Uint8Array|string|null=null
 	): Promise<string> {
 		// generate the token's viewing key
-		const atu8_viewing_key = await utility_key_child(g_account, 'secretNetworkKeys', 'snip20ViewingKey', async(atu8_key) => {
+		const atu8_viewing_key = await utility_key_child(g_account, 'walletSecurity', 'snip20ViewingKey', async(atu8_key) => {
 			// prep nonce
 			let atu8_nonce = z_nonce as Uint8Array;
 
@@ -430,19 +431,31 @@ const H_DEDUCTIONS: NonNullable<DeductionConfig['extensions']> = {
 export async function deduce_token_interfaces(
 	g_contract: ContractStruct,
 	k_network: SecretNetwork,
-	g_account: AccountStruct
-): Promise<string[]> {
+	g_account: AccountStruct,
+	b_update_store=true
+): Promise<[TokenStructKey[], TokenStructKey[]]> {
 	// destructure chain from network
 	const g_chain = k_network.chain;
 
+	const a_deductions: TokenStructKey[] = [];
+
 	// promote the contract's implementation set
 	async function _promote(si_interface: Exclude<TokenStructKey, 'snip20'>): Promise<void> {
-		g_contract.interfaces[si_interface] = {};
-		await Contracts.merge(g_contract);
+		// upsert interfaces struct and promote interface
+		(g_contract.interfaces = g_contract.interfaces || {
+			excluded: [],
+		})[si_interface] = {...g_contract.interfaces[si_interface]};
+
+		if(b_update_store) await Contracts.merge(g_contract);
 	}
 
 	// demote the contract's implementation set and exclude the given interface
 	async function _demote(si_interface: TokenStructKey): Promise<void> {
+		// upsert interfaces struct
+		g_contract.interfaces = g_contract.interfaces || {
+			excluded: [],
+		};
+
 		// make set from list of existing excluded
 		const as_excluded = new Set<TokenStructKey>(g_contract.interfaces.excluded || []);
 
@@ -456,11 +469,8 @@ export async function deduce_token_interfaces(
 		delete g_contract.interfaces[si_interface];
 
 		// update contract struct
-		await Contracts.merge(g_contract);
+		if(b_update_store) await Contracts.merge(g_contract);
 	}
-
-
-	const a_deductions: TokenStructKey[] = [];
 
 	const si_foreign = `__interface_check_${uuid_v4().replaceAll('-', '_').slice(-7)}`;
 
@@ -506,7 +516,7 @@ export async function deduce_token_interfaces(
 					// contract implements all queries in spec (snip20 needs extra data)
 					if('snip20' === si_interface) {
 						try {
-							await Snip2xToken.promoteSnip20(g_contract, k_network, g_account);
+							await Snip2xToken.promoteSnip20(g_contract, k_network, g_account, b_update_store);
 						}
 						catch(e_discover) {}
 					}
@@ -520,12 +530,12 @@ export async function deduce_token_interfaces(
 		}
 	}
 
-	return a_deductions;
+	return [a_deductions, g_contract.interfaces.excluded || []];
 }
 
 
 export class Snip2xToken {
-	static async promoteSnip20(g_contract: ContractStruct, k_network: SecretNetwork, g_account: AccountStruct): Promise<void> {
+	static async promoteSnip20(g_contract: ContractStruct, k_network: SecretNetwork, g_account: AccountStruct, b_write_store=true): Promise<void> {
 		// construct token as if it is already snip-20
 		const k_token = new Snip2xToken(g_contract, k_network, g_account);
 
@@ -536,15 +546,22 @@ export class Snip2xToken {
 		// attempt token info query
 		const g_info = (await k_token.tokenInfo()).token_info;
 
+		const g_existing_snip20 = _g_contract.interfaces?.snip20 || {};
+
 		// passing implies snip-20; update contract
 		_g_contract.name = _g_contract.name || g_info.name || '';
 		if(_g_contract.name.startsWith('Unknown Contract')) _g_contract.name = g_info.name || '';
 		_g_contract.interfaces.snip20 = {
 			decimals: g_info.decimals as 0,
-			symbol: g_info.symbol,
+			symbol: g_existing_snip20['symbol'] || g_info.symbol,
+			extra: {
+				...g_existing_snip20['extra'] || {},
+			},
 		};
 
-		await Contracts.merge(_g_contract);
+		if(b_write_store) {
+			await Contracts.merge(_g_contract);
+		}
 	}
 
 	static async discover(g_contract: ContractStruct, k_network: SecretNetwork, g_account: AccountStruct): Promise<Snip2xToken | null> {
@@ -562,7 +579,7 @@ export class Snip2xToken {
 		}
 
 		// discover other snip interfaces
-		const a_deductions = await deduce_token_interfaces(g_contract, k_network, g_account);
+		const [a_deductions] = await deduce_token_interfaces(g_contract, k_network, g_account);
 		if(!a_deductions.includes('snip20')) {
 			throw new Error(`Contract does not seem to be a SNIP-20`);
 		}
@@ -718,7 +735,7 @@ export class Snip2xToken {
 			const {
 				auth: atu8_auth,
 				signer: g_signer,
-			} = await _k_network.authInfoDirect(_g_account, Fee.fromPartial({}));
+			} = await _k_network.authInfo(_g_account, Fee.fromPartial({}), SignMode.SIGN_MODE_DIRECT);
 
 			// if this does not throw an error, then the token is mintable
 			await _k_network.simulate(_g_account, {

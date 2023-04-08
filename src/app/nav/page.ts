@@ -1,9 +1,9 @@
 import type {JumpConfig, PopConfig, Thread} from './thread';
 
-import type {Dict, PlainObject, Promisable} from '#/meta/belt';
+import type {Dict, PlainObject, Promisable, Values} from '#/meta/belt';
 import type {ParametricSvelteConstructor} from '#/meta/svelte';
 
-import {objects_might_differ, ode} from '#/util/belt';
+import {objects_might_differ, ode, remove} from '#/util/belt';
 import {uuid_v4} from '#/util/data';
 import {dd} from '#/util/dom';
 
@@ -159,13 +159,19 @@ export class Page<
 		return this._kt_parent.jump(gc_page, gc_jump || {}, this);
 	}
 
-	on(h_events: PageEventConfig): void {
+	on(h_events: PageEventConfig): () => void {
 		for(const [si_event, f_listener] of ode(h_events)) {
 			if(f_listener) {
 				const a_listeners = this._h_events[si_event] = this._h_events[si_event] || [];
 				a_listeners.push(f_listener);
 			}
 		}
+
+		return () => {
+			for(const [si_event, f_listener] of ode(h_events)) {
+				remove(this._h_events[si_event]!, f_listener);
+			}
+		};
 	}
 
 	async fire(si_event: PageEventId, ...a_args: any[]): Promise<void> {

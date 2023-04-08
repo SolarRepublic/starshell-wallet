@@ -6,6 +6,7 @@
 	import {load_page_context} from '../svelte';
 	
 	import {Bip39, XB_UNICODE_SPACE} from '#/crypto/bip39';
+	import {is_hwa} from '#/crypto/hardware-signing';
 	import SensitiveBytes from '#/crypto/sensitive-bytes';
 	import {Accounts} from '#/store/accounts';
 	import {Secrets} from '#/store/secrets';
@@ -50,6 +51,9 @@
 		for(const [, g_account] of await Accounts.entries()) {
 			const p_secret = g_account.secret;
 
+			// skip hardware accounts
+			if(is_hwa(p_secret)) continue;
+
 			const g_secret = await Secrets.metadata(p_secret);
 
 			if('bip32_node' === g_secret.type) {
@@ -86,7 +90,7 @@
 					enter: (atu8_pin: Uint8Array) => Secrets.borrow(p_mnemonic, async(kn_encrypted) => {
 						// attempt to decrypt with pin
 						try {
-							fk_resolve(await Secrets.decryptWithPin(kn_encrypted.data, atu8_pin, g_security));
+							fk_resolve(await Secrets.decryptWithPop(kn_encrypted.data, atu8_pin, g_security));
 							return true;
 						}
 						catch(e_decrypt) {
@@ -102,6 +106,10 @@
 				// show popup
 				$yw_popup = PopupPin;
 			}
+			// // mnemonic is protected by password
+			// else if('password' === g_security.type) {
+	
+			// }
 			// mnemonic is not protected
 			else {
 				void Secrets.borrow(p_mnemonic, (kn_package) => {

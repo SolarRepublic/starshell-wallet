@@ -54,7 +54,8 @@
 
 			position: absolute;
 			top: 28px;
-			width: 75vw;
+			width: min(75vw, calc(0.75 * min(var(--app-window-width), var(--app-max-width))));
+			max-width: calc(0.85 * var(--app-max-width));
 			font-size: 13px;
 			text-align: left;
 		}
@@ -77,9 +78,9 @@
 	</span>
 
 	{#if showing}
-		<div class="tooltip-overlay" style={`
+		<div class="tooltip-overlay" style={x_left_overlay >= 0? `
 			left: ${x_left_overlay}px;
-		`} bind:this={dm_overlay} transition:fade={{duration:300, easing:quintOut}}>
+		`: ''} bind:this={dm_overlay} transition:fade={{duration:300, easing:quintOut}}>
 			<slot />
 		</div>
 	{/if}

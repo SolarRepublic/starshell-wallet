@@ -84,7 +84,7 @@
 		for(const [sa_contract, si_revoked] of ode(g_secret.contracts)) {
 			const p_contract = Contracts.pathFor(p_chain, sa_contract);
 			a_contracts.push([
-				ks_contracts.at(p_contract) || await produce_contract(sa_contract, g_chain),
+				ks_contracts.at(p_contract) || await produce_contract(sa_contract, g_chain, null, g_account),
 				si_revoked,
 			]);
 		}

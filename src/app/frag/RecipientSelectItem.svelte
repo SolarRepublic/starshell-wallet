@@ -49,8 +49,8 @@
 		cursor: default;
 		height: var(--height, 42px);
 		line-height: var(--height, 42px);
-		padding: var(--itemPadding, 0 20px);
-		color: var(--itemColor, inherit);
+		padding: var(--item-padding, 0 20px);
+		color: var(--item-color, inherit);
 		text-overflow: ellipsis;
 		overflow: hidden;
 		white-space: nowrap;
@@ -58,33 +58,33 @@
 	}
 
 	.groupHeader {
-		text-transform: var(--groupTitleTextTransform, uppercase);
+		text-transform: var(--group-title-text-transform, uppercase);
 	}
 
 	.groupItem {
-		padding-left: var(--groupItemPaddingLeft, 40px);
+		padding-left: var(--group-item-padding-left, 40px);
 	}
 
 	.item:active {
-		background: var(--itemActiveBackground, #b9daff);
+		background: var(--item-active-background, #b9daff);
 	}
 
 	.item.active {
-		background: var(--itemIsActiveBG, #007aff);
-		color: var(--itemIsActiveColor, #fff);
+		background: var(--item-is-active-bg, #007aff);
+		color: var(--item-is-active-color, #fff);
 	}
 
 	.item.notSelectable {
-		color: var(--itemIsNotSelectableColor, #999);
+		color: var(--item-is-not-selectable-color, #999);
 	}
 
 	.item.first {
-		border-radius: var(--itemFirstBorderRadius, 4px 4px 0 0);
+		border-radius: var(--item-first-border-radius, 4px 4px 0 0);
 	}
 
 	.item.hover:not(.active) {
-		background: var(--itemHoverBG, #e7f2ff);
-		color: var(--itemHoverColor, inherit);
+		background: var(--item-hover-bg, #e7f2ff);
+		color: var(--item-hover-color, inherit);
 	}
 </style>
 

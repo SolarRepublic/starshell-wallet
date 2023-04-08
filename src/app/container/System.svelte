@@ -1,9 +1,5 @@
 <script lang="ts">
-	import type {AccountPath} from '#/meta/account';
-	import type {Dict, Nilable, PlainObject} from '#/meta/belt';
-	
-	// import './tailwind.css';
-	import type {ChainPath, ChainStruct} from '#/meta/chain';
+	import type {Dict, PlainObject} from '#/meta/belt';
 	
 	import {
 		getAllContexts,
@@ -13,24 +9,16 @@
 	
 	import {Gestures} from '../helper/gestures';
 	import {await_transition, GC_HOOKS_DEFAULT, page_slide} from '../nav/defaults';
-	import {initialize_mem, once_store_updates} from '../svelte';
+	import {initialize_mem} from '../svelte';
 	
 	import {Vault} from '#/crypto/vault';
-	import {Accounts} from '#/store/accounts';
-	import {Chains} from '#/store/chains';
-	import {Settings} from '#/store/settings';
 	import {
-		ode,
 		oderom,
 		remove,
 	} from '#/util/belt';
 	
 	import {H_THREADS, ThreadId} from '##/def';
 	import {
-		yw_account,
-		yw_account_ref,
-		yw_chain,
-		yw_chain_ref,
 		yw_navigator,
 		yw_page,
 		yw_thread,

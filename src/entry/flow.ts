@@ -1,3 +1,4 @@
+/* eslint-disable i/order */
 import {dm_log, domlog} from './fallback';
 
 domlog(`Pre-init: registering uncaught error handler`);
@@ -6,6 +7,20 @@ window.addEventListener('error', (d_event) => {
 	domlog(`${d_event.filename}:${d_event.lineno}:${d_event.colno}`);
 	console.error(d_event.error);
 });
+
+import AcceptConsensusKey from '#/app/screen/AcceptConsensusKey.svelte';
+import HardwareDiscover from '#/app/screen/HardwareDiscover.svelte';
+import IncidentView from '#/app/screen/IncidentView.svelte';
+import MonitorTx from '#/app/screen/MonitorTx.svelte';
+import NoticeIllegalChainsSvelte from '#/app/screen/NoticeIllegalChains.svelte';
+import PageException from '#/app/screen/PageException.svelte';
+import PreRegister from '#/app/screen/PreRegister.svelte';
+import {B_LOCALHOST, B_WITHIN_IFRAME, XT_INTERVAL_HEARTBEAT} from '#/share/constants';
+
+import {do_webkit_polyfill} from '#/script/webkit-polyfill';
+
+do_webkit_polyfill();
+/* eslint-enable */
 
 import type {SvelteComponent} from 'svelte';
 import type {Union} from 'ts-toolbelt';
@@ -20,28 +35,21 @@ import type {Vocab} from '#/meta/vocab';
 
 import {SignDoc, TxBody} from '@solar-republic/cosmos-grpc/dist/cosmos/tx/v1beta1/tx';
 
-import IncidentView from '#/app/screen/IncidentView.svelte';
-import MonitorTx from '#/app/screen/MonitorTx.svelte';
-import NoticeIllegalChainsSvelte from '#/app/screen/NoticeIllegalChains.svelte';
-import PageException from '#/app/screen/PageException.svelte';
-import PreRegister from '#/app/screen/PreRegister.svelte';
 import ReloadPage from '#/app/screen/ReloadPage.svelte';
 import RequestConnection_AccountsSvelte from '#/app/screen/RequestConnection_Accounts.svelte';
 import RequestExposure from '#/app/screen/RequestExposure.svelte';
 import RequestKeplrDecisionSvelte from '#/app/screen/RequestKeplrDecision.svelte';
-import type {CompletedProtoSignature, CompletedSignature} from '#/app/screen/RequestSignature.svelte';
-
 import RequestSignatureSvelte from '#/app/screen/RequestSignature.svelte';
 import RequestTokenAdd from '#/app/screen/RequestTokenAdd.svelte';
 import RestartService from '#/app/screen/RestartService.svelte';
 import ScanQrSvelte from '#/app/screen/ScanQr.svelte';
 import {proto_to_amino} from '#/chain/cosmos-msgs';
+import type {CompletedProtoSignature, CompletedSignature} from '#/chain/signature';
 import {Vault} from '#/crypto/vault';
 import {SessionStorage} from '#/extension/session-storage';
 import type {ErrorRegistry, IntraExt} from '#/script/messages';
 import {RegisteredFlowError} from '#/script/msg-flow';
 import {global_receive} from '#/script/msg-global';
-import {B_LOCALHOST, XT_INTERVAL_HEARTBEAT} from '#/share/constants';
 import {Accounts} from '#/store/accounts';
 import {Apps} from '#/store/apps';
 import {Chains} from '#/store/chains';
@@ -50,10 +58,7 @@ import {base93_to_buffer} from '#/util/data';
 import {parse_params, qs} from '#/util/dom';
 import SystemSvelte from '##/container/System.svelte';
 import AuthenticateSvelte from '##/screen/Authenticate.svelte';
-
 import RequestAdvertisementSvelte from '##/screen/RequestAdvertisement.svelte';
-
-// import Solver from '#/app/screen/Solver.svelte';
 
 
 export type FlowMessage = Vocab.Message<IntraExt.FlowVocab>;
@@ -81,6 +86,15 @@ const G_COMPLETED_NEGATIVE: IntraExt.CompletedFlow = {
 
 // parse query params
 const h_query = parse_params<string>();
+
+// override `window.close`
+if(B_WITHIN_IFRAME) {
+	window.close = function() {
+		window.top!.postMessage({
+			type: 'close',
+		}, location.origin);
+	};
+}
 
 // before closing the window, gracefully unload this flow
 let b_unloaded = false;
@@ -204,6 +218,14 @@ function completed_render<
 	h_context?: PlainObject
 ): Promise<IntraExt.CompletedFlow<w_data>> {
 	return new Promise((fk_resolve, fe_reject) => {
+		// within iframe
+		if(B_WITHIN_IFRAME) {
+			// define global function to allow top frame to abort the flow gracefully
+			globalThis.abort_flow = () => fk_resolve({
+				answer: false,
+			});
+		}
+
 		render(dc_screen, g_props, {
 			...h_context,
 			completed(b_answer: boolean, w_data?: w_data) {
@@ -501,6 +523,42 @@ const H_HANDLERS_AUTHED: Vocab.Handlers<Omit<IntraExt.FlowVocab, 'authenticate'>
 
 		return forever();
 	},
+
+	async acceptConsensusKey(g_value, g_context) {
+		return await completed_render(AcceptConsensusKey, g_value, {
+			chain: g_context.chain,
+		});
+	},
+
+	async requestDevice(g_value, g_context) {
+		return await completed_render(HardwareDiscover, g_value.props, g_value.context);
+	},
+
+	// // handles cases where code just wants to await for SigningKey to sign
+	// async ledgerSign() {
+	// 	const {
+	// 		path: a_path,
+	// 		coinType: ni_coin,
+	// 		message: sb64_document,
+	// 	} = g_value;
+
+	// 	return await completed_render(HardwareController, {
+	// 		ni_coin,
+	// 		a_program: [
+	// 			async(k_app: LedgerApp, k_page: Page, f_status) => {
+	// 				f_status(`Review and sign the message`);
+
+	// 				const {
+	// 					signature: atu8_signature,
+	// 				} = await k_app.sign(a_path, base64_to_buffer(sb64_document));
+
+	// 				return {
+	// 					push: [],
+	// 				};
+	// 			},
+	// 		],
+	// 	});
+	// },
 } as const;
 
 

@@ -75,6 +75,15 @@ export interface StarShellDefaults {
 	}>;
 }
 
+export interface StarShellAppEntry {
+	host: string;
+	homepage: string;
+	name: string;
+	description: string;
+	icon: string;
+	chains: Caip2.String;
+}
+
 const H_REGISTRY = {
 	[P_PUBLIC_SUFFIX_LIST]: {
 		format: 'text',
@@ -110,7 +119,7 @@ const H_REGISTRY = {
 
 	[P_STARSHELL_DAPPS]: {
 		format: 'json',
-		lifespan: 12 * XT_HOURS,
+		lifespan: 30*XT_MINUTES,
 	},
 } as const;
 
@@ -134,76 +143,85 @@ async function cache_get(p_res: CacheKey): Promise<Cache | null> {
 }
 
 export class WebResourceCache {
-	static async updateAll(): Promise<void> {
-		for(const p_res in H_REGISTRY) {
-			const g_entry = H_REGISTRY[p_res as CacheKey];
+	static async update(p_res: CacheKey): Promise<void> {
+		const g_entry = H_REGISTRY[p_res];
 
-			// previous cache still good; skip
-			const g_cached = await cache_get(p_res as CacheKey);
-			if(g_cached) {
-				if(g_cached.time + g_entry.lifespan > Date.now()) continue;
+		// previous cache still good; skip
+		const g_cached = await cache_get(p_res);
+		if(g_cached) {
+			if(g_cached.time + g_entry.lifespan > Date.now()) return;
+		}
+
+		// // build query
+		// if('query' in g_entry) {
+		// 	const g_query = g_entry.query();
+		// 	if(g_query && 'object' === typeof g_query) {
+		// 		const sx_params = new URLSearchParams(g_query).toString();
+		// 	}
+		// }
+
+		// fetch the resource
+		const d_res = await fetch(p_res, {
+			cache: 'reload',
+		});
+
+		// depending on format
+		switch(g_entry.format) {
+			// load response as text
+			case 'text': {
+				const s_data = await d_res.text();
+
+				// parse the textual data
+				const z_parsed = g_entry.parse(s_data);
+
+				// do not update anything
+				if(_EXISTING === z_parsed) return;
+
+				// set/overwrite
+				await cache_put(p_res, {
+					etag: d_res.headers.get('etag') ?? '',
+					time: Date.now(),
+					data: s_data,
+				});
+				break;
 			}
 
-			// // build query
-			// if('query' in g_entry) {
-			// 	const g_query = g_entry.query();
-			// 	if(g_query && 'object' === typeof g_query) {
-			// 		const sx_params = new URLSearchParams(g_query).toString();
-			// 	}
-			// }
+			// load response as json
+			case 'json': {
+				let w_data: JsonValue = await d_res.json();
 
-			// fetch the resource
-			const d_res = await fetch(p_res, {
-				cache: 'reload',
-			});
-
-			// depending on format
-			switch(g_entry.format) {
-				// load response as text
-				case 'text': {
-					const s_data = await d_res.text();
-
-					// parse the textual data
-					const z_parsed = g_entry.parse(s_data);
-
-					// do not update anything
-					if(_EXISTING === z_parsed) continue;
-
-					// set/overwrite
-					await cache_put(p_res as CacheKey, {
-						etag: d_res.headers.get('etag') ?? '',
-						time: Date.now(),
-						data: s_data,
-					});
-					break;
+				// apply filter
+				if('filter' in g_entry) {
+					w_data = g_entry.filter(w_data);
 				}
 
-				// load response as json
-				case 'json': {
-					let w_data: JsonValue = await d_res.json();
+				// set/overwrite
+				await cache_put(p_res, {
+					etag: d_res.headers.get('etag') ?? '',
+					time: Date.now(),
+					data: w_data,
+				});
+				break;
+			}
 
-					// apply filter
-					if('filter' in g_entry) {
-						w_data = g_entry.filter(w_data);
-					}
-
-					// set/overwrite
-					await cache_put(p_res as CacheKey, {
-						etag: d_res.headers.get('etag') ?? '',
-						time: Date.now(),
-						data: w_data,
-					});
-					break;
-				}
-
-				default: {
-					// ignore
-				}
+			default: {
+				// ignore
 			}
 		}
 	}
 
+	static async updateAll(): Promise<void> {
+		for(const p_res in H_REGISTRY) {
+			await WebResourceCache.update(p_res as CacheKey);
+		}
+	}
+
 	static async get(p_res: CacheKey): Promise<JsonValue | null> {
+		try {
+			await WebResourceCache.update(p_res);
+		}
+		catch(e_update) {}
+
 		return (await cache_get(p_res))?.data || null;
 	}
 }

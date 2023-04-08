@@ -182,6 +182,7 @@ export function inlineRequire(gc_import: Options={}) {
 						external: ['fs', 'path', 'crypto'],
 						output: {
 							format: 'iife',
+							inlineDynamicImports: true,
 						},
 						plugins: [
 							nodeExternals({
@@ -223,6 +224,7 @@ export function inlineRequire(gc_import: Options={}) {
 				try {
 					g_gen = await y_bundle.generate({
 						format: 'iife',
+						inlineDynamicImports: true,
 					});
 				}
 				catch(e_generate) {

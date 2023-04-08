@@ -8,6 +8,7 @@ export {
 	R_DATA_IMAGE_URL_WEB,
 	G_USERAGENT,
 	B_SAFARI_ANY,
+	B_IOS_WEBKIT,
 } from '#/share/constants';
 
 export {

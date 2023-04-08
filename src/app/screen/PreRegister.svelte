@@ -11,6 +11,7 @@
 	import Horizon from '../ui/Horizon.svelte';
 	import StarShellLogo from '../ui/StarShellLogo.svelte';
 	import StarShellTitle from '../ui/StarShellTitle.svelte';
+    import DebugIos from './DebugIos.svelte';
 	
 
 	const {
@@ -34,7 +35,7 @@
 <style lang="less">
 	@import '../../style/util.less';
 
-	:global(.preregister) {
+	:global(.screen.preregister) {
 		align-items: center;
 		justify-content: center;
 		text-align: center;
@@ -63,7 +64,7 @@
 
 	<Horizon />
 
-	<div class="large">
+	<div class="large" on:click={() => k_page.push({creator:DebugIos})}>
 		<div>Welcome to the only wallet extension that puts privacy and security above all else.</div>
 		<div>Please allow 10 - 20 minutes to complete the set up process.</div>
 	</div>

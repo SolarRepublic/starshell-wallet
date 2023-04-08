@@ -212,7 +212,7 @@ async function cached_fetch(p_url: string, gc_req: RequestInit, xt_max_age: numb
 const coingecko_url = (sr_url: string, h_params: Dict) => `${P_COINGECKO_BASE}${sr_url}?`+new URLSearchParams(ode(h_params));
 
 export const CoinGecko = {
-	async coinsVersus(a_coins: string[], si_versus: CoinGeckoFiat='usd', xt_max_age=5*XT_MINUTES): Promise<Dict<number>> {
+	async coinsVersus(a_coins: string[], si_versus: CoinGeckoFiat='usd', xt_max_age=15*XT_MINUTES): Promise<Dict<number>> {
 		// fetch from api
 		const d_res = await cached_fetch(coingecko_url('/simple/price', {
 			ids: a_coins.join(','),

@@ -18,6 +18,7 @@ import type {Dict, JsonObject, JsonValue} from '#/meta/belt';
 
 import type {AppPolicy} from '#/store/policies';
 import type {SettingsRegistry} from '#/store/settings';
+import type { Device } from './device';
 
 
 // associates a resource to arbitrary data in some typed category
@@ -138,6 +139,7 @@ export type Store = Merge<{
 	secrets: RootDoc<Secret>;
 	web_apis: RootDoc<WebApi>;
 	contracts: RootDoc<Contract>;
+	devices: RootDoc<Device>;
 
 	// app policies
 	app_policies: {

@@ -2,6 +2,7 @@ import type {Dict, JsonValue, Promisable} from '#/meta/belt';
 import type {Vocab} from '#/meta/vocab';
 
 import type {IntraExt, TypedMessage} from '#/script/messages';
+import { B_IOS_WEBKIT } from '#/share/constants';
 import {ode, timeout} from '#/util/belt';
 
 import {buffer_to_base93, uuid_v4} from '#/util/data';
@@ -10,10 +11,11 @@ const XT_SERVICE_WORKER_LIFETIME_TIMEOUT = 90e3;
 
 enum ConnectionState {
 	UNCONNECTED = 0,
-	DISCONNECTED = 1,
-	CONNECTING = 2,
-	CONNECTED = 3,
-	PAUSED = 4,
+	DISCONNECTING = 1,
+	DISCONNECTED = 2,
+	CONNECTING = 3,
+	CONNECTED = 4,
+	PAUSED = 5,
 }
 
 enum FrameType {
@@ -136,13 +138,16 @@ export class ServiceClient {
 			d_port.onDisconnect.addListener(() => {
 				console.debug(`Client side of port disconnected`);
 
-				// failed to connect
-				if(ConnectionState.CONNECTING === this._xc_state) {
-					fe_reject(new ServiceUnreachableError());
-				}
+				// disconnecting
+				if(ConnectionState.DISCONNECTING !== this._xc_state) {
+					// failed to connect
+					if(ConnectionState.CONNECTING === this._xc_state) {
+						fe_reject(new ServiceUnreachableError());
+					}
 
-				// alert
-				console.error(`Browser killed background`);
+					// alert
+					console.error(`Browser killed background`);
+				}
 
 				// update connection state
 				xc_state_local = this._xc_state = ConnectionState.DISCONNECTED;
@@ -349,6 +354,17 @@ export class ServiceClient {
 				response: fk_resolve,
 			});
 		});
+	}
+
+	/**
+	 * Closes the client
+	 */
+	close(): void {
+		// set connection state
+		this._xc_state = ConnectionState.DISCONNECTING;
+
+		// close port
+		this._d_port.disconnect();
 	}
 }
 
@@ -616,7 +632,10 @@ export class ServiceHost {
 			this._open();
 		};
 
-		this._i_expire = (globalThis as typeof window).setTimeout(f_expire, XT_SERVICE_WORKER_LIFETIME_TIMEOUT);
+		// chrome desktop will silently kill background; get ahead of it by self-expiring
+		if(!B_IOS_WEBKIT) {
+			this._i_expire = (globalThis as typeof window).setTimeout(f_expire, XT_SERVICE_WORKER_LIFETIME_TIMEOUT);
+		}
 	}
 
 	protected register(g_routers: ServiceRouters): void {

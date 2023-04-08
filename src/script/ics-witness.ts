@@ -68,6 +68,7 @@ const RT_KEPLR_DETECTOR = /([\s.]keplr\b|\[['"`]keplr['"`]\s*[\],)])/;
 		R_DATA_IMAGE_URL_WEB,
 		G_USERAGENT,
 		B_SAFARI_ANY,
+		B_IOS_WEBKIT,
 
 		microtask,
 		timeout,
@@ -136,12 +137,12 @@ const RT_KEPLR_DETECTOR = /([\s.]keplr\b|\[['"`]keplr['"`]\s*[\],)])/;
 		const e_report = new Error(`Rejecting invalid argument type supplied to Keplr API: ${JSON.stringify(z_input)}`);
 
 		// exception
-		f_runtime().sendMessage({
+		void f_runtime().sendMessage({
 			type: 'reportException',
 			value: {
 				report: e_report.message+'\n'+(e_report.stack?.split(/\n/g)?.at(2) || ''),
 			},
-		}, F_NOOP);
+		});
 
 		throw e_report;
 	};
@@ -168,21 +169,9 @@ const RT_KEPLR_DETECTOR = /([\s.]keplr\b|\[['"`]keplr['"`]\s*[\],)])/;
 			throw g_response.error;  // eslint-disable-line @typescript-eslint/no-throw-literal
 		}
 		else {
-			return fold(a_tokens, (sa_token) => {
-				const w_each = g_response.ok![sa_token];
-				if(w_each.error) {
-					return {
-						[sa_token]: w_each,
-					};
-				}
-				else {
-					return {
-						[sa_token]: {
-							return: w_each.ok,
-						},
-					};
-				}
-			});
+			return fold(a_tokens, sa_token => ({
+				[sa_token]: g_response.ok![sa_token],
+			}));
 		}
 	});
 
@@ -754,6 +743,15 @@ const RT_KEPLR_DETECTOR = /([\s.]keplr\b|\[['"`]keplr['"`]\s*[\],)])/;
 				const g_chain = await Chains.at(p_chain);
 				if(g_chain) {
 					console.debug(`Approving chain suggestion since it already exists`);
+
+					// activate chain
+					if(!g_chain.on) {
+						await Chains.update(p_chain, g => ({
+							...g,
+							on: 1,
+						}));
+					}
+
 					return G_RETURN_VOID;
 				}
 
@@ -1264,6 +1262,14 @@ const RT_KEPLR_DETECTOR = /([\s.]keplr\b|\[['"`]keplr['"`]\s*[\],)])/;
 
 			// route exists
 			if(f_keplr) {
+				// keplr is operational
+				if(await SessionStorage.get('keplr_operational')) {
+					// temporarily bypass non-secret chains
+					if(!['secret-4', 'pulsar-2'].includes(g_data.args[0])) {
+						return;
+					}
+				}
+
 				debug(`Routing Keplr request for '${si_method}': %o`, g_data);
 				// invoke method asynchronously
 				let w_result: KeplrResponse;
@@ -1512,12 +1518,12 @@ const RT_KEPLR_DETECTOR = /([\s.]keplr\b|\[['"`]keplr['"`]\s*[\],)])/;
 		if(b_cancel_polyfill) return;
 
 		// notify service
-		f_runtime().sendMessage({
+		void f_runtime().sendMessage({
 			type: 'detectedKeplr',
 			value: {
 				profile: g_profile || {},
 			},
-		}, F_NOOP);
+		});
 	}
 
 

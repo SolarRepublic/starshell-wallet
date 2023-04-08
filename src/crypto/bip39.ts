@@ -734,9 +734,9 @@ export const Bip39 = {
 		}
 	},
 
-	async validateMnemonic(fk_mnemonic: KeyProducer): Promise<boolean> {
+	async validateMnemonic(fk_mnemonic: KeyProducer, nl_words): Promise<boolean> {
 		try {
-			await Bip39.mnemonicToEntropy(fk_mnemonic);
+			await Bip39.mnemonicToEntropy(fk_mnemonic, nl_words);
 		}
 		catch(e_convert) {
 			return false;

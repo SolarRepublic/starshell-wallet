@@ -322,12 +322,14 @@
 
 							// use address
 							return dd('span', {}, [
-								await svelte_to_dom(Hover, {
-									...inject_svelte_slots({
-										default: dm_icon,
+								...'wallet' !== g_app?.scheme ? [
+									await svelte_to_dom(Hover, {
+										...inject_svelte_slots({
+											default: dm_icon,
+										}),
+										text: 'The app did not provide any metadata for this address',
 									}),
-									text: 'The app did not provide any metadata for this address',
-								}),
+								]: [],
 								await svelte_to_dom(Address, {
 									copyable: true,
 									discreet: true,
@@ -566,7 +568,7 @@
 					{@const z_bech32s = gc_field.bech32s}
 					{@const h_bech32s = Array.isArray(z_bech32s)? fold(z_bech32s, sa => ({[sa]:''})): z_bech32s}
 					{#each ode(h_bech32s) as [sa_contract, w_disabled]}
-						{#await produce_contract(sa_contract, g_chain, g_app, gc_field.g_account || $yw_account || null)}
+						{#await produce_contract(sa_contract, g_chain, g_app, gc_field.g_account)}
 							<LoadingRows />
 						{:then g_contract}
 							<Copyable confirmation="Address copied!" let:copy>

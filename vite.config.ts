@@ -9,6 +9,7 @@ import {svelte} from '@sveltejs/vite-plugin-svelte';
 import archiver from 'archiver';
 import analyze from 'rollup-plugin-analyzer';
 import graph from 'rollup-plugin-graph';
+import nodePolyfills from 'rollup-plugin-polyfill-node';
 import {defineConfig, loadEnv} from 'vite';
 
 import G_PACKAGE_JSON from './package.json';
@@ -18,13 +19,21 @@ import {
 	base64_to_buffer, buffer_to_base58,
 } from './src/util/data';
 
+const H_REPLACEMENTS_ALL = {
+	// 'Buffer'
+	// [`typeof Buffer === 'function'`]: 'true',
+};
+
 const G_REPLACE_CHROME = {};
 
-const H_REPLACEMENTS_ENGINE = {
+const H_REPLACEMENTS_BY_ENGINE = {
 	chrome: G_REPLACE_CHROME,
 	firefox: {
-		'chrome.': 'globalShield.browser.',
-		'typeof chrome': 'typeof globalShield.browser',
+		// 'chrome.': 'globalShield.browser.',
+		// 'typeof chrome': 'typeof globalShield.browser',
+
+		'chrome.': 'browser.',
+		'typeof chrome': 'typeof browser',
 	},
 };
 
@@ -97,6 +106,14 @@ export default defineConfig((gc_run) => {
 
 	const SI_BROWSER = SI_ENGINE;
 
+	const G_MANIFEST = {
+		author: G_PACKAGE_JSON.author.name,
+		description: G_PACKAGE_JSON.description,
+		name: G_PACKAGE_JSON.displayName,
+		version: G_PACKAGE_JSON.version,
+		...buildBrowserManifest('production' === si_mode)[SI_BROWSER].manifest,
+	} as chrome.runtime.ManifestV2 & chrome.runtime.ManifestV3;
+
 	const srd_out = `dist/${SI_ENGINE}`;
 
 	return {
@@ -105,10 +122,17 @@ export default defineConfig((gc_run) => {
 			__H_MEDIA_LOOKUP: JSON.stringify(H_MEDIA_LOOKUP),
 			__SI_VERSION: JSON.stringify(G_PACKAGE_JSON.version),
 			__SI_ENGINE: JSON.stringify(SI_ENGINE),
+			__G_MANIFEST: JSON.stringify(G_MANIFEST),
 		},
 
 		plugins: [
 			nodeResolve(),
+
+			nodePolyfills({
+				include: [
+					'buffer',
+				],
+			}),
 
 			// apply the `inline_require()` substitution
 			inlineRequire({
@@ -118,40 +142,42 @@ export default defineConfig((gc_run) => {
 				],
 			}),
 
-			// replace
-			replace({
-				preventAssignment: false,
-				values: H_REPLACEMENTS_ENGINE[SI_ENGINE] || {},
-			}),
-
 			// build svelte components
 			svelte(),
 
 			// build scripts and output manifest for web extension
 			webExtension({
-				manifest: {
-					author: G_PACKAGE_JSON.author.name,
-					description: G_PACKAGE_JSON.description,
-					name: G_PACKAGE_JSON.displayName,
-					version: G_PACKAGE_JSON.version,
-					...buildBrowserManifest('production' === si_mode)[SI_BROWSER].manifest,
-				} as chrome.runtime.ManifestV2 & chrome.runtime.ManifestV3,
+				manifest: G_MANIFEST,
 			}),
 
-			{
-				name: 'bundle-mapper',
-
-				generateBundle(gc_output, h_bundle) {
-					const h_output = {};
-					for(const g_module of Object.values(h_bundle)) {
-						if('chunk' === g_module.type && g_module.facadeModuleId) {
-							h_output[g_module.facadeModuleId?.slice(__dirname.length)] = g_module.fileName;
-						}
-					}
-
-					fs.writeFileSync(`${srd_out}/bundle-map.json`, JSON.stringify(h_output, null, '\t'));
+			// replace
+			replace({
+				preventAssignment: false,
+				values: {
+					...H_REPLACEMENTS_ALL,
+					...H_REPLACEMENTS_BY_ENGINE[SI_ENGINE] || {},
 				},
-			},
+
+				// scripts do not have deep-freeze, so globalShield will not work
+				// exclude: [
+				// 	'./src/script/*',
+				// ],
+			}),
+
+			// {
+			// 	name: 'bundle-mapper',
+
+			// 	generateBundle(gc_output, h_bundle) {
+			// 		const h_output = {};
+			// 		for(const g_module of Object.values(h_bundle)) {
+			// 			if('chunk' === g_module.type && g_module.facadeModuleId) {
+			// 				h_output[g_module.facadeModuleId?.slice(__dirname.length)] = g_module.fileName;
+			// 			}
+			// 		}
+
+			// 		fs.writeFileSync(`${srd_out}/bundle-map.json`, JSON.stringify(h_output, null, '\t'));
+			// 	},
+			// },
 
 			graph({
 				prune: true,

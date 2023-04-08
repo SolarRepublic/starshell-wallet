@@ -4,11 +4,4 @@ set -e
 CWD=$(dirname "$0")
 "$CWD/_base.sh" safari
 
-cd dist
-	rm -f safari.zip
-	zip -r safari.zip safari
-	mkdir -p qa
-	rm -rf qa/safari
-	unzip safari.zip -d qa
-	cp safari.zip "qa/safari.v$(node -p -e 'require("../package.json").version.replace(/\./g, "_")').zip"
-cd ..
+"$CWD/package-safari.sh"

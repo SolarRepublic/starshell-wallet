@@ -14,6 +14,12 @@
 
 	export let s_bip44: string;
 
+	/**
+	 * Fixes the coin type
+	 */
+	export let ni_coin = NaN;
+	let b_coin_fixed = Number.isInteger(ni_coin);
+
 	// validation errors
 	export let s_err_bip44 = '';
 
@@ -54,6 +60,11 @@
 				// destructure constiuent levels
 				[, s_coin_type, s_account, s_change, s_address] = m_bip44;
 
+				// do not allow coin type to be changed
+				if(b_coin_fixed) {
+					s_coin_type = ni_coin+'';
+				}
+
 				// update select
 				g_option_selected = item_from_slip(s_coin_type);
 			}
@@ -71,7 +82,7 @@
 
 	// sets the path string from the contituent path values
 	function backflow() {
-		s_bip44 = `m/44'/${s_coin_type}'/${s_account}'/${s_change}/${s_address}`;
+		s_bip44 = `m/44'/${b_coin_fixed? ni_coin: s_coin_type}'/${s_account}'/${s_change}/${s_address}`;
 	}
 
 	function item_from_slip(si_slip44: string) {
@@ -118,7 +129,17 @@
 
 		// map level to constituent var
 		switch(i_level_lo) {
-			case 2: s_coin_type = mutate(s_coin_type, n_delta); break;
+			case 2: {
+				if(b_coin_fixed) {
+					s_coin_type = ni_coin+'';
+				}
+				else {
+					s_coin_type = mutate(s_coin_type, n_delta);
+				}
+
+				break;
+			}
+
 			case 3: s_account = mutate(s_account, n_delta); break;
 			case 4: s_change = mutate(s_change, n_delta); break;
 			case 5: s_address = mutate(s_address, n_delta); break;
@@ -190,12 +211,14 @@
 	</span>
 {/if}
 
-<div class="coin-type">
-	<Field key='coin-type' name='Coin Type (SLIP-44)'>
-		<StarSelect
-			items={a_items}
-			bind:value={g_option_selected}
-			on:select
-		/>
-	</Field>
-</div>
+{#if !b_coin_fixed}
+	<div class="coin-type">
+		<Field key='coin-type' name='Coin Type (SLIP-44)'>
+			<StarSelect
+				items={a_items}
+				bind:value={g_option_selected}
+				on:select
+			/>
+		</Field>
+	</div>
+{/if}

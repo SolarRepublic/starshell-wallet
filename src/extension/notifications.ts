@@ -53,6 +53,21 @@ export async function system_notify(gc_notification: NotificationConfig): Promis
 			const g_account = await Accounts.at(p_account);
 			const p_default = await Pfps.createUrlFromDefault(g_account!.pfp);
 			if(p_default) p_icon = p_default;
+
+			if(!g_incident?.type.startsWith('account') && g_account) {
+				// time account was created
+				const g_created = [...await Incidents.filter({
+					type: 'account_created',
+					account: p_account,
+				})][0];
+
+				// do not notify for incidents that occurred prior to account creation
+				const sx_when = g_incident?.data['timestamp'] || '';
+				if(sx_when && new Date(sx_when).getTime() < g_created.time) {
+					console.warn(`Silencing notification for incident that occurred prior to account creation`);
+					return;
+				}
+			}
 		}
 		catch(e_account) {}
 	}

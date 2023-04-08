@@ -1,13 +1,28 @@
 import type {Nameable, Pfpable} from './able';
 import type {Bech32, ChainNamespace, ChainNamespaceKey, ChainPath} from './chain';
 import type {Cw} from './cosm-wasm';
+import type {DevicePath, HardwareVendor} from './device';
 import type {Resource} from './resource';
 import type {SecretPath} from './secret';
+
+import type {Bip44Path} from '#/crypto/bip44';
+
+export type HardwareAccountLocation = `/hwa.${HardwareVendor}/${bigint}:${string}:${string}`;
+
+export interface ParsedHardwareAccountLocation {
+	type: 'hwa';
+	vendor: HardwareVendor;
+	coinType: number;
+	pubkey: string;
+	bip44: Bip44Path;
+}
 
 export interface UtilityKeyRegistry {
 	walletSecurity: {
 		children: {
 			antiPhishingArt: {};
+			snip20ViewingKey: {};
+			transactionEncryptionKey: {};
 		};
 	};
 
@@ -50,7 +65,7 @@ export type Account<
 		/**
 		 * Path to secret responsible for deriving account key(s)
 		 */
-		secret: SecretPath<'bip32_node' | 'private_key'>;
+		secret: SecretPath<'bip32_node' | 'private_key'> | HardwareAccountLocation;
 
 		/**
 		 * Keys dervied from signatures used to generate data for specific purposes
@@ -117,6 +132,11 @@ export type Account<
 			 * Custom pfp status
 			 */
 			customPfp?: 0 | 1;
+
+			/**
+			 * Reference to which device was used to link account
+			 */
+			device?: DevicePath;
 		};
 	}, Nameable, Pfpable];
 }>;

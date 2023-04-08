@@ -52,6 +52,8 @@ export type SettingsRegistry = {
 		x_default_gas_price?: number;
 		x_gas_multiplier?: number;
 	}>;
+
+	p_browser_homepage?: string;
 };
 
 export type SettingsKey = keyof SettingsRegistry;

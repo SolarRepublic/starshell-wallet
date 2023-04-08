@@ -119,6 +119,12 @@ export class WritableStoreMap<
 		return true;
 	}
 
+	async clear(): Promise<void> {
+		this._w_cache = {} as h_cache;
+
+		await this.save();
+	}
+
 	async update(
 		p_res: keyof h_cache & string,
 		f_update: (g_current: h_cache[typeof p_res]) => Partial<h_cache[typeof p_res]>
@@ -395,6 +401,10 @@ export function create_store_class<
 
 			async delete<si_key extends ItemPath>(si_key: si_key): Promise<boolean> {
 				return await dc_store['open'](ks_self => ks_self.delete(si_key));
+			},
+
+			async clear() {
+				return await dc_store['open'](ks_self => ks_self.clear());
 			},
 
 			async update<si_key extends ItemPath>(

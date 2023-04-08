@@ -71,7 +71,7 @@
 	// load all chains
 	let h_chains: Record<ChainPath, ChainStruct> = {};
 	(async function load_chains() {
-		h_chains = ofe((await Chains.read()).entries());
+		h_chains = ofe((await Chains.read()).entries().filter(([, g]) => g.on));
 	})();
 
 	// TODO: fix all bech32 address stuff here
@@ -99,6 +99,8 @@
 		// attempt to locate compatible chains using bech32 hrp
 		const a_chains_match: ChainStruct[] = [];
 		for(const [, g_chain] of ks_chains.entries()) {
+			if(!g_chain.on) continue;
+
 			if(g_chain.bech32s.acc === si_hrp) {
 				a_chains_match.push(g_chain);
 			}

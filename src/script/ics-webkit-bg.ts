@@ -5,6 +5,10 @@ import type * as DomImport from '#/util/dom';
 	const debug = (s: string, ...a_args: (string | number | object)[]) => console.debug(`StarShell.ics-webkit-bg: ${s}`, ...a_args);
 	debug(`Launched on <${location.href}>`);
 
+	Object.assign(globalThis, {
+		STARSHELL_IS_BACKGROUND_HOST: true,
+	});
+
 	const {
 		dd,
 	} = inline_require('#/util/dom.ts') as typeof DomImport;
