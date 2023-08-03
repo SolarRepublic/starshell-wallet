@@ -41,7 +41,7 @@ import type {Consolidator} from '#/util/consolidator';
 const XT_POLYFILL_DELAY = 1.5e3;
 
 // regex responsible for detecting keplr use in source code
-const RT_KEPLR_DETECTOR = /([\s.]keplr\b|\[['"`]keplr['"`]\s*[\],)])/;
+const RT_KEPLR_DETECTOR = /([\s.]keplr\b|\[['"`]keplr['"`]\s*[\],)])|['"`]keplr_keystorechange['"`]/;
 
 /**
  * The witness script listens for Keplr requests from the page and forwards them to the service.
@@ -840,6 +840,8 @@ const RT_KEPLR_DETECTOR = /([\s.]keplr\b|\[['"`]keplr['"`]\s*[\],)])/;
 			// serialize the signDoc
 			const g_doc_serialized = serialize_to_json({
 				...g_doc,
+				authInfoBytes: keplr_str_to_base93(g_doc.authInfoBytes),
+				bodyBytes: keplr_str_to_base93(g_doc.bodyBytes),
 				chainId: si_chain,
 				accountNumber: g_doc.accountNumber? g_doc.accountNumber+'': void 0,
 			});
@@ -856,7 +858,17 @@ const RT_KEPLR_DETECTOR = /([\s.]keplr\b|\[['"`]keplr['"`]\s*[\],)])/;
 
 			debug(`Received direct signature response: ${JSON.stringify(g_response?.ok)}`);
 
-			return app_to_keplr(g_response);
+			return app_to_keplr(g_response, (g_ok) => ({
+				signed: {
+					...g_ok.signed,
+					authInfoBytes: base93_to_keplr_str(g_ok.signed.authInfoBytes),
+					bodyBytes: base93_to_keplr_str(g_ok.signed.bodyBytes),
+				},
+				signature: {
+					...g_ok.signature,
+					// signature: base93_to_keplr_str(g_ok.signature.signature),
+				},
+			}));
 		}
 
 		// dapp is requesting the wallet broadcast the given transaction to the chain
@@ -1194,10 +1206,35 @@ const RT_KEPLR_DETECTOR = /([\s.]keplr\b|\[['"`]keplr['"`]\s*[\],)])/;
 			throw new Error(`Not supported`);
 		}
 
-		disable(a_args: ProxyArgs<'disable'>): AsyncKeplrResponse<void> {
-			const [a_chains] = a_args as [string[]];
+		async disable(a_args: ProxyArgs<'disable'>): AsyncKeplrResponse<void> {
+			let [a_chains] = a_args as [string[]];
 
-			// TODO: disconnect app
+			// TODO: finish impl?
+			// note: disconnection is not trivial since user will need to rotate vieing keys, etc.
+
+			// for(const si_chain of a_chains) {
+			// 	// ensure the chain was enabled first
+			// 	const k_connection = await check_chain(si_chain);
+
+			// 	// check that chain exists
+			// 	const p_chain = Chains.pathFor('cosmos', si_chain);
+			// 	const g_chain = await Chains.at(p_chain);
+			// 	if(!g_chain) continue;
+
+			// 	// ask service to disconnect app
+			// 	const g_disconnect = await f_runtime_app().sendMessage({
+			// 		type: 'disconnect',
+			// 		value: {
+			// 			accountPath: k_connection.accountPath,
+			// 			chainPath: p_chain,
+			// 		},
+			// 	});
+
+			// 	// throw if error
+			// 	app_to_keplr(g_disconnect);
+			// }
+
+			return G_RETURN_VOID;
 		}
 	}
 
@@ -1265,7 +1302,7 @@ const RT_KEPLR_DETECTOR = /([\s.]keplr\b|\[['"`]keplr['"`]\s*[\],)])/;
 				// keplr is operational
 				if(await SessionStorage.get('keplr_operational')) {
 					// temporarily bypass non-secret chains
-					if(!['secret-4', 'pulsar-2'].includes(g_data.args[0])) {
+					if(!['secret-4', 'pulsar-2', 'pulsar-3'].includes(g_data.args[0])) {
 						return;
 					}
 				}

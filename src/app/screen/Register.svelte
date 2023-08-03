@@ -308,7 +308,7 @@
 		</div>
 
 		<p class="narrow">
-			Create a new password for signing into your wallet.
+			Create a new password for signing in to your wallet.
 		</p>
 	</center>
 

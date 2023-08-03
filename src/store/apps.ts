@@ -133,7 +133,7 @@ export const G_APP_NULL: AppStruct = {
 	host: 'null',
 	api: AppApiMode.UNKNOWN,
 	connections: {},
-	name: 'null',
+	name: 'None',
 	pfp: '',
 };
 

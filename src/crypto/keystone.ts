@@ -9,6 +9,7 @@ import {pubkey_to_bech32} from './bech32';
 import {parse_hwa} from './hardware-signing';
 
 import {Devices} from '#/store/devices';
+import { uuid_v4 } from '#/util/data';
 
 
 export async function keystone_sign_request(
@@ -25,7 +26,7 @@ export async function keystone_sign_request(
 
 	// play request and capture signature
 	return CosmosSignRequest.constructCosmosRequest(
-		crypto.randomUUID(),
+		uuid_v4(),
 		[sb16_fingerprint],
 		Buffer.from(atu8_msg),
 		SignDataType.amino,

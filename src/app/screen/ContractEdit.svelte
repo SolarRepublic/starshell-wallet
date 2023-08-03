@@ -12,7 +12,7 @@
 	import {syserr} from '../common';
 	import {validate_contract} from '../helper/contract-validator';
 	
-	import {yw_account, yw_context_popup, yw_navigator, yw_network, yw_popup} from '../mem';
+	import {yw_account, yw_account_ref, yw_context_popup, yw_navigator, yw_network, yw_popup} from '../mem';
 	
 	import type {SecretNetwork} from '#/chain/secret-network';
 	import {Chains} from '#/store/chains';
@@ -34,6 +34,7 @@
 	import Load from '../ui/Load.svelte';
 	import type {SelectOption} from '../ui/StarSelect.svelte';
 	import StarSelect from '../ui/StarSelect.svelte';
+    import { Accounts } from '#/store/accounts';
 	
 	let h_interface_registry: Dict<{
 		title: string;
@@ -137,6 +138,12 @@
 					checked: !!h_interfaces.snip24,
 					disabled: a_excluded.includes('snip24'),
 				},
+				snip25: {
+					title: 'SNIP-25',
+					label: 'Security Update',
+					checked: !!h_interfaces.snip25,
+					disabled: a_excluded.includes('snip25'),
+				},
 				snip721: {
 					title: 'SNIP-721',
 					label: 'Non-Fungible Token',
@@ -213,10 +220,34 @@
 	// counter for triggering dormant validations
 	let c_show_validations = 0;
 
+	// token's hidden state for this account
+	let b_token_hidden = false;
+	yw_contract.once(() => {
+		b_token_hidden = !!$yw_account.assets[$yw_contract.chain]?.data[$yw_contract.bech32].hidden;
+	});
+
 	// user attempt to save
 	async function save() {
 		// ref current contract def
 		let g_contract = $yw_contract;
+
+		// update hidden state
+		await Accounts.update($yw_account_ref, g_latest => ({
+			...g_latest,
+			assets: {
+				...g_latest.assets,
+				[$yw_contract.chain]: {
+					...g_latest.assets[$yw_contract.chain],
+					data: {
+						...g_latest.assets[$yw_contract.chain]?.data,
+						[$yw_contract.bech32]: {
+							...g_latest.assets[$yw_contract.chain]?.data[$yw_contract.bech32],
+							hidden: b_token_hidden,
+						},
+					},
+				},
+			},
+		}));
 
 		// fill contract properties from store
 		const g_contract_fill = {
@@ -466,6 +497,12 @@
 					</CheckboxField>
 				</div>
 			{/each}
+		</Field>
+
+		<Field key="visibility" name="Visibility">
+			<CheckboxField id="token-visibility" bind:checked={b_token_hidden}>
+				Hide token in homepage
+			</CheckboxField>
 		</Field>
 	{/if}
 

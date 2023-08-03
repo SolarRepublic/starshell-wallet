@@ -3,13 +3,13 @@
 	
 	import type {AccountStruct} from '#/meta/account';
 	import type {AppStruct} from '#/meta/app';
-	import type {Bech32, ContractStruct} from '#/meta/chain';
+	import type {Bech32, ChainStruct, ContractStruct} from '#/meta/chain';
 	
 	import {Snip2xMessageConstructor} from '#/schema/snip-2x-const';
 	
 	
 	import {Screen} from './_screens';
-	import {syserr} from '../common';
+	import {syserr, syswarn} from '../common';
 	import {yw_account} from '../mem';
 	import {load_app_context} from '../svelte';
 	
@@ -17,12 +17,12 @@
 	import type {SecretNetwork} from '#/chain/secret-network';
 	import {Accounts} from '#/store/accounts';
 	import {Chains} from '#/store/chains';
-	import {Providers} from '#/store/providers';
+	import {Providers, type BalanceBundle} from '#/store/providers';
 	
 	import {SecretNodes} from '#/store/web-apis';
-	import {fold, F_NOOP, oderac, remove} from '#/util/belt';
+	import {fold, F_NOOP, oderac, remove, forever} from '#/util/belt';
 	import {open_external_link} from '#/util/dom';
-	import {format_amount} from '#/util/format';
+	import {format_amount, format_fiat} from '#/util/format';
 	
 	import RequestSignature from './RequestSignature.svelte';
 	import AppBanner from '../frag/AppBanner.svelte';
@@ -36,7 +36,9 @@
 	
 	
 	import SX_ICON_EXTERNAL from '#/icon/launch.svg?raw';
-	
+	import BigNumber from 'bignumber.js';
+	import { coin_formats } from '#/chain/coin';
+
 
 	const {
 		g_chain,
@@ -60,28 +62,25 @@
 
 	const g_app_cover = g_cause?.['app'] || g_app;
 
+	const dp_network = Providers.activateStableDefaultFor<SecretNetwork>(g_chain).then(k => k_network = k);
+
 	const dp_load = (async function load() {
 		// init fields
 		await Promise.all([
-			produce_contracts(bech32s, g_chain, g_app_cover, g_account || $yw_account).then(a => a_contracts = a),
+			// produce contracts in offline mode
+			produce_contracts(bech32s, g_chain, g_app_cover).then(a => a_contracts = a),
 			Accounts.at(p_account).then(g => g_account = g!),
-			Providers.activateStableDefaultFor<SecretNetwork>(g_chain).then(async(_k_network) => {
-				k_network = _k_network;
-
-				// do a quick test
-				try {
-					await Providers.quickTest(k_network.provider, g_chain);
-				}
-				catch(e_check) {
-					throw syserr(e_check as Error);
-				}
-			}).catch((e_activate) => {
-				syserr(e_activate as Error);
-			}),
 		]);
 
 		// build messages
 		void init_build();
+
+		// reproduce contracts in online mode asynchronously
+		produce_contracts(bech32s, g_chain, g_app_cover, g_account || $yw_account)
+			.then(a => a_contracts = a, e => syswarn({
+				title: 'While loading contracts',
+				text: e+'',
+			}));
 	})();
 
 
@@ -93,6 +92,22 @@
 
 	async function init_build() {
 		if(g_chain?.features.secretwasm) {
+			await dp_network;
+
+			try {
+				// do a quick test
+				try {
+					await Providers.quickTest(k_network.provider, g_chain);
+				}
+				catch(e_check) {
+					throw syserr(e_check as Error);
+				}
+			}
+			catch(e_activate) {
+				syserr(e_activate as Error);
+				return;
+			}
+
 			// generate viewing key messages
 			for(const g_contract of a_contracts) {
 				// construct wasm message
@@ -199,6 +214,37 @@
 	}
 
 	$: s_token_plurality = 1 === a_adding.length? '': 's';
+
+	async function coins_locked(g_contract: ContractStruct): Promise<[string, number, string]> {
+		await dp_network;
+		await dp_load;
+
+		const h_balances = await k_network.bankBalances(g_contract.bech32);
+
+		const a_balance = Object.entries(h_balances)
+			.sort(([, g_a], [, g_b]) => BigNumber(g_a.balance.amount).minus(g_b.balance.amount).gt(0)? 1: -1).at(0);
+
+		if(a_balance) {
+			const [si_coin, g_bundle] = a_balance;
+
+			const s_locked = Chains.summarizeAmount(g_bundle.balance, g_chain);
+
+			try {
+				const g_formats = await coin_formats(g_bundle.balance, g_chain.coins[si_coin], 'usd');
+
+				return [
+					s_locked,
+					g_formats.fiat,
+					format_fiat(g_formats.fiat, 'usd'),
+				];
+			}
+			catch(e_fiat) {
+				return [s_locked, 0, ''];
+			}
+		}
+
+		return ['', 0, ''];
+	}
 </script>
 
 <style lang="less">
@@ -319,7 +365,7 @@
 					</Row>
 				{:else}
 					<Row resource={g_contract}
-						name={g_contract.interfaces.snip20?.symbol || '??'}
+						name={g_contract.interfaces.snip20?.symbol || forever('')}
 						postname={g_contract.name}
 						address={g_contract.bech32} copyable
 						on:click={toggleChildCheckbox}
@@ -342,7 +388,7 @@
 								{@html SX_ICON_EXTERNAL}
 							</span>
 
-							{#await SecretNodes.contractStats(g_chain, g_contract)}
+							{#await coins_locked(g_contract)}
 								<span>
 									<Load forever />
 								</span>
@@ -352,19 +398,43 @@
 								<span>
 									<Load forever />
 								</span>
-							{:then g_stats}
-								{@const x_locked = +g_stats.value_locked / 1e6}
-								{@const n_txs = +g_stats.txs_count}
-								{@const n_accs = +g_stats.accounts_count}
-								<span class:color_caution={x_locked < 10e3 && (n_txs < 5e3 || n_accs < 1e3)}>
-									{format_amount(x_locked, true)} SCRT locked
-								</span>
-								<span class:color_caution={x_locked < 10e3 && n_txs < 3e3}>
-									{format_amount(n_txs, true)} txs
-								</span>
-								<span class:color_caution={x_locked < 10e3? n_accs < 100: n_accs < 1e3}>
-									{format_amount(n_accs, true)} accs
-								</span>
+							{:then a_locked}
+								{@const [s_locked, x_usd, s_usd] = a_locked}
+
+								{#if s_locked}
+									{#if s_usd}
+										<span class:color_caution={x_usd < 6e3}>
+											{s_usd} locked
+										</span>
+									{:else}
+										<span>
+											{s_locked} locked
+										</span>
+									{/if}
+								{:else}
+									<!-- TODO query built-in snip25s for total supply & exchange rate to determine locked amount -->
+									<span class:color_caution={true}>
+										0 IBC locked
+									</span>
+								{/if}
+
+								{#await SecretNodes.contractStats(g_chain, g_contract)}
+									<span>
+										<Load forever />
+									</span>
+									<span>
+										<Load forever />
+									</span>
+								{:then g_stats}
+									{@const n_txs = +g_stats.txs_count}
+									{@const n_accs = +g_stats.accounts_count}
+									<span class:color_caution={x_usd < 6e3 && n_txs < 3e3}>
+										{format_amount(n_txs, true)} txs
+									</span>
+									<span class:color_caution={x_usd < 6e3? n_accs < 100: n_accs < 1e3}>
+										{format_amount(n_accs, true)} accs
+									</span>
+								{/await}
 							{/await}
 						</span>
 					</Row>

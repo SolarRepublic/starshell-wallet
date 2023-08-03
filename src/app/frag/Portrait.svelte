@@ -16,6 +16,7 @@
 		export: {};
 		more: {};
 		unblock: {};
+		migrate: {};
 	}
 
 	export type ActionKey = keyof ActionRegistry;
@@ -65,7 +66,8 @@
 	import SX_ICON_SHIELD_INSPECT from '#/icon/shield-inspect.svg?raw';
 	import SX_ICON_UNWRAP from '#/icon/unwrap.svg?raw';
 	import SX_ICON_WRAP from '#/icon/wrap.svg?raw';
-    import { createEventDispatcher } from 'svelte';
+	import SX_ICON_MONEY_MOVE from '#/icon/money-move.svg?raw';
+	import { createEventDispatcher } from 'svelte';
 
 	const H_ACTIONS: Record<ActionKey, DefaultActionConfig> = {
 		send: {
@@ -131,6 +133,10 @@
 		unblock: {
 			label: 'Unblock',
 			icon: SX_ICON_HEXAGON_CHECK,
+		},
+		migrate: {
+			label: 'Migrate',
+			icon: SX_ICON_MONEY_MOVE,
 		},
 	};
 

@@ -9,9 +9,9 @@
 	import PopupFactoryReset from '#/app/popup/PopupFactoryReset.svelte';
 	import {open_window, P_POPUP} from '#/extension/browser';
 	import {launch_qr_scanner} from '#/extension/sensors';
-	import type {WebKitMessenger} from '#/script/webkit-polyfill';
+	import type {WebKitMessenger} from '#/native/webkit-polyfill';
 	import {logout} from '#/share/auth';
-	import {B_IOS_NATIVE, B_MOBILE, B_WITHIN_WEBEXT_POPOVER, P_FALLBACK_BROWSER_HOMEPAGE} from '#/share/constants';
+	import {B_ANDROID_NATIVE, B_IOS_NATIVE, B_MOBILE, B_WITHIN_WEBEXT_POPOVER, P_FALLBACK_BROWSER_HOMEPAGE} from '#/share/constants';
 	import {Settings} from '#/store/settings';
 	
 	import SX_ICON_ACCOUNTS from '#/icon/account_circle.svg?raw';
@@ -94,7 +94,7 @@
 				activate(ThreadId.PROVIDERS);
 			},
 		},
-		...B_IOS_NATIVE? [
+		...(B_IOS_NATIVE || B_ANDROID_NATIVE)? [
 			{
 				label: 'Apps',
 				icon: SX_ICON_CUBES,
@@ -139,7 +139,7 @@
 				$yw_menu_expanded = false;
 			},
 		},
-		...B_IOS_NATIVE? [
+		...(B_IOS_NATIVE || B_ANDROID_NATIVE)? [
 			{
 				label: 'Web Browser',
 				icon: SX_ICON_GLOBE,

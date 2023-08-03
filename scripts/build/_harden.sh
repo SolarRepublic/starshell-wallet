@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-ENGINE=$1
-
+ID=$1
+PURPOSE=${2:-build}
 
 # prep list of scripts to inlcude in entry html file
 a_scripts_entry=()
@@ -29,10 +29,10 @@ function copy_script() {
 
   # append to lists
   a_scripts_entry+=( $s_dst )
-  a_scripts_cwd+=( "dist/$ENGINE/src/entry/$s_dst" )
+  a_scripts_cwd+=( "dist/$ID/src/entry/$s_dst" )
 
   # copy file to destination
-  cp $sr_src dist/$ENGINE/src/entry/$s_dst
+  cp $sr_src dist/$ID/src/entry/$s_dst
 }
 
 # copy ses lib source(s)
@@ -41,7 +41,7 @@ copy_script node_modules/ses/dist/lockdown.umd.min.js lockdown-install.js
 
 # copy scripts that will harden the environment before any third-party libs are evaluated
 copy_script static/lockdown-init.js
-if [[ "safari" == "$ENGINE" ]]; then
+if [[ "safari" == "$ID" ]]; then
   copy_script static/pre-exempt-ios.js
 fi
 copy_script static/pre-exempt-debug.js
@@ -55,17 +55,20 @@ for s_script in "${a_scripts_entry[@]}"; do
 done
 
 # portable sed command create injection target
-find dist/$ENGINE/* -name "*.html" -exec sed -i -e 's:<!-- @ses -->:'"$sx_scripts_root"':g' {} \;
+find dist/$ID/* -name "*.html" -exec sed -i -e 's:<!-- @ses -->:'"$sx_scripts_root"':g' {} \;
 
 # special replacement for firefox's background.html until PR for web-extension plugin is made
-find dist/$ENGINE/* -name "background.html" -exec sed -i -e 's:<meta charset="UTF-8" />:<meta charset="utf-8" />'"$sx_scripts_root"':g' {} \;
+find dist/$ID/* -name "background.html" -exec sed -i -e 's:<meta charset="UTF-8" />:<meta charset="utf-8" />'"$sx_scripts_root"':g' {} \;
 
 # merge and prepend lockdown to service-worker script
-p_service="dist/$ENGINE/serviceWorker.js"
+p_service="dist/$ID/serviceWorker.js"
 if [[ -f $p_service ]]; then
 	sx_merged=$(cat "${a_scripts_cwd[@]}")
 	echo $sx_merged | cat - $p_service > "$p_service.tmp" && mv "$p_service.tmp" $p_service
 fi
 
-# verify that the scripts were injected into the HTML files at the appropriate places
-deno run --allow-read scripts/build/verify-entry-pages.ts $ENGINE
+# for building
+if [ "$PURPOSE" = "build"  ]; then
+  # verify that the scripts were injected into the HTML files at the appropriate places
+  deno run --allow-read scripts/build/verify-entry-pages.ts $ID
+fi

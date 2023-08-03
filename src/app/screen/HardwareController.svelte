@@ -152,7 +152,6 @@
 		g_signing = null;
 	}
 
-
 	async function use_device(si_app: string) {
 		if(!k_device) return reset();
 

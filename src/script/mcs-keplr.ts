@@ -15,7 +15,7 @@ import type {Vocab} from '#/meta/vocab';
 	debug(`Launched on <${location.href}>`);
 
 	// @ts-expect-error intentional undercall
-	const keplr = new dc_keplr('0.11.44', 'extension') as unknown as KeplrStruct;
+	const keplr = new dc_keplr(__G_PACKAGE.devDependencies['@keplr-wallet/provider'].replace(/[^\d.]/g, ''), 'extension') as unknown as KeplrStruct;
 
 	if(!window.keplr) {
 		window.keplr = keplr;

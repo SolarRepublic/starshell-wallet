@@ -27,7 +27,7 @@ import {Chains} from '#/store/chains';
 import {Contracts} from '#/store/contracts';
 import {Providers} from '#/store/providers';
 import {Secrets} from '#/store/secrets';
-import {defer_many, is_dict, proper} from '#/util/belt';
+import {defer_many, is_dict, ode, proper} from '#/util/belt';
 import {base64_to_buffer, buffer_to_hex, sha256_sync, uuid_v4} from '#/util/data';
 import {dd} from '#/util/dom';
 import {abbreviate_addr} from '#/util/format';
@@ -87,6 +87,25 @@ export const ComputeMessages: MessageDict = {
 						},
 					}],
 				};
+			},
+		};
+	},
+
+	signature_proof(g_msg, {g_chain, p_app, g_app, g_account}) {
+		return {
+			describe() {
+				return {
+					offline: true,
+					title: 'Sign Non-Standard Document',
+					tooltip: 'This document format is non-standard. It does not follow current best practices and may be used by dApps in very different contexts.',
+					fields: [
+						JsonPreviewer.render(g_msg, {
+							chain: g_chain,
+						}, {
+							title: 'Arguments',
+						}),
+					],
+				} as DescribedMessage;
 			},
 		};
 	},
@@ -463,8 +482,20 @@ export const ComputeMessages: MessageDict = {
 		// map spends
 		const a_spends: SpendInfo[] = [];
 		if(a_sent_funds?.length) {
+			let p_pfp = g_chain.pfp;
+
+			// attempt to resolve pfp
+			if(1 === a_sent_funds.length) {
+				const g_fund = a_sent_funds[0];
+
+				const si_fund = Chains.coinFromDenom(g_fund.denom, g_chain);
+				if(si_fund) {
+					p_pfp = g_chain.coins[si_fund].pfp || p_pfp;
+				}
+			}
+
 			a_spends.push({
-				pfp: g_chain.pfp,
+				pfp: p_pfp,
 				amounts: a_sent_funds.map(g_coin => Chains.summarizeAmount(g_coin, g_chain)),
 			});
 		}
@@ -505,7 +536,7 @@ export const ComputeMessages: MessageDict = {
 				};
 			},
 
-			async approve() {
+			async approve(si_txn) {
 				try {
 					await install_contracts([sa_contract], g_chain, g_app, g_account);
 				}
@@ -514,6 +545,13 @@ export const ComputeMessages: MessageDict = {
 						title: `Failed to install contract`,
 						text: e_install.message,
 					});
+				}
+
+				// on secret-wasm
+				if(g_secret_wasm) {
+					// contract
+					const g_handled = await H_SNIP_HANDLERS[si_action]?.(h_args, g_context, g_exec);
+					await g_handled?.approve?.(si_txn);
 				}
 
 				return {

@@ -10,7 +10,7 @@ import type {Vocab} from '#/meta/vocab';
 
 import {ConnectionHandle} from '#/provider/connection';
 import {NB_MAX_MESSAGE} from '#/share/constants';
-import {text_to_buffer} from '#/util/data';
+import {text_to_buffer, uuid_v4} from '#/util/data';
 
 
 /**
@@ -154,7 +154,7 @@ type ConnectMethod = (g_advertisement: Advertisement, gc_manifest: ConnectionMan
 	} = g_payload;
 
 	// create private stack-signing key
-	const sh_stack = crypto.randomUUID();
+	const sh_stack = uuid_v4();
 
 	// prep port
 	let d_port: Vocab.TypedPort<RelayToHost.AuthedVocab, HostToRelay.AuthedVocab>;

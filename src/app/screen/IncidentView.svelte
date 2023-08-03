@@ -37,7 +37,7 @@
 	import {ode, oderac} from '#/util/belt';
 	import {base64_to_buffer, base93_to_buffer, buffer_to_base64, buffer_to_hex} from '#/util/data';
 	import {dd} from '#/util/dom';
-	import {format_date_long, format_time} from '#/util/format';
+	import {AbbreviationLevel, format_date_long, format_time} from '#/util/format';
 	
 	import AppBanner from '../frag/AppBanner.svelte';
 	import ActionsLine from '../ui/ActionsLine.svelte';
@@ -334,16 +334,12 @@
 
 			const a_fields_inbound_above: FieldConfig[] = [
 				{
-					type: 'transaction',
-					hash: buffer_to_hex(base64_to_buffer(si_tx)).toUpperCase(),
-					chain: g_context.g_chain,
-				},
-				{
 					type: 'contracts',
 					bech32s: [sa_contract],
 					g_chain,
 					g_account,
 					label: 'Token',
+					abbrv: AbbreviationLevel.NONE,
 				},
 			];
 

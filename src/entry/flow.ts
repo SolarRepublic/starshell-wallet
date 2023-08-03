@@ -17,8 +17,10 @@ import PageException from '#/app/screen/PageException.svelte';
 import PreRegister from '#/app/screen/PreRegister.svelte';
 import {B_LOCALHOST, B_WITHIN_IFRAME, XT_INTERVAL_HEARTBEAT} from '#/share/constants';
 
-import {do_webkit_polyfill} from '#/script/webkit-polyfill';
+import {do_android_polyfill} from '#/native/android-polyfill';
+import {do_webkit_polyfill} from '#/native/webkit-polyfill';
 
+do_android_polyfill();
 do_webkit_polyfill();
 /* eslint-enable */
 
@@ -33,7 +35,7 @@ import type {ChainStruct, ChainPath, Bech32} from '#/meta/chain';
 import type {ParametricSvelteConstructor} from '#/meta/svelte';
 import type {Vocab} from '#/meta/vocab';
 
-import {SignDoc, TxBody} from '@solar-republic/cosmos-grpc/dist/cosmos/tx/v1beta1/tx';
+import {AuthInfo, SignDoc, TxBody} from '@solar-republic/cosmos-grpc/dist/cosmos/tx/v1beta1/tx';
 
 import ReloadPage from '#/app/screen/ReloadPage.svelte';
 import RequestConnection_AccountsSvelte from '#/app/screen/RequestConnection_Accounts.svelte';
@@ -43,8 +45,8 @@ import RequestSignatureSvelte from '#/app/screen/RequestSignature.svelte';
 import RequestTokenAdd from '#/app/screen/RequestTokenAdd.svelte';
 import RestartService from '#/app/screen/RestartService.svelte';
 import ScanQrSvelte from '#/app/screen/ScanQr.svelte';
-import {proto_to_amino} from '#/chain/cosmos-msgs';
-import type {CompletedProtoSignature, CompletedSignature} from '#/chain/signature';
+
+import type {CompletedAminoSignature, CompletedProtoSignature, CompletedSignature} from '#/chain/signature';
 import {Vault} from '#/crypto/vault';
 import {SessionStorage} from '#/extension/session-storage';
 import type {ErrorRegistry, IntraExt} from '#/script/messages';
@@ -54,7 +56,7 @@ import {Accounts} from '#/store/accounts';
 import {Apps} from '#/store/apps';
 import {Chains} from '#/store/chains';
 import {fold, forever, F_NOOP, is_dict, ode, timeout_exec} from '#/util/belt';
-import {base93_to_buffer} from '#/util/data';
+import {base93_to_buffer, buffer_to_base64, buffer_to_base93} from '#/util/data';
 import {parse_params, qs} from '#/util/dom';
 import SystemSvelte from '##/container/System.svelte';
 import AuthenticateSvelte from '##/screen/Authenticate.svelte';
@@ -365,7 +367,7 @@ const H_HANDLERS_AUTHED: Vocab.Handlers<Omit<IntraExt.FlowVocab, 'authenticate'>
 		// verbose
 		domlog(`Handling 'signAmino' on ${JSON.stringify(g_value)}\n\nwith context ${JSON.stringify(g_context)}`);
 
-		const g_completed = await completed_render<CompletedSignature>(RequestSignatureSvelte, g_value.props, {
+		const g_completed = await completed_render<CompletedAminoSignature>(RequestSignatureSvelte, g_value.props, {
 			app: g_context.app,
 			chain: g_context.chain,
 			accountPath: g_value.accountPath,
@@ -377,7 +379,7 @@ const H_HANDLERS_AUTHED: Vocab.Handlers<Omit<IntraExt.FlowVocab, 'authenticate'>
 		};
 	},
 
-	signTransaction(g_value, g_context) {
+	async signTransaction(g_value, g_context) {
 		// verbose
 		domlog(`Handling 'signTransaction' on ${JSON.stringify(g_value)}`);
 
@@ -391,19 +393,42 @@ const H_HANDLERS_AUTHED: Vocab.Handlers<Omit<IntraExt.FlowVocab, 'authenticate'>
 		});
 
 		const g_body = TxBody.decode(g_doc.bodyBytes);
+		const g_auth = AuthInfo.decode(g_doc.authInfoBytes);
 
 		const a_msgs = g_body.messages;
 
-		// single message
-		if(1 === a_msgs.length) {
-			const g_msg = a_msgs[0];
-		}
-
-		return completed_render(RequestSignatureSvelte, g_value, {
+		const g_completed = await completed_render<CompletedProtoSignature>(RequestSignatureSvelte, {
+			protoMsgs: a_msgs,
+			fee: g_auth.fee? {
+				limit: g_auth.fee?.gasLimit,
+				amount: g_auth.fee?.amount,
+			}: null,
+		}, {
 			app: g_context.app,
 			chain: g_context.chain,
 			accountPath: g_value.accountPath,
 		});
+
+		const g_data = g_completed.data;
+		if(g_data) {
+			return {
+				...g_completed,
+				data: {
+					...g_data,
+					proto: {
+						...g_data.proto,
+						doc: {
+							...g_data.proto.doc,
+							authInfoBytes: buffer_to_base93(g_data.proto.doc.authInfoBytes),
+							bodyBytes: buffer_to_base93(g_data.proto.doc.bodyBytes),
+						},
+						signature: buffer_to_base64(g_data.proto.signature),
+					},
+				},
+			};
+		}
+
+		return g_completed;
 	},
 
 	inspectIncident: g_value => completed_render(IncidentView, {
@@ -422,8 +447,16 @@ const H_HANDLERS_AUTHED: Vocab.Handlers<Omit<IntraExt.FlowVocab, 'authenticate'>
 			let a_awaiting: Bech32[] = [];
 
 			// init tokens confirmed to list of those already added
+			const p_app = g_value.appPath;
 			const p_chain = g_value.chainPath;
-			const g_account = (await Accounts.at(g_value.accountPath))!;
+			const p_account = g_value.accountPath;
+
+			const g_app = g_context.app;
+			const g_chain = g_context.chain;
+			const g_account = g_context.account;
+
+			// const g_app = (await Apps.at(p_app));
+			// const g_account = (await Accounts.at(p_account))!;
 
 			// list of new tokens added from app during this session
 			const a_confirmed = g_account.assets[p_chain]?.fungibleTokens.slice() || [];
@@ -466,17 +499,34 @@ const H_HANDLERS_AUTHED: Vocab.Handlers<Omit<IntraExt.FlowVocab, 'authenticate'>
 				}
 			};
 
+			const a_reqs = g_value.bech32s;
+
 			// start listening for token added events before transaction broadcast suceeds
 			const f_unsubscribe = global_receive({
-				tokenAdded(g_added) {
-					// record token in case it is missed later
-					a_confirmed.push(g_added.sa_contract);
+				// tokenAdded(g_added) {
+				// 	// record token in case it is missed later
+				// 	a_confirmed.push(g_added.sa_contract);
 
-					void f_check_confirmed();
+				// 	void f_check_confirmed();
+				// },
+
+				txSuccess() {
+					// // let user know that app is waiting for confirmation
+					// yw_navigator.get().activePage.push({
+					// 	creator: AwaitConfirmation,
+					// });
+
+					// resolve promise with response
+					fk_resolve({
+						answer: true,
+						data: fold(a_reqs, sa_request => ({
+							[sa_request]: {
+								ok: true,
+							},
+						})),
+					});
 				},
 			});
-
-			const a_reqs = g_value.bech32s as Bech32[];
 
 			// wait for user to add tokens
 			const g_completion = await completed_render(RequestTokenAdd, g_value, {
@@ -492,18 +542,42 @@ const H_HANDLERS_AUTHED: Vocab.Handlers<Omit<IntraExt.FlowVocab, 'authenticate'>
 				return;
 			}
 
-			// user accepted adding certain tokens; decode into amino format
-			const g_data = g_completion.data as unknown as CompletedProtoSignature;
-			const a_aminos = TxBody.decode(g_data.proto.doc.bodyBytes).messages
-				.map(g => proto_to_amino(g, g_context.chain?.bech32s.acc || ''));
+			// // user accepted adding certain tokens
+			// const g_data = g_completion.data as any;
+			// if(g_data['amino']) {
+			// 	const g_signed = (g_data as CompletedAminoSignature).amino.signed;
 
-			// set list of tokens awaiting
-			a_awaiting = a_aminos.map(g => g.value.contract) as Bech32[];
+			// 	// set list of tokens awaiting
+			// 	a_awaiting = g_signed.msgs.map(g_msg => g_msg.value.contract) as Bech32[];
 
-			// re-check all confirmed
-			void f_check_confirmed();
+			// 	// TODO: manually update viewing key so that flow can close right away
+			// 	// // tx was a success, manually install vks
+			// 	// for(const g_msg of g_signed.msgs) {
+			// 	// 	H_SNIP_HANDLERS.set_viewing_key({
+			// 	// 		h_args: {},
+			// 	// 		p_app, g_app,
+			// 	// 		p_chain, g_chain,
+			// 	// 		p_account, g_account,
+			// 	// 		p_contract,
+			// 	// 		g_snip20
+			// 	// 	});
+			// 	// }
+			// }
+			// // decode into amino format
+			// else if(g_data['proto']) {
+			// 	const a_aminos = TxBody.decode((g_data as CompletedProtoSignature).proto.doc.bodyBytes).messages
+			// 		.map(g => proto_to_amino(g, g_context.chain?.bech32s.acc || ''));
+
+			// 	// set list of tokens awaiting
+			// 	a_awaiting = a_aminos.map(g => g.value.contract).filter(s => s) as Bech32[];
+			// }
+
+			// // re-check all confirmed
+			// void f_check_confirmed();
 		}
 		catch(e_any) {
+			console.error(e_any);
+
 			fe_reject(e_any);
 		}
 	}),

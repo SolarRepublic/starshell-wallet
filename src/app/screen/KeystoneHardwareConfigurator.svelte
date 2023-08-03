@@ -38,18 +38,19 @@
 	
 	import {parse_hwa} from '#/crypto/hardware-signing';
 	import {open_flow} from '#/script/msg-flow';
-	import {B_WITHIN_TAB} from '#/share/constants';
+	import {B_ANDROID_NATIVE, B_IPHONE_IOS, B_WITHIN_TAB} from '#/share/constants';
 	import {Devices} from '#/store/devices';
 	import {timeout} from '#/util/belt';
 	import {buffer_to_base64} from '#/util/data';
 	
-	import {qs} from '#/util/dom';
+	import {open_external_link, qs} from '#/util/dom';
 	
 	import KeystoneLinkAccounts from './KeystoneLinkAccounts.svelte';
 	import ScanQr from './ScanQr.svelte';
 	import ActionsLine from '../ui/ActionsLine.svelte';
 	import Curtain from '../ui/Curtain.svelte';
 	import Tooltip from '../ui/Tooltip.svelte';
+    import GuideQrConnect from './GuideQrConnect.svelte';
 	
 	
 
@@ -92,28 +93,38 @@
 	}
 
 	async function manage_devices() {
-		const g_request = await open_flow({
-			flow: {
-				type: 'requestDevice',
-				value: {
-					props: {
-						g_intent: {
-							id: 'setup-new-device',
-						},
-						si_autoload: 'keystone',
-					},
-					context: next_progress(),
+		if(B_IPHONE_IOS || B_ANDROID_NATIVE) {
+			k_page.push({
+				creator: GuideQrConnect,
+				props: {
+					si_guide: 'keystone',
 				},
-				page: null,
-			},
-			open: {
-				tab: true,
-			},
-		});
-
-		write_status('Please wait a moment');
-
-		return g_request;
+			});
+		}
+		else {
+			const g_request = await open_flow({
+				flow: {
+					type: 'requestDevice',
+					value: {
+						props: {
+							g_intent: {
+								id: 'setup-new-device',
+							},
+							si_autoload: 'keystone',
+						},
+						context: next_progress(),
+					},
+					page: null,
+				},
+				open: {
+					tab: true,
+				},
+			});
+	
+			write_status('Please wait a moment');
+	
+			return g_request;
+		}
 	}
 
 	let dm_qr: HTMLDivElement;
@@ -553,6 +564,12 @@
 			</div>
 		</div>
 	{/if}
+
+	<div style="text-align:center; margin-top:1em;">
+		<span class="link" on:click={() => open_external_link('https://keyst.one/?rfsn=7273037.592e9d&utm_source=refersion&utm_medium=affiliate&utm_campaign=7273037.592e9d')}>
+			What is a Keystone wallet?
+		</span>
+	</div>
 
 	<Curtain on:click={() => b_tooltip_showing = false} />
 </Screen>

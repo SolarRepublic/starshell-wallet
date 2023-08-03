@@ -6,6 +6,7 @@ import type {F, L} from 'ts-toolbelt';
 import type {Arrayable, Dict, Promisable} from '#/meta/belt';
 
 import {fodemtv, ode, remove} from '#/util/belt';
+import AsyncLockPool2 from '#/util/async-lock-pool-2';
 
 type Subscriber<
 	w_value extends any=any,
@@ -16,13 +17,18 @@ class Subscribable<
 > implements Readable<w_value> {
 	protected _w_value: w_value;
 	protected _a_subscribers: Subscriber<w_value>[] = [];
+	protected _k_lock = new AsyncLockPool2(1);
 
 	protected async _set(w_value: w_value, b_force=false): Promise<void> {
 		if(w_value !== this._w_value || b_force) {
 			this._w_value = w_value;
 
+			const f_release = await this._k_lock.acquire();
+
 			const a_subscribers = this._a_subscribers.slice();
 			await Promise.all(a_subscribers.map(f_subscriber => f_subscriber(w_value)));
+
+			f_release();
 		}
 	}
 

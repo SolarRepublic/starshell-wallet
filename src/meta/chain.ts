@@ -27,6 +27,18 @@ export type Bech32<
 	s_data extends string=string,
 > = `${si_hrp}1${s_data}`;
 
+/**
+ * Encapsulates data about a token's migrate-ability
+ */
+export type MigrationStruct = {
+	via: 'send';
+	expect: Bech32;
+	recipient: Bech32;
+} | {
+	via: 'ibc';
+	expect: Bech32;
+	asset: string;
+};
 
 /**
  * Represents a chain namespace and the defaults its chains may inherit.

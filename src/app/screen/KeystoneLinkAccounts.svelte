@@ -42,7 +42,7 @@
 	import {Providers} from '#/store/providers';
 	import {ode, oderac, timeout_exec} from '#/util/belt';
 	
-	import {base93_to_buffer, buffer_to_base64} from '#/util/data';
+	import {base93_to_buffer, buffer_to_base64, uuid_v4} from '#/util/data';
 	
 	import AccountEdit from './AccountEdit.svelte';
 	import type {KeystoneHardwareWalletExecution, KeystoneProgramHelper} from './KeystoneHardwareConfigurator.svelte';
@@ -150,7 +150,7 @@
 					const {
 						atu8_signature,
 					} = await k_prg.play(CosmosSignRequest.constructCosmosRequest(
-						crypto.randomUUID(),
+						uuid_v4(),
 						[sb16_fingerprint],
 						Buffer.from(atu8_doc),
 						SignDataType.amino,

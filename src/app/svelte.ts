@@ -353,7 +353,7 @@ export async function request_feegrant(sa_owner: Bech32): Promise<void> {
 	catch(e_fetch) {
 		throw syserr({
 			title: 'Network error',
-			text: ``,
+			text: e_fetch.message,
 		});
 	}
 	finally {

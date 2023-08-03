@@ -56,12 +56,12 @@ export function validate_contract(_p_contract: ContractPath) {
 				const g_snip20 = g_contract.interfaces.snip20;
 
 				// set contract type
-				yw_contract_type.set(ContractRole.FUNGIBLE);
+				void yw_contract_type.set(ContractRole.FUNGIBLE);
 
 				// populate token fields from snip-20 def
-				yw_token_symbol.set(g_snip20.symbol);
-				yw_token_decimals.set(g_snip20.decimals);
-				yw_token_coingecko.set(g_snip20.extra?.coingeckoId || '');
+				void yw_token_symbol.set(g_snip20.symbol);
+				void yw_token_decimals.set(g_snip20.decimals);
+				void yw_token_coingecko.set(g_snip20.extra?.coingeckoId || '');
 			}
 		}
 
@@ -73,17 +73,17 @@ export function validate_contract(_p_contract: ContractPath) {
 		if(!g_contract) return;
 
 		// populate contract fields from contract def
-		yw_contract_name.set(g_contract.name);
-		yw_contract_bech32.set(g_contract.bech32);
-		yw_contract_pfp.set(g_contract.pfp);
-		yw_contract_on.set(g_contract.on);
+		void yw_contract_name.set(g_contract.name);
+		void yw_contract_bech32.set(g_contract.bech32);
+		void yw_contract_pfp.set(g_contract.pfp);
+		void yw_contract_on.set(g_contract.on);
 
 		// ref chain
 		const _p_chain = g_contract.chain;
 
 		// load chain
 		const _g_chain = (await Chains.at(_p_chain))!;
-		yw_contract_chain.set(_g_chain);
+		void yw_contract_chain.set(_g_chain);
 	});
 
 	// go async
@@ -92,7 +92,7 @@ export function validate_contract(_p_contract: ContractPath) {
 		const _g_contract = (await Contracts.at(_p_contract))!;
 
 		// write to store
-		yw_contract.set(_g_contract);
+		void yw_contract.set(_g_contract);
 	})();
 
 	async function validate_load(p_chain: ChainPath, g_chain: ChainStruct) {
@@ -139,7 +139,7 @@ export function validate_contract(_p_contract: ContractPath) {
 
 				// contract name already defined on target chain
 				if(a_chains?.includes(p_chain)) {
-					yw_err_contract_name.set(`${is_token()? 'Token': 'Contract'} name already in use on ${g_chain.name}`);
+					void yw_err_contract_name.set(`${is_token()? 'Token': 'Contract'} name already in use on ${g_chain.name}`);
 				}
 				// no conflict, but there was a previous validation error; force retest
 				else if(yw_err_contract_name.get()) {
@@ -147,7 +147,7 @@ export function validate_contract(_p_contract: ContractPath) {
 				}
 				// reset error
 				else {
-					yw_err_contract_name.set('');
+					void yw_err_contract_name.set('');
 				}
 			}
 
@@ -184,7 +184,7 @@ export function validate_contract(_p_contract: ContractPath) {
 				}
 
 				// set or clear error
-				yw_err_contract_bech32.set(s_err_bech32);
+				void yw_err_contract_bech32.set(s_err_bech32);
 
 				// no error
 				if(!s_err_bech32) {
@@ -198,11 +198,11 @@ export function validate_contract(_p_contract: ContractPath) {
 
 						// other is the same type
 						if(yw_contract_type.get() === xc_contract) {
-							yw_err_contract_bech32.set(`${is_token()? 'Token': 'Contract'} already defined as ${s_label}`);
+							void yw_err_contract_bech32.set(`${is_token()? 'Token': 'Contract'} already defined as ${s_label}`);
 						}
 						// other is different type
 						else {
-							yw_wrn_contract_bech32.set(`Contract already defined. Proceeding will overwrite`);
+							void yw_wrn_contract_bech32.set(`Contract already defined. Proceeding will overwrite`);
 						}
 					}
 				}
@@ -220,11 +220,11 @@ export function validate_contract(_p_contract: ContractPath) {
 
 				// token symbol already defined in wallet
 				if(xc_defined) {
-					yw_err_token_symbol.set('Token symbol already in use');
+					void yw_err_token_symbol.set('Token symbol already in use');
 				}
 				// no conflict; clear error
 				else {
-					yw_err_token_symbol.set('');
+					void yw_err_token_symbol.set('');
 				}
 			}
 
@@ -232,7 +232,7 @@ export function validate_contract(_p_contract: ContractPath) {
 			function test_token_symbol(s_symbol=yw_token_symbol.get()) {
 				// test symbol or set error
 				if(!R_TOKEN_SYMBOL.test(s_symbol)) {
-					yw_err_token_symbol.set('Invalid token symbol');
+					void yw_err_token_symbol.set('Invalid token symbol');
 				}
 				// check for conflicts
 				else {
@@ -251,11 +251,11 @@ export function validate_contract(_p_contract: ContractPath) {
 	// validate the contract name
 	function test_contract_name(s_name=yw_contract_name.get()) {
 		// clear error
-		yw_err_contract_name.set('');
+		void yw_err_contract_name.set('');
 
 		// test name or set error
 		if(!R_CONTRACT_NAME.test(s_name)) {
-			yw_err_contract_name.set(`Invalid ${is_token()? 'token': 'contract'} name`);
+			void yw_err_contract_name.set(`Invalid ${is_token()? 'token': 'contract'} name`);
 		}
 	}
 

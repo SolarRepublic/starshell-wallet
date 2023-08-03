@@ -33,7 +33,7 @@
 	import {Policies} from '#/store/policies';
 	import {Secrets} from '#/store/secrets';
 	import {Settings} from '#/store/settings';
-	import {F_NOOP} from '#/util/belt';
+	import {F_NOOP, remove} from '#/util/belt';
 	import {load_page_context} from '##/svelte';
 	
 	import Close from './Close.svelte';
@@ -56,6 +56,7 @@
 	import SX_ICON_NARROW from '#/icon/narrow.svg?raw';
 	import SX_ICON_SEARCH from '#/icon/search.svg?raw';
 	import SX_ICON_VISIBILITY from '#/icon/visibility.svg?raw';
+	import { B_ANDROID_NATIVE } from '#/share/constants';
 	
 	
 
@@ -203,6 +204,27 @@
 		},
 	});
 
+	function pop_if_allowed(b_force=false) {
+		// page is poppable
+		if(pops && k_page?.index > 1) {
+			try {
+				k_page.pop();
+			}
+			catch(e_pop) {
+				if(b_force) {
+					$yw_navigator.activePage.pop();
+				}
+				else {
+					throw e_pop;
+				}
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
 	function keydown(d_event: KeyboardEvent) {
 		// escape key
 		if('Escape' === d_event.key) {
@@ -229,20 +251,28 @@
 
 			// shift key is being held
 			if(d_event.shiftKey) {
-				// page is poppable
-				if(pops && k_page) {
-					k_page.pop();
-				}
+				pop_if_allowed();
 			}
 		}
 	}
 
 	onMount(() => {
 		addEventListener('keydown', keydown);
+
+		if(B_ANDROID_NATIVE) {
+			globalThis.android_backers = [...globalThis.android_backers || [], pop_if_allowed];
+
+			globalThis.android_back = pop_if_allowed;
+		}
 	});
 
 	onDestroy(() => {
 		removeEventListener('keydown', keydown);
+
+		if(B_ANDROID_NATIVE && pop_if_allowed === globalThis.android_back) {
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+			remove(globalThis.android_backers || [], pop_if_allowed);
+		}
 	});
 
 	function update_search(d_event: Event) {

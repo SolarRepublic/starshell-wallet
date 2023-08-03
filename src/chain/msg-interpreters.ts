@@ -5,6 +5,7 @@ import {ComputeMessages} from './messages/compute';
 import {DistributionMessages} from './messages/distribution';
 import {FeegrantMessages} from './messages/feegrant';
 import {GovMessages} from './messages/gov';
+import {StakingMessages} from './messages/staking';
 
 export const H_INTERPRETTERS: MessageDict = {
 	...BankMessages,
@@ -12,4 +13,5 @@ export const H_INTERPRETTERS: MessageDict = {
 	...DistributionMessages,
 	...FeegrantMessages,
 	...GovMessages,
+	...StakingMessages,
 };

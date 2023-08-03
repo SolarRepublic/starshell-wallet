@@ -186,7 +186,6 @@
 		const k_navigator = new Navigator(gc_navigator);
 		$yw_navigator = k_navigator;
 
-
 		let xl_dx_tracking = 0;
 
 		// gestures

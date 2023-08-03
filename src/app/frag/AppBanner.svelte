@@ -14,7 +14,7 @@
 	import Fields from '../ui/Fields.svelte';
 
 	import SX_ICON_EXPAND from '#/icon/expand.svg?raw';
-    import { G_APP_EXTERNAL, G_APP_NULL } from '#/store/apps';
+	import { G_APP_EXTERNAL, G_APP_NULL } from '#/store/apps';
 	
 	/**
 	 * The app associated with the action. A `null` value explicitly means the action was inbound
@@ -60,15 +60,6 @@
 		&.embedded {
 			margin-bottom: 0;
 
-			>.view-controls {
-				position: absolute;
-				right: 0;
-				margin: 0 var(--ui-padding);
-
-				top: unset;
-				bottom: var(--ui-padding);
-			}
-
 			>.banner-view {
 				position: absolute;
 				top: 0;
@@ -84,30 +75,19 @@
 			}
 
 			&.view-mode_detailed {
-				>.view-controls {
-					top: 0;
-				}
-
 				>.banner-view {
 					transform: translateX(-100%);
+				}
+
+				>.view-controls {
+					>.show-details {
+						transform: rotate(90deg);
+					}
 				}
 			}
 		}
 
 		>.banner-view {
-			.view-controls {
-				position: absolute;
-				z-index: 1;
-				top: 110px;
-				right: var(--ui-padding);
-
-				>.show-details {
-					transform: rotate(-90deg);
-					color: var(--theme-color-primary);
-					padding: 8px;
-				}
-			}
-
 			.info-cluster {
 				position: relative;
 				background-color: var(--theme-color-black);
@@ -244,12 +224,20 @@
 			width: 100%;
 			padding: 0 var(--ui-padding);
 			box-sizing: border-box;
+		}
 
-			.view-controls {
-				position: absolute;
-				top: 0;
-				right: 0;
-				margin: 0 var(--ui-padding);
+		.view-controls {
+			position: absolute;
+			z-index: 1;
+			top: 20px;
+			right: 0;
+			margin: 0 var(--ui-padding);
+
+			>.show-details {
+				transition: transform 1s var(--ease-out-quick);
+				transform: rotate(-90deg);
+				color: var(--theme-color-primary);
+				padding: 8px;
 			}
 		}
 	}
@@ -287,12 +275,6 @@
 					},
 				]}
 			/>
-
-			<div class="view-controls">
-				<button class="pill" on:click={() => b_view_mode_detailed = false}>
-					Hide Details
-				</button>
-			</div>
 		</div>
 	{/if}
 
@@ -392,13 +374,13 @@
 				{/if}
 			</div>
 		{/if}
-
-		{#if embedded}
-			<div class="view-controls">
-				<span class="global_svg-icon icon-diameter_20px show-details" on:click={() => b_view_mode_detailed = true}>
-					{@html SX_ICON_EXPAND}
-				</span>
-			</div>
-		{/if}
 	</div>
+
+	{#if embedded}
+		<div class="view-controls">
+			<span class="global_svg-icon icon-diameter_20px show-details" on:click={() => b_view_mode_detailed = !b_view_mode_detailed}>
+				{@html SX_ICON_EXPAND}
+			</span>
+		</div>
+	{/if}
 </div>

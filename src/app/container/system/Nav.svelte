@@ -1,7 +1,9 @@
 <script lang="ts">
 	import type {ParametricSvelteConstructor} from '#/meta/svelte';
 
-	import {B_IOS_NATIVE, P_FALLBACK_BROWSER_HOMEPAGE} from '#/share/constants';
+	import type {WebKitMessenger} from '#/native/webkit-polyfill';
+	import {B_ANDROID_NATIVE, B_IOS_NATIVE, P_FALLBACK_BROWSER_HOMEPAGE} from '#/share/constants';
+	import {Settings} from '#/store/settings';
 	import {ode, oderac} from '#/util/belt';
 	import {H_THREADS, ThreadId} from '##/def';
 	import {
@@ -25,8 +27,6 @@
 	import SX_ICON_MENU from '#/icon/menu.svg?raw';
 	import SX_ICON_NFT from '#/icon/nfts.svg?raw';
 	import SX_ICON_TOKENS from '#/icon/tokens.svg?raw';
-    import { Settings } from '#/store/settings';
-    import type { WebKitMessenger } from '#/script/webkit-polyfill';
 	
 
 	// nav bar definition
@@ -43,7 +43,7 @@
 			svg: SX_ICON_TOKENS,
 			label: 'Tokens',
 		},
-		...B_IOS_NATIVE? {
+		...(B_IOS_NATIVE || B_ANDROID_NATIVE)? {
 			browser: {
 				svg: SX_ICON_GLOBE,
 				label: 'Browser',

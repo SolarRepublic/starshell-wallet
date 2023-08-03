@@ -12,7 +12,7 @@ import {address_to_name, add_coins} from './_util';
 import {global_broadcast} from '#/script/msg-global';
 import {Chains} from '#/store/chains';
 import {ode} from '#/util/belt';
-import {format_amount} from '#/util/format';
+import {AbbreviationLevel, format_amount} from '#/util/format';
 
 export interface AminoMsgSend {
 	from_address: Bech32;
@@ -65,6 +65,7 @@ export const BankMessages: MessageDict = {
 						type: 'contacts',
 						label: 'Recipient',
 						bech32s: [sa_recipient],
+						abbrv: AbbreviationLevel.SOME,
 						g_chain,
 					},
 				];
@@ -206,6 +207,7 @@ export const BankMessages: MessageDict = {
 							type: 'contacts',
 							label: `Sender #${i_input+1}`,
 							bech32s: [sa_sender],
+							abbrv: AbbreviationLevel.SOME,
 							g_chain,
 						});
 
@@ -244,6 +246,7 @@ export const BankMessages: MessageDict = {
 						type: 'contacts',
 						label: `Recipient #${i_output+1}`,
 						bech32s: [sa_recipient],
+						abbrv: AbbreviationLevel.SOME,
 						g_chain,
 					});
 

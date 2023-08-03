@@ -1,9 +1,14 @@
 <script lang="ts">
+	import type {SecretStruct} from '#/meta/secret';
+	
 	import {Header, Screen} from './_screens';
 	import {load_page_context} from '../svelte';
 	
 	import {B_SUPPORTS_LEDGER} from '#/share/constants';
 	
+	import {Secrets} from '#/store/secrets';
+	
+	import AccountCreate from './AccountCreate.svelte';
 	import GuideWalletImportSelector from './GuideWalletImportSelector.svelte';
 	import HardwareController from './HardwareController.svelte';
 	import KeystoneHardwareConfigurator from './KeystoneHardwareConfigurator.svelte';
@@ -12,6 +17,8 @@
 	import ActionsWall from '../ui/ActionsWall.svelte';
 	
 	import Curtain from '../ui/Curtain.svelte';
+	
+	
 
 	const {k_page, next_progress} = load_page_context();
 
@@ -22,6 +29,9 @@
 	const gc_push_all = {
 		context: next_progress(a_progress),
 	};
+
+	// list of existing mnemonic seeds
+	let a_seeds: SecretStruct<'mnemonic'>[] = [];
 
 	/**
 	 * The user must create an account (means there are no existing accounts)
@@ -83,6 +93,18 @@
 			...gc_push_all,
 		});
 	}
+
+	function new_account() {
+		k_page.push({
+			creator: AccountCreate,
+		});
+	}
+
+	(async function init() {
+		a_seeds = await Secrets.filter({
+			type: 'mnemonic',
+		});
+	})();
 </script>
 
 <style lang="less">
@@ -100,7 +122,13 @@
 	<div class="flex_1" />
 
 	<ActionsWall>
-		<button class="primary" on:click={() => soft_wallet(WalletIntent.NEW)}>
+		{#if a_seeds.length}
+			<button class="primary" on:click={() => new_account()}>
+				Add new account
+			</button>
+		{/if}
+
+		<button class:primary={!a_seeds.length} on:click={() => soft_wallet(WalletIntent.NEW)}>
 			Create new wallet
 		</button>
 

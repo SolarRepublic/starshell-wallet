@@ -72,8 +72,13 @@ export const B_DESKTOP = !B_MOBILE;
 /**
  * Within a WebKit view on mobile
  */
-export const B_MOBILE_WEBKIT_VIEW = 'object' === typeof globalThis['location'] && 'proxy:' === location.protocol && '' === location.host;
+export const B_MOBILE_WEBKIT_VIEW = 'object' === typeof globalThis['location'] && (
+	('proxy:' === location.protocol && '' === location.host)
+	|| ('https:' === location.protocol && 'starshell' === location.host)
+);
 export const B_MOBILE_APP_TOP_IS_MAIN = B_MOBILE_WEBKIT_VIEW && B_DEFINED_WINDOW && new URL(window.top!.location.href).pathname.endsWith('/popup.html');
+// @ts-expect-error undefined global
+export const B_DEFINED_ANDROID = 'undefined' !== typeof android;
 
 /**
  * Indicates the browser is WebKit
@@ -81,10 +86,13 @@ export const B_MOBILE_APP_TOP_IS_MAIN = B_MOBILE_WEBKIT_VIEW && B_DEFINED_WINDOW
 export const B_WEBKIT = 'WebKit' === G_USERAGENT.browser.name;
 export const B_SAFARI_MOBILE = 'Mobile Safari' === G_USERAGENT.browser.name;
 export const B_SAFARI_ANY = G_USERAGENT.browser.name?.includes('Safari') || B_WEBKIT;
-export const B_IPHONE_IOS = 'iPhone' === G_USERAGENT.device.model && 'iOS' === G_USERAGENT.os.name;
+export const B_IPHONE_IOS = ['iPhone', 'iPad'].includes(G_USERAGENT.device.model || '') && ['iOS', 'iPadOS'].includes(G_USERAGENT.os.name || '');
 export const B_FIREFOX_ANDROID = 'Firefox' === G_USERAGENT.browser.name && 'Android' === G_USERAGENT.os.name;
-export const B_CHROMIUM_ANDROID = 'Chrome' === G_USERAGENT.browser.name && 'Android' === G_USERAGENT.os.name;
 export const B_CHROME_SESSION_CAPABLE = 'Chrome' === G_USERAGENT.browser.name && (N_BROWSER_VERSION_MAJOR >= 108);
+
+
+export const B_CHROMIUM_ANDROID = 'Chrome WebView' === G_USERAGENT.browser.name && 'Android' === G_USERAGENT.os.name;
+export const B_ANDROID_NATIVE = B_DEFINED_ANDROID && B_CHROMIUM_ANDROID;
 
 
 export const B_SUPPORTS_LEDGER = 'function' === typeof navigator.usb?.getDevices;

@@ -8,7 +8,7 @@ window.addEventListener('error', (d_event) => {
 	console.error(d_event.error);
 });
 
-import {do_webkit_polyfill} from '#/script/webkit-polyfill';
+import {do_webkit_polyfill} from '#/native/webkit-polyfill';
 import type {IntraExt} from '#/script/messages';
 import type {Vocab} from '#/meta/vocab';
 import {global_broadcast} from '#/script/msg-global';

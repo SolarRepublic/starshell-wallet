@@ -1,7 +1,10 @@
 #!/bin/bash
 set -e
 
+MODE=${1:-production}
+PURPOSE=${2:-build}
+
 CWD=$(dirname "$0")
-"$CWD/_base.sh" firefox
+"$CWD/_base.sh" firefox $MODE $PURPOSE
 
 "$CWD/package-firefox.sh"

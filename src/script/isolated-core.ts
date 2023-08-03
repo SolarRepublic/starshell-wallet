@@ -519,7 +519,7 @@ export async function load_app_pfp(b_reload=false): Promise<void> {
 
 	// grab site pfp
 	const sq_icons = ['icon', 'apple-touch-icon'].map(s => `link[rel="${s}"]`).join(',');
-	const a_icons = [...document.head.querySelectorAll(sq_icons)] as HTMLLinkElement[];
+	const a_icons = [...document.head?.querySelectorAll(sq_icons) || []] as HTMLLinkElement[];
 
 	// prep icon data
 	let p_data = '';
@@ -576,7 +576,7 @@ export async function load_app_pfp(b_reload=false): Promise<void> {
 		}
 	}
 	else {
-		const p_og_image = document.head.querySelector('meta[property="og:image"]')?.getAttribute('content');
+		const p_og_image = document.head?.querySelector('meta[property="og:image"]')?.getAttribute('content');
 
 		if(p_og_image) {
 			// load its image data into a data URL

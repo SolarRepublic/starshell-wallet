@@ -127,6 +127,7 @@ export const F_CONTRACTS_PULSAR_NATIVE = (H_LOOKUP_PFP: Dict): ContractStruct[] 
 ].map(g => ({
 	name: g.name,
 	bech32: g.bech32,
+	// codeId: 12610
 	hash: g.hash || '43EDA3A25DFAB766C6AD622828B4B780D5D31A77A344163358FFFCEAA136CFCA',
 	on: 0,
 	pfp: g.pfp,

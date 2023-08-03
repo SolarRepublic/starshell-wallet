@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type {DelegationResponse, UnbondingDelegation} from '@solar-republic/cosmos-grpc/dist/cosmos/staking/v1beta1/staking';
-	
+
 	import type {Bech32} from '#/meta/chain';
 	
 	import BigNumber from 'bignumber.js';
@@ -8,8 +8,6 @@
 	import {yw_chain, yw_network, yw_owner} from '../mem';
 	
 	import {Coins} from '#/chain/coin';
-	
-	
 	import {open_external_link} from '#/util/dom';
 	
 	import Load from '../ui/Load.svelte';
@@ -31,13 +29,13 @@
 		unbonding: UnbondingDelegation[];
 	} | null = null;
 
-	const g_coin = $yw_chain?.coins?.[si_coin] || {};
+	$: g_coin = $yw_chain?.coins?.[si_coin] || {};
 
 	let s_bonded_amount = '';
 	let s_unbonding_amount = '';
 	const s_redelegating_amount = '';
 
-	(async function load() {
+	(async function init() {
 		g_delegations = await $yw_network.delegations(sa_owner);
 
 		// bonded

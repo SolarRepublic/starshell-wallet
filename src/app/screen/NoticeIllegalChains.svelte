@@ -7,8 +7,9 @@
 	
 	import {F_NOOP, ode} from '#/util/belt';
 	
-	import ActionsLine from '../ui/ActionsLine.svelte';
 	import AppBanner from '../frag/AppBanner.svelte';
+	import ActionsLine from '../ui/ActionsLine.svelte';
+
 	import Row from '../ui/Row.svelte';
 	
 
@@ -29,11 +30,11 @@
 <Screen>
 	<AppBanner {app} on:close={() => completed(false)}>
 		<span slot="default" style="display:contents;">
-			🚫 StarShell Beta does not allow<br>
-			connecting to non-testnet chains
+			🚫 StarShell does not yet allow<br>
+			connecting to foreign chains
 		</span>
 		<span slot="context" style="display:contents;">
-			Request testnet support by joining our discord
+			Request support by joining our discord
 		</span>
 	</AppBanner>
 

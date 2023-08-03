@@ -88,14 +88,14 @@ export const qs = <
 >(
 	dm_node: ParentNode | HTMLElement,
 	sq_selector: sq_selector
-): null | QueryResult<sq_selector> => dm_node.querySelector(sq_selector);
+): null | QueryResult<sq_selector> => dm_node?.querySelector(sq_selector);
 
 export const qsa = <
 	sq_selector extends string,
 >(
 	dm_node: ParentNode | HTMLElement,
 	sq_selector: sq_selector
-): QueryResult<sq_selector>[] => Array.prototype.slice.call(dm_node.querySelectorAll(sq_selector), 0) as QueryResult<sq_selector>[];
+): QueryResult<sq_selector>[] => [].slice.call(dm_node?.querySelectorAll(sq_selector) || [], 0) as QueryResult<sq_selector>[];
 
 export function dd<
 	si_tag extends keyof HTMLElementTagNameMap,

@@ -43,6 +43,10 @@ import {
 	SI_STORE_SETTINGS,
 	ConnectionHealth,
 	SI_STORE_QUERY_CACHE,
+	B_WITHIN_IAB_NAV_IFRAME,
+	B_MOBILE_WEBKIT_VIEW,
+	B_ANDROID_NATIVE,
+	B_IPHONE_IOS,
 } from '#/share/constants';
 import type {StoreRegistry} from '#/store/_registry';
 import {Accounts} from '#/store/accounts';
@@ -56,6 +60,9 @@ import {Tags} from '#/store/tags';
 import {F_NOOP, microtask, timeout} from '#/util/belt';
 
 import PopupReceive from './popup/PopupReceive.svelte';
+
+
+const B_STARSHELL_APP_TOP_IS_NAV = B_MOBILE_WEBKIT_VIEW && new URL(window.top!.location.href).pathname.endsWith('/navigation.html');
 
 
 
@@ -326,7 +333,7 @@ export function arrival(dm_screen: HTMLElement, fk_arrive: VoidFunction) {
 }
 
 // ref viewport object
-const d_viewport = globalThis.visualViewport || {
+let d_viewport = globalThis.visualViewport || {
 	width: globalThis.window?.innerWidth || 0,
 	height: globalThis.window?.innerHeight || 0,
 } as VisualViewport;
@@ -335,12 +342,20 @@ const d_viewport = globalThis.visualViewport || {
 function fit_viewport(xl_offset_height=0, xl_max_width=Infinity) {
 	const d_style_root = document.documentElement.style;
 	if(d_viewport) {
+		// update viewport
+		if(globalThis.visualViewport) d_viewport = visualViewport!;
+
 		const xl_width = Math.min(xl_max_width, d_viewport.width);
 		const xl_height = d_viewport.height + xl_offset_height;
 
 		if(xl_width * xl_height > 100) {
 			d_style_root.setProperty('--app-window-width', Math.floor(xl_width)+'px');
 			d_style_root.setProperty('--app-window-height', Math.floor(xl_height)+'px');
+
+			// android nav view
+			if(B_ANDROID_NATIVE && location.pathname.endsWith('/navigation.html')) {
+				d_style_root.setProperty('--app-window-height', '100vh');
+			}
 		}
 	}
 }
@@ -387,7 +402,8 @@ if('undefined' !== typeof document) {
 		void yw_shift_key.set(d_event.shiftKey);
 	});
 
-	void once_store_updates(yw_navigator).then(async() => {
+	// void once_store_updates(yw_navigator).then(async() => {
+	addEventListener('DOMContentLoaded', async() => {
 		console.debug(`System navigator ready`);
 
 		// ref html element
@@ -613,16 +629,18 @@ if('undefined' !== typeof document) {
 				document.body.style.height = '100vh';
 				document.body.style.maxHeight = 'var(--app-window-height)';
 			}
-			// within native ios webkit view
-			else if(B_IOS_NATIVE) {
+			// within native ios webkit view or android
+			else if(B_IOS_NATIVE || B_ANDROID_NATIVE) {
 				fit_viewport();
 
 				// set body height
 				document.body.style.height = '100vh';
 				document.body.style.maxHeight = 'var(--app-window-height)';
 
-				// set padding bottom in order to clear home bar
-				d_style_root.setProperty('--app-window-padding-bottom', '20px');
+				if(!B_STARSHELL_APP_TOP_IS_NAV && B_IOS_NATIVE) {
+					// set padding bottom in order to clear home bar
+					d_style_root.setProperty('--app-window-padding-bottom', '20px');
+				}
 
 				// dynamic app height
 				continually_adjust_height(0, () => {
@@ -630,12 +648,14 @@ if('undefined' !== typeof document) {
 					dm_html.scrollTo({top:0, behavior:'smooth'});
 				});
 
-				// prevent weird keyboard layout issues
-				setInterval(async() => {
-					document.documentElement.style.removeProperty('height');
-					await timeout(1e3);
-					document.documentElement.style.setProperty('height', '100vh');
-				}, 5e3);
+				// prevent weird keyboard layout issues on iOS
+				if(B_IPHONE_IOS) {
+					setInterval(async() => {
+						document.documentElement.style.removeProperty('height');
+						await timeout(1e3);
+						document.documentElement.style.setProperty('height', '100vh');
+					}, 5e3);
+				}
 			}
 
 			// resize app on mobile

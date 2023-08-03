@@ -63,7 +63,7 @@ export async function coin_formats(g_balance: Coin, g_coin: CoinInfo, si_versus=
 
 	const x_worth = g_versus[si_gecko];
 
-	const yg_balance = new BigNumber(g_balance.amount).shiftedBy(-g_coin.decimals).times(x_worth);
+	const yg_balance = new BigNumber(g_balance.amount).shiftedBy(-g_coin.decimals);
 
 	// parse balance and multiply by value
 	return {

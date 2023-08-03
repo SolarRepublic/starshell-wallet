@@ -35,7 +35,7 @@ export async function wgrpc_retry<
 			// runtime type-checking
 			if(e_wgrpc instanceof Error) {
 				// retryable HTTP status code
-				if([425, 429, 500, 502, 503, 504].includes((e_wgrpc as GrpcWebError).metadata?.statusCode || 0)) {
+				if([200, 425, 429, 500, 502, 503, 504].includes((e_wgrpc as GrpcWebError).metadata?.statusCode || 0)) {
 					// exponential back-off
 					await timeout(xt_wait * Math.pow(2, c_retries));
 

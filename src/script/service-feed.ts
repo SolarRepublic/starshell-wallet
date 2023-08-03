@@ -153,10 +153,11 @@ export class NetworkFeed {
 				if(!a_providers_online.length) {
 					console.error(`All providers failed for ${p_chain}: %o`, a_failures);
 
-					throw syserr({
+					syserr({
 						title: 'All providers offline',
 						text: s_provider_errors,
 					});
+					return;
 				}
 
 				// some failures with attempted providers

@@ -1,11 +1,14 @@
 import type {Values} from './meta/belt';
 import type {ContentScripts} from 'webextension-polyfill';
+import type { SnakeCaseDeep, SnakeCaseKeys } from './meta/string';
+import type { A } from 'ts-toolbelt';
 
 type ManifestV2 = chrome.runtime.ManifestV2;
 type ManifestV3 = chrome.runtime.ManifestV3;
 
 type Mv2ContentScript = Values<NonNullable<Required<ManifestV2>['content_scripts']>>;
 type Mv3ContentScript = Values<NonNullable<Required<ManifestV3>['content_scripts']>>;
+
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function buildBrowserManifest(b_prod=false) {
@@ -54,9 +57,13 @@ export function buildBrowserManifest(b_prod=false) {
 		'http://127.0.0.1/*',
 	];
 
-	const A_MATCH_ALL = [
+	const A_MATCH_LOCAL = [
 		'file://*/*',
 		...A_MATCH_LOCALHOST,
+	];
+
+	const A_MATCH_ALL = [
+		...A_MATCH_LOCAL,
 		'https://*/*',
 	];
 
@@ -74,7 +81,10 @@ export function buildBrowserManifest(b_prod=false) {
 	];
 
 
-	type ContentScriptOverrides = Partial<ContentScripts.RegisteredContentScriptOptions | {world: 'MAIN' | 'ISOLATED'}>;
+	type ContentScriptOverrides = Partial<SnakeCaseDeep<ContentScripts.RegisteredContentScriptOptions> | {
+		world: 'MAIN' | 'ISOLATED';
+		match_origin_as_fallback: boolean;
+	}>;
 
 	const B_ALL_FRAMES = false;
 
@@ -142,14 +152,17 @@ export function buildBrowserManifest(b_prod=false) {
 				...G_CONTENT_SCRIPT_DEFAULT,
 				js: [
 					'src/script/worker-argon2.ts',
-					'src/script/debug.ts',
+					// 'src/script/debug.ts',
+
+					// required for android; should be removed for chrome
+					'src/script/mcs-android.ts',
 				],
 				matches: A_MATCH_NEVER,
 				run_at: 'document_start',
 				all_frames: false,
 			};
 		},
-		
+
 
 		// ics_polyfill(h_overrides?: ContentScriptOverrides) {
 		// 	return {
@@ -162,15 +175,17 @@ export function buildBrowserManifest(b_prod=false) {
 		// 	};
 		// },
 
-		// mcs_keplr(h_overrides?: ContentScriptOverrides) {
-		// 	return {
-		// 		js: ['src/script/mcs-keplr.ts'],
-		// 		matches: A_MATCH_ALL,
-		// 		run_at: 'document_start',
-		// 		all_frames: true,
-		// 		...h_overrides,
-		// 	};
-		// },
+		// unconditionally polyfill file:// and localhost
+		mcs_keplr(h_overrides?: ContentScriptOverrides) {
+			return {
+				...G_CONTENT_SCRIPT_DEFAULT,
+				js: ['src/script/mcs-keplr.ts'],
+				matches: A_MATCH_NEVER,
+				run_at: 'document_start',
+				all_frames: B_ALL_FRAMES,
+				...h_overrides,
+			};
+		},
 
 		// about_blank() {
 		// 	return {
@@ -196,7 +211,6 @@ export function buildBrowserManifest(b_prod=false) {
 			'notifications',
 			'clipboardRead',
 			'clipboardWrite',
-			'offscreen',
 		],
 	};
 
@@ -269,6 +283,7 @@ export function buildBrowserManifest(b_prod=false) {
 
 		permissions: [
 			...G_MANIFEST_COMMON.permissions,
+			'offscreen',
 			'system.display',
 		],
 
@@ -289,11 +304,23 @@ export function buildBrowserManifest(b_prod=false) {
 			G_CONTENT_SCRIPTS.ics_spotter({
 				world: 'ISOLATED',
 			}),
+			G_CONTENT_SCRIPTS.ics_spotter({
+				world: 'ISOLATED',
+				matches: A_MATCH_LOCAL,
+				match_origin_as_fallback: true,
+			}),
 			G_CONTENT_SCRIPTS.ics_launch({
 				world: 'ISOLATED',
 			}),
 			G_CONTENT_SCRIPTS.ics_link({
 				world: 'ISOLATED',
+			}),
+			// unconditionally polyfill file:// and localhost
+			G_CONTENT_SCRIPTS.mcs_keplr({
+				world: 'MAIN',
+				matches: A_MATCH_LOCAL,
+				match_origin_as_fallback: true,
+				all_frames: true,
 			}),
 			G_CONTENT_SCRIPTS.dynamically_importable(),
 		] as Mv3ContentScript[],

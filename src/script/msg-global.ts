@@ -4,6 +4,8 @@ import type {Union} from 'ts-toolbelt';
 import type {JsonValue, Nilable, Promisable} from '#/meta/belt';
 import type {Vocab} from '#/meta/vocab';
 
+import {uuid_v4} from '#/util/data';
+
 // import {B_IOS_NATIVE, B_IOS_WEBKIT} from '#/share/constants';
 
 
@@ -23,7 +25,7 @@ export function global_broadcast(g_msg: Vocab.Message<IntraExt.GlobalVocab>): vo
 	// wrap local message
 	const g_local: Vocab.MessageValue<FlowToNav.WindowVocab, 'broadcast'> = {
 		data: g_msg,
-		uuid: crypto.randomUUID(),
+		uuid: uuid_v4(),
 	};
 
 	// echo locally

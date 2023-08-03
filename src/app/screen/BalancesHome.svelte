@@ -52,6 +52,10 @@
 	import TokenRow from '../frag/TokenRow.svelte';
 	import PopupNotice from '../popup/PopupNotice.svelte';
 	import Row from '../ui/Row.svelte';
+    import HiddenTokens from './HiddenTokens.svelte';
+    import { starshell_transaction } from '../helper/starshell';
+    import type { QueryDelegationResponse, QueryRedelegationsResponse, QueryUnbondingDelegationResponse } from '@solar-republic/cosmos-grpc/dist/cosmos/staking/v1beta1/query';
+    import type { DelegationResponse, RedelegationResponse, UnbondingDelegation } from '@solar-republic/cosmos-grpc/dist/cosmos/staking/v1beta1/staking';
 	
 	const G_RETRYING_TOKEN = {
 		name: 'Retrying...',
@@ -75,6 +79,9 @@
 
 		// native balances
 		a_balances: [string, CoinInfo, Coin][];
+
+		// native staking
+		a_staking: [string, CoinInfo, Coin][] = [];
 
 		// dict of fiat equivalents 
 		h_fiats: Dict<Promise<BigNumber>>;
@@ -126,6 +133,9 @@
 
 	// native balances
 	let a_balances: [string, CoinInfo, Coin][] = [];
+
+	// native staking
+	let a_staking: [string, CoinInfo, Coin][] = [];
 
 	// dict of fiat equivalents
 	let h_fiats: Dict<Promise<BigNumber>> = {};
@@ -192,6 +202,7 @@
 		h_token_errors,
 		h_token_states,
 		a_balances,
+		a_staking,
 		h_fiats,
 		dp_total,
 		a_no_gas,
@@ -229,6 +240,7 @@
 			h_token_errors,
 			h_token_states,
 			a_balances,
+			a_staking,
 			h_fiats,
 			dp_total,
 			a_no_gas,
@@ -250,6 +262,7 @@
 				h_token_errors: {},
 				h_token_states: {},
 				a_balances: [],
+				a_staking: [],
 				h_fiats: {},
 				dp_total: forever(''),
 				a_no_gas: [],
@@ -274,6 +287,7 @@
 			h_token_errors,
 			h_token_states,
 			a_balances,
+			a_staking,
 			h_fiats,
 			dp_total,
 			a_no_gas,
@@ -580,7 +594,7 @@
 
 					syserr({
 						title: 'Network Error',
-						text: `While trying to retrieve your account balance on ${yw_network.get().chain.name}: ${e_network.metadata?.statusCode}`,
+						text: `While trying to retrieve your account balance on ${yw_network.get().chain.name}: ${e_network.metadata?.statusCode}\n${e_network.message}`,
 					});
 				}
 			}
@@ -620,6 +634,10 @@
 				if(Chains.allFeeCoins($yw_chain).find(([si]) => si === si_coin)) {
 					a_no_gas_tmp.push(si_coin);
 				}
+				// skip ibc assets with zero balance
+				else if(g_coin.denom.includes('/')) {
+					continue;
+				}
 
 				// set balance (no need to fetch worth of coin)
 				h_fiats[si_coin] = Promise.resolve(BigNumber(0));
@@ -653,8 +671,46 @@
 		}
 		catch(e_query) {}
 
+		try {
+			await reload_native_staking();
+		}
+		catch(e_staking) {}
+
 		// update gas
 		a_no_gas = a_no_gas_tmp;
+	}
+
+	async function reload_native_staking() {
+		const g_delegations = await $yw_network.delegations(sa_owner);
+
+		// const g_info = await $yw_network.stakingInfo();
+
+		a_staking.length = 0;
+		const h_staking = {};
+		for(const g_bonded of g_delegations.bonded) {
+			const g_balance = g_bonded.balance;
+			if(g_balance) {
+				const si_denom = g_balance.denom;
+				h_staking[si_denom] = (h_staking[si_denom] || 0n) + BigInt(g_balance.amount);
+			}
+		}
+
+		for(const [si_denom, xg_amount] of ode(h_staking)) {
+			const si_coin = Chains.coinFromDenom(si_denom, $yw_chain);
+
+			const g_balance = {
+				amount: xg_amount+'',
+				denom: si_denom,
+			};
+
+			a_staking.push([si_coin, $yw_chain.coins[si_coin], g_balance]);
+
+			// asynchronously convert to fiat
+			h_fiats[si_coin+'/'] = coin_to_fiat(g_balance, $yw_chain.coins[si_coin]);
+		}
+
+		// invalidate ui
+		a_staking = a_staking;
 	}
 
 
@@ -954,25 +1010,7 @@
 				return amino_to_base(g_exec.amino).encode();
 			}));
 
-			// prep proto fee
-			const gc_fee: FeeConfig = {
-				limit: BigInt($yw_chain.features.secretwasm!.snip20GasLimits.mint) * BigInt(a_msgs_proto.length),
-			};
-
-			k_page.push({
-				creator: RequestSignature,
-				props: {
-					protoMsgs: a_msgs_proto,
-					fee: gc_fee,
-					broadcast: {},
-					local: true,
-				},
-				context: {
-					chain: g_chain,
-					accountPath: $yw_account_ref,
-					app: G_APP_STARSHELL,
-				},
-			});
+			starshell_transaction(a_msgs_proto, BigInt($yw_chain.features.secretwasm!.snip20GasLimits.mint) * BigInt(a_msgs_proto.length));
 		}
 	}
 
@@ -984,7 +1022,9 @@
 		try {
 			// bias StarShell since it gives 100 SCRT and no IP limiting
 			try {
-				const d_res_0 = await fetch(a_faucets[0], {
+				const p_test = a_faucets[0];
+
+				await fetch(p_test, {
 					headers: {
 						accept: 'text/html',
 					},
@@ -997,7 +1037,7 @@
 					signal: abort_signal_timeout(2e3).signal,
 				});
 
-				return d_res_0.url;
+				return p_test;
 			}
 			catch(e_req) {}
 
@@ -1269,27 +1309,53 @@
 		
 		<!-- {#key $yw_network || $yw_owner} -->
 		<div class="rows no-margin border-top_black-8px">
+			{#each a_staking as [si_coin, g_coin, g_amount]}
+				<!-- cache holding path -->
+				{@const p_entity = Entities.holdingPathFor(sa_owner, si_coin)}
+				<Row lockIcon detail="Staked Native {g_coin.name}" postnameTags
+					resource={$yw_chain}
+					resourcePath={p_entity}
+					name="✞ {si_coin}"
+					pfp={g_coin.pfp}
+					pfpFilter='locked'
+					amount={as_amount(g_amount, g_coin)}
+					fiat={h_fiats[si_coin+'/']?.then(yg => format_fiat(yg.toNumber(), 'usd')) || forever('')}
+					on:click={() => {
+						k_page.push({
+							creator: HoldingView,
+							props: {
+								holdingPath: p_entity,
+							},
+						});
+					}}
+				>
+				</Row>
+			{/each}
+
 			<!-- fetch native coin balances, display known properties while loading -->
 			{#if b_loading_natives}
 				<!-- each known coin -->
 				{#each ode($yw_chain.coins) as [si_coin, g_bundle]}
-					<!-- cache holding path -->
-					{@const p_entity = Entities.holdingPathFor(sa_owner, si_coin)}
-					<Row lockIcon detail='Native Coin' postnameTags
-						resource={$yw_chain}
-						resourcePath={p_entity}
-						name={si_coin}
-						pfp={$yw_chain.pfp}
-						amount={forever('')}
-						on:click={() => {
-							k_page.push({
-								creator: HoldingView,
-								props: {
-									holdingPath: p_entity,
-								},
-							});
-						}}
-					/>
+					<!-- omit ibc assets while loading -->
+					{#if !g_bundle.denom.includes('/')}
+						<!-- cache holding path -->
+						{@const p_entity = Entities.holdingPathFor(sa_owner, si_coin)}
+						<Row lockIcon detail="Native {g_bundle.name}" postnameTags
+							resource={$yw_chain}
+							resourcePath={p_entity}
+							name={si_coin}
+							pfp={g_bundle.pfp}
+							amount={forever('')}
+							on:click={() => {
+								k_page.push({
+									creator: HoldingView,
+									props: {
+										holdingPath: p_entity,
+									},
+								});
+							}}
+						/>
+					{/if}
 				{/each}
 			<!-- all bank balances loaded -->
 			{:else}
@@ -1297,11 +1363,11 @@
 				{#each a_balances as [si_coin, g_coin, g_balance] (si_coin)}
 					<!-- cache holding path -->
 					{@const p_entity = Entities.holdingPathFor(sa_owner, si_coin)}
-					<Row lockIcon detail='Native Coin' postnameTags
+					<Row lockIcon detail="Native {g_coin.name}" postnameTags
 						resource={$yw_chain}
 						resourcePath={p_entity}
 						name={si_coin}
-						pfp={$yw_chain.pfp}
+						pfp={g_coin.pfp}
 						amount={as_amount(g_balance, g_coin)}
 						fiat={h_fiats[si_coin]?.then(yg => format_fiat(yg.toNumber(), 'usd')) || forever('')}
 						on:click={() => {
@@ -1324,8 +1390,10 @@
 					amount={forever('')}
 				/>
 			{:else}
+				{@const a_hidden = ode($yw_account.assets[$yw_chain_ref]?.data || {}).filter(([, g]) => g.hidden).map(([sa]) => sa)}
+
 				<!-- each token -->
-				{#each a_tokens.filter(g => !!g.interfaces?.['snip20']) as g_token (g_token.bech32)}
+				{#each a_tokens.filter(g => !!g.interfaces?.['snip20'] && !a_hidden.includes(g.bech32)) as g_token (g_token.bech32)}
 					{@const sa_token = g_token.bech32}
 					
 					<!-- failed to fetch balance -->
@@ -1360,7 +1428,7 @@
 													`Error querying token balance`,
 													...ode(g_error['metadata']?.headersMap || {})
 														.filter(([si_header]) => /^(grpc|proxied|x-cosmos)-/.test(si_header))
-														.map(([si_header, a_values]) => ` － ${si_header}: ${a_values.join(', ')}`),
+														.map(([si_header, a_values]) => ` - ${si_header}: ${a_values.join(', ')}`),
 												],
 											};
 
@@ -1391,6 +1459,16 @@
 						<TokenRow contract={g_token} unauthorized b_draggable on:dropRow={drop_row} />
 					{/if}
 				{/each}
+
+				<!-- hidden tokens -->
+				{#if a_hidden.length}
+					<Row
+						name="{a_hidden.length} hidden token{1 !== a_hidden.length? 's': ''}"
+						on:click={() => k_page.push({
+							creator: HiddenTokens,
+						})}
+					/>
+				{/if}
 			{/if}
 		</div>
 	{/key}

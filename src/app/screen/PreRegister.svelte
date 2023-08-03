@@ -66,7 +66,7 @@
 
 	<div class="large" on:click={() => k_page.push({creator:DebugIos})}>
 		<div>Welcome to the only wallet extension that puts privacy and security above all else.</div>
-		<div>Please allow 10 - 20 minutes to complete the set up process.</div>
+		<div>Please allow 10 - 20 minutes to complete the setup process.</div>
 	</div>
 
 	<ActionsLine confirm={['Get Started']} contd={{creator:Register}} />

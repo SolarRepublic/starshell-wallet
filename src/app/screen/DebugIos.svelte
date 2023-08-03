@@ -1,8 +1,9 @@
 <script lang="ts">
 
 	import { public_storage_get } from "#/extension/public-storage";
-	import { do_webkit_polyfill } from "#/script/webkit-polyfill";
-	import { B_IOS_NATIVE } from "#/share/constants";
+	import { do_webkit_polyfill } from "#/native/webkit-polyfill";
+	import { B_ANDROID_NATIVE, B_IOS_NATIVE } from "#/share/constants";
+    import { uuid_v4 } from '#/util/data';
 
 
 	do_webkit_polyfill();
@@ -63,7 +64,7 @@
 
 
 	async function debug_storage() {
-		if(B_IOS_NATIVE) {
+		if(B_IOS_NATIVE || B_ANDROID_NATIVE) {
 			a_output.push(JSON.stringify(await chrome.storage.local.debug()));
 		}
 		else {
@@ -86,7 +87,7 @@
 	}
 
 	async function test_write() {
-		const s_test = crypto.randomUUID();
+		const s_test = uuid_v4();
 
 		await chrome.storage.local.set({
 			'@test': s_test,

@@ -253,7 +253,7 @@ export async function import_private_key(kn_sk: SensitiveBytes, s_name: string):
 
 	const p_secret = await Secrets.put(atu8_sk, {
 		type: 'private_key',
-		uuid: crypto.randomUUID(),
+		uuid: uuid_v4(),
 		name: `Imported private key`,
 		security: {
 			type: 'none',

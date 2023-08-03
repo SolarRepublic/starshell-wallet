@@ -49,6 +49,8 @@ export const FeegrantMessages: MessageDict = {
 		let s_amount = '';
 		let xt_expires = Infinity;
 
+		const a_fields_common: FieldConfig[] = [];
+
 		if(b_basic) {
 			a_coins = g_allowance.value.spend_limit;
 
@@ -60,19 +62,44 @@ export const FeegrantMessages: MessageDict = {
 			}
 		}
 
+		add_coins({
+			g_chain,
+			coins: a_coins,
+		}, a_fields_common);
+
+		a_fields_common.push(...[
+			{
+				type: 'contacts',
+				bech32s: [sa_granter],
+				label: 'Granter',
+				short: true,
+				g_chain,
+			},
+			{
+				type: 'contacts',
+				bech32s: [sa_grantee],
+				label: 'Grantee',
+				short: true,
+				g_chain,
+			},
+		] as FieldConfig[]);
+
+		if(b_basic) {
+			a_fields_common.push(...[
+				{
+					type: 'key_value',
+					key: 'Expires',
+					value: Number.isFinite(xt_expires)? format_date_long(xt_expires): 'Never',
+				},
+			] as FieldConfig[]);
+		}
+
 		return {
 			describe() {
-				const a_fields_describe: FieldConfig[] = [];
-
-				add_coins({
-					g_chain,
-					coins: a_coins,
-				}, a_fields_describe);
-
 				return {
 					title: 'Issue Fee Grant Allowance',
 					value: `Allows the grantee to spend coins from this account when paying for gas fees.`,
-					fields: a_fields_describe,
+					fields: a_fields_common,
 				};
 			},
 
@@ -81,38 +108,10 @@ export const FeegrantMessages: MessageDict = {
 			},
 
 			review() {
-				const a_fields_review: FieldConfig[] = [];
-
 				let s_summary = '';
 
 				if(b_basic) {
 					s_summary = `${s_granter} granted ${s_amount}`;
-
-					a_fields_review.push(...[
-						{
-							type: 'key_value',
-							key: 'Amount',
-							value: s_amount,
-						},
-						{
-							type: 'contacts',
-							bech32s: [sa_granter],
-							label: 'Granter',
-							short: true,
-							g_chain,
-						},
-						{
-							type: 'accounts',
-							paths: [p_account],
-							label: 'Grantee',
-							short: true,
-						},
-						{
-							type: 'key_value',
-							key: 'Expires',
-							value: Number.isFinite(xt_expires)? format_date_long(xt_expires): 'Never',
-						},
-					] as FieldConfig[]);
 				}
 
 				return {
@@ -127,7 +126,7 @@ export const FeegrantMessages: MessageDict = {
 							key: 'Type',
 							value: g_allowance.type.replace(/^[^/]+\//, ''),
 						},
-						...a_fields_review,
+						...a_fields_common,
 					],
 				};
 			},

@@ -145,7 +145,7 @@
 			name={g_snip20.symbol}
 			resourcePath={p_contract}
 			detail={contract.name}
-			pfp={contract.pfp}
+			resource={contract}
 			on:click={click_row}
 		>
 			<svelte:fragment slot="right">
@@ -171,7 +171,7 @@
 			name={g_snip20.symbol}
 			resourcePath={p_contract}
 			detail={contract.name}
-			pfp={contract.pfp}
+			resource={contract}
 			on:click={click_row}
 		>
 			<svelte:fragment slot="right">
@@ -186,9 +186,9 @@
 		<Row postnameTags b_draggable on:dropRow
 			b_amount_updating={balance?.['b_from_cache'] || false}
 			name={g_snip20.symbol}
+			resource={contract}
 			resourcePath={p_contract}
 			detail={contract.name}
-			pfp={contract.pfp}
 			amount={w_amount}
 			{...g_fields}
 			on:click={click_row}

@@ -3,7 +3,7 @@
  * appropriate security scripts before loading any generated bundles, which may possibly contain malicious
  * supply-chain attack payloads. This effectively mitigates supply-chain attacks from devDependencies.
  */
-import {DOMParser} from 'https://deno.land/x/deno_dom/deno-dom-wasm.ts';
+import {DOMParser} from 'https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts';
 
 const S_ENGINE = Deno.args[0];
 

@@ -334,6 +334,11 @@ export namespace IcsToService {
 			};
 			response: AppResponse<string>;
 		};
+
+		// disconnect: {
+		// 	value: {};
+		// 	response: AppResponse<void>;
+		// };
 	}, {
 		each: {
 			message: {

@@ -3,7 +3,8 @@ const debug = (s: string, ...a_args: (string | number | object)[]) => console.de
 debug(`Launched on ${Date()}`);
 
 /* eslint-disable i/order */
-import {do_webkit_polyfill} from './webkit-polyfill';
+import {do_android_polyfill} from '../native/android-polyfill';
+import {do_webkit_polyfill} from '../native/webkit-polyfill';
 import {
 	B_IPHONE_IOS,
 	B_IOS_NATIVE,
@@ -16,9 +17,11 @@ import {
 	B_DESKTOP,
 	B_MOBILE_WEBKIT_VIEW,
 	B_MOBILE_APP_TOP_IS_MAIN,
+	B_ANDROID_NATIVE,
 } from '#/share/constants';
 /* eslint-enable */
 
+do_android_polyfill(globalThis, debug);
 do_webkit_polyfill(debug);
 
 /* eslint-disable i/order */
@@ -582,7 +585,7 @@ const message_router: MessageHandler = (g_msg, g_sender, fk_respond) => {
 				}
 			}
 			// from content script
-			else if(g_sender.tab && 'number' === typeof g_sender.tab.id) {
+			else if('number' === typeof g_sender.tab?.id) {
 				break CHECK_SOURCE;
 			}
 
@@ -924,7 +927,9 @@ if(!B_MOBILE_WEBKIT_VIEW || B_MOBILE_APP_TOP_IS_MAIN) {
 }
 
 // set compatibility mode based on apps and current settings
-void set_keplr_compatibility_mode();
+if(!B_ANDROID_NATIVE) {
+	void set_keplr_compatibility_mode();
+}
 
 
 if(B_DEVELOPMENT) {

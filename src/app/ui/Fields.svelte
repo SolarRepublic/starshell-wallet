@@ -547,14 +547,14 @@
 									<Row
 										rootStyle='border:none; padding:calc(0.5 * var(--ui-padding)) 1px;'
 										resource={g_contact}
-										address={sa_agent} abbreviate={AbbreviationLevel.SOME}
+										address={sa_agent} abbreviate={gc_field.abbrv || AbbreviationLevel.NONE}
 										on:click={() => copy(sa_agent)}
 									/>
 								{:else}	
 									<Row
 										rootStyle='border:none; padding:calc(0.5 * var(--ui-padding)) 1px;'
 										name={`Unknown`}
-										address={sa_agent}
+										address={sa_agent} abbreviate={gc_field.abbrv || AbbreviationLevel.NONE}
 										on:click={() => copy(sa_agent)}
 									/>
 								{/if}
@@ -563,10 +563,10 @@
 					{/each}
 				</Field>
 			{:else if 'contracts' === gc_field.type}
-				<Field key='involved-contracts' name={gc_field.label || 'Contracts'}>
-					{@const {g_chain, g_app} = gc_field}
-					{@const z_bech32s = gc_field.bech32s}
-					{@const h_bech32s = Array.isArray(z_bech32s)? fold(z_bech32s, sa => ({[sa]:''})): z_bech32s}
+				{@const {g_chain, g_app} = gc_field}
+				{@const z_bech32s = gc_field.bech32s}
+				{@const h_bech32s = Array.isArray(z_bech32s)? fold(z_bech32s, sa => ({[sa]:''})): z_bech32s}
+				<Field key='involved-contracts' name={gc_field.label || 'Contracts'} short={!!gc_field.short && Object.keys(h_bech32s).length <= 1}>
 					{#each ode(h_bech32s) as [sa_contract, w_disabled]}
 						{#await produce_contract(sa_contract, g_chain, g_app, gc_field.g_account)}
 							<LoadingRows />
@@ -577,7 +577,7 @@
 									resource={g_contract}
 									resourcePath={Contracts.pathFrom(g_contract)}
 									pfp={g_contract.pfp || ''}
-									address={g_contract.bech32} abbreviate={AbbreviationLevel.SOME}
+									address={g_contract.bech32} abbreviate={gc_field.abbrv || AbbreviationLevel.NONE}
 									on:click={() => copy(g_contract.bech32)}
 								/>
 							</Copyable>

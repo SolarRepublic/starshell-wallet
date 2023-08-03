@@ -9,6 +9,7 @@
 	
 	import {Screen, Header} from './_screens';
 	import {syserr} from '../common';
+	import {starshell_transaction} from '../helper/starshell';
 	import {yw_account, yw_account_ref, yw_network, yw_owner} from '../mem';
 	import {load_page_context} from '../svelte';
 	
@@ -19,7 +20,6 @@
 	
 	import AppView from './AppView.svelte';
 	import QueryPermitCreate from './QueryPermitCreate.svelte';
-	import RequestSignature from './RequestSignature.svelte';
 	import ChainToken from '../frag/ChainToken.svelte';
 	import QueryPermitRow from '../frag/QueryPermitRow.svelte';
 	import Curtain from '../ui/Curtain.svelte';
@@ -108,24 +108,7 @@
 		// construct viewing key message
 		const g_exec = await Snip2xMessageConstructor.generate_viewing_key($yw_account, contract, $yw_network as SecretNetwork, s_viewing_key);
 
-		k_page.push({
-			creator: RequestSignature,
-			props: {
-				protoMsgs: [g_exec.proto],
-				fee: {
-					limit: BigInt(g_chain.features.secretwasm!.snip20GasLimits.set_viewing_key),
-				},
-				broadcast: {},
-				local: true,
-			},
-			context: {
-				app: G_APP_STARSHELL,
-				chain: g_chain,
-				accountPath: $yw_account_ref,
-				// async completed(b_answer: boolean, g_completed: CompletedSignature) {
-				// },
-			},
-		});
+		starshell_transaction([g_exec.proto], g_chain.features.secretwasm!.snip20GasLimits.set_viewing_key);
 	}
 
 	let b_tooltip_showing = false;

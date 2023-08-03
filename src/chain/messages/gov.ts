@@ -41,7 +41,7 @@ import {JsonPreviewer} from '#/app/helper/json-previewer';
 
 import {yw_network} from '#/app/mem';
 import {dd} from '#/util/dom';
-import {format_amount} from '#/util/format';
+import {AbbreviationLevel, format_amount} from '#/util/format';
 
 type ProposalRegistry = {
 	TextProposal: TextProposal;
@@ -142,6 +142,7 @@ function embed_proposal(g_proposal: ProposalTuple, g_chain: ChainStruct, a_field
 				type: 'contacts',
 				bech32s: [sa_recipient as Bech32],
 				label: 'Recipient',
+				abbrv: AbbreviationLevel.SOME,
 				g_chain,
 			});
 

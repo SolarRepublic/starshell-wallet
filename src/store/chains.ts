@@ -17,6 +17,7 @@ import {pubkey_to_bech32} from '#/crypto/bech32';
 import {R_BECH32, SI_STORE_CHAINS} from '#/share/constants';
 import {ode} from '#/util/belt';
 import {format_amount} from '#/util/format';
+import { H_LOOKUP_PFP } from './_init';
 
 
 export class TransactionNotFoundError extends Error {}
@@ -36,6 +37,7 @@ export const parse_date = (s_input: string | null): number => {
 };
 
 const R_CHAIN_PATH = /^\/family\.([^/]+)\/chain\.([^/]+)(\/|$)/;
+
 
 type PathFor<
 	si_family extends ChainNamespaceKey,
@@ -141,11 +143,17 @@ export const Chains = create_store_class({
 		}
 
 		static summarizeAmount(g_amount: Writable<Coin>, g_chain: ChainStruct): string {
-			// identify coin by its denom
+			// attempt to identify coin by its denom
 			const si_coin = ChainsI.coinFromDenom(g_amount.denom, g_chain);
 
 			// lookup coin
 			const g_coin = g_chain.coins[si_coin];
+
+			// coin is not defined (foreign ibc asset)
+			if(!g_coin) {
+				// fallback to raw display
+				return `${g_amount.amount} ${g_amount.denom}`;
+			}
 
 			// convert to amount
 			const x_amount = new BigNumber(g_amount.amount).shiftedBy(-g_coin.decimals).toNumber();
@@ -199,3 +207,29 @@ export const Chains = create_store_class({
 		}
 	},
 });
+
+export const G_CHAIN_NONE: ChainStruct = {
+	namespace: 'none',
+	reference: 'none',
+	name: 'No Chain',
+	on: 1,
+	pfp: H_LOOKUP_PFP['/media/vendor/logo.svg'],
+	bech32s: {
+		acc: '',
+		accpub: 'pub',
+		valcons: 'valcons',
+		valconspub: 'valconspub',
+		valoper: 'valoper',
+		valoperpub: 'valoperpub',
+	},
+	coins: {},
+	features: {},
+	fungibleTokenInterfaces: [],
+	gasPrices: {
+		default: 0,
+		steps: [],
+	},
+	providers: [],
+	slip44s: [],
+	nonFungibleTokenInterfaces: [],
+};

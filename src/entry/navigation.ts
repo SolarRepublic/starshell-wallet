@@ -1,9 +1,11 @@
 /* eslint-disable i/order */
-import {do_webkit_polyfill} from '#/script/webkit-polyfill';
+import {do_android_polyfill} from '#/native/android-polyfill';
+import {do_webkit_polyfill} from '#/native/webkit-polyfill';
 import {
 	parse_params,
 } from '#/share/constants';
 
+do_android_polyfill();
 do_webkit_polyfill();
 /* eslint-enable */
 

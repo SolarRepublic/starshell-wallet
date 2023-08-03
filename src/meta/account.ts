@@ -96,6 +96,11 @@ export type Account<
 				viewingKeyPath?: SecretPath<'viewing_key'>;
 
 				/**
+				 * Whether the asset is hidden from the balances screen
+				 */
+				hidden?: boolean;
+
+				/**
 				 * Cache of the allowances 
 				 */
 				allowances?: Record<Bech32, {

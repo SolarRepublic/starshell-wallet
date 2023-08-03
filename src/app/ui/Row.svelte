@@ -14,7 +14,7 @@
 	import Load from './Load.svelte';
 	import Address from '../frag/Address.svelte';
 	import InlineTags from '../frag/InlineTags.svelte';
-	import PfpDisplay from '../frag/PfpDisplay.svelte';
+	import PfpDisplay, { type PfpFilter } from '../frag/PfpDisplay.svelte';
 
 
 	/**
@@ -31,6 +31,8 @@
 	 * Overrides name automatically extracted from resource
 	 */
 	export let name: Promisable<string> = resource?.name;
+
+	export let pfpFilter: PfpFilter = '';
 
 	/**
 	 * Adds ` ({VALUE})` after the name in a dimmer color
@@ -453,11 +455,23 @@
 			<span class="icon {iconClass}">
 				<slot name="icon">
 					{#await name}
-						<PfpDisplay path={pfp} name={'?'} dim={pfpDim} {appRelated} />
+						<PfpDisplay
+							path={pfp}
+							name={'?'}
+							dim={pfpDim}
+							filter={pfpFilter}
+							{appRelated}
+						/>
 					{:then s_name}
 						<!-- <PfpDisplay path={pfp} name={s_name} dim={pfpDim} filter={resource?.['testnet']? 'testnet': ''} {appRelated} /> -->
 
-						<PfpDisplay path={pfp} name={s_name} dim={pfpDim} resource={resource} {appRelated} />
+						<PfpDisplay resource={resource}
+							path={pfp}
+							name={s_name}
+							dim={pfpDim}
+							filter={pfpFilter}
+							{appRelated}
+						/>
 					{/await}
 				</slot>
 			</span>

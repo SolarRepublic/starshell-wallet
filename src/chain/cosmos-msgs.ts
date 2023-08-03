@@ -604,6 +604,9 @@ const H_ROOT_DEFS = {
 					},
 					MsgWithdrawDelegatorReward: {
 						methods: MsgWithdrawDelegatorReward,
+						amino: {
+							exceptional_id: 'MsgWithdrawDelegationReward',
+						},
 					},
 					MsgWithdrawValidatorCommission: {
 						methods: MsgWithdrawValidatorCommission,
@@ -816,9 +819,10 @@ const H_ROOT_DEFS = {
 						methods: NFT,
 					},
 
-					MsgSend: {
-						methods: NftMsgSend,
-					},
+					// collision with bank MsgSend
+					// MsgSend: {
+					// 	methods: NftMsgSend,
+					// },
 				},
 
 				'params.v1beta1': {
@@ -1123,6 +1127,7 @@ const H_ROOT_DEFS = {
 		methods: Methods;
 		amino?: {
 			omit?: string[];
+			exceptional_id?: string;
 		};
 	}>>>;
 }>;
@@ -1133,7 +1138,7 @@ const H_MAP_PROTO_TO_AMINO = oderom(H_ROOT_DEFS, (si_root, {groups:h_groups}) =>
 		h_modules, (si_module: string, h_messages) => oderom(
 			h_messages, (si_message: string, {amino:gc_amino}) => ({
 				[`/${si_root}.${si_module}.${si_message}`]: {
-					id: `${si_alias}/${si_message}`,
+					id: `${si_alias}/${gc_amino?.exceptional_id ?? si_message}`,
 					config: (gc_amino || {}) as {
 						omit: string[];
 					},
@@ -1219,7 +1224,12 @@ export function amino_to_base(g_msg: TypedValue): CanonicalBase {
 			g_data = gc_proto.methods.fromJSON(g_recased);
 		}
 		catch(e_from) {
-			throw new AminoToProtoError(e_from as Error);
+			try {
+				g_data = gc_proto.methods.fromPartial(g_recased);
+			}
+			catch(e_partial) {
+				throw new AminoToProtoError(e_from as Error);
+			}
 		}
 
 		return {

@@ -12,7 +12,7 @@
 	import {system_notify} from '#/extension/notifications';
 	import {global_receive} from '#/script/msg-global';
 	import {NetworkFeed} from '#/script/service-feed';
-	import {B_IOS_NATIVE, B_IOS_WEBKIT, B_RELEASE_BETA, ConnectionHealth, SI_VERSION} from '#/share/constants';
+	import {B_ANDROID_NATIVE, B_IOS_NATIVE, B_IOS_WEBKIT, B_RELEASE_BETA, ConnectionHealth, SI_VERSION} from '#/share/constants';
 	
 	import {Chains} from '#/store/chains';
 	import {Histories} from '#/store/incidents';
@@ -33,7 +33,7 @@
 	
 
 	TimeAgo.addDefaultLocale(en);
-	const y_timeago = new TimeAgo('en-US');
+	const y_timeago = new TimeAgo([navigator.language, 'en-US']);
 
 	interface ConnectionState {
 		xc_health: ConnectionHealth;
@@ -244,7 +244,7 @@
 								});
 
 								// TODO: remove in favor of automatic restart
-								if(B_IOS_WEBKIT) {
+								if(B_IOS_WEBKIT || B_ANDROID_NATIVE) {
 									s_err_fix = 'restart';
 								}
 							}
@@ -299,7 +299,7 @@
 	}
 
 	function restart(d_event: MouseEvent) {
-		if(B_IOS_NATIVE) {
+		if(B_IOS_NATIVE || B_ANDROID_NATIVE) {
 			location.reload();
 		}
 		else {

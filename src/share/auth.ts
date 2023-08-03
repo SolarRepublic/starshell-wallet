@@ -12,7 +12,7 @@ import {precedes} from '#/extension/semver';
 import {SessionStorage} from '#/extension/session-storage';
 import {global_broadcast} from '#/script/msg-global';
 import {set_keplr_compatibility_mode} from '#/script/scripts';
-import {H_STORE_INIT_CHAINS, H_STORE_INIT_CONTRACTS} from '#/store/_init';
+import {H_STORE_INIT_AGENTS, H_STORE_INIT_CHAINS, H_STORE_INIT_CONTRACTS, H_STORE_INIT_MEDIA, H_STORE_INIT_PFPS, H_STORE_INIT_PROVIDERS} from '#/store/_init';
 import {Accounts} from '#/store/accounts';
 import {Apps} from '#/store/apps';
 import {Chains} from '#/store/chains';
@@ -24,6 +24,11 @@ import {F_NOOP, ode, timeout} from '#/util/belt';
 import {buffer_to_base93, canonicalize, text_to_buffer} from '#/util/data';
 import { SecretWasm } from '#/crypto/secret-wasm';
 import { open_flow } from '#/script/msg-flow';
+import type { Bech32, ContractPath, ContractStruct } from '#/meta/chain';
+import type { TokenStructRegistry } from '#/meta/token';
+import { Agents } from '#/store/agents';
+import { Medias } from '#/store/medias';
+import { Pfps } from '#/store/pfps';
 
 
 
@@ -257,6 +262,59 @@ export async function login(sh_phrase: string, b_recover=false, f_update: ((s_st
 	}
 }
 
+async function upsert_agents() {
+	// add new agents
+	const ks_agents = await Agents.read();
+	for(const [p_agent, g_agent] of ode(H_STORE_INIT_AGENTS)) {
+		if(!ks_agents.at(p_agent)) {
+			await Agents.putAt(p_agent, g_agent);
+		}
+	}
+}
+
+async function upsert_media() {
+	// add new media
+	const ks_medias = await Medias.read();
+	for(const [p_media, g_media] of ode(H_STORE_INIT_MEDIA)) {
+		if(!ks_medias.at(p_media)) {
+			await Medias.putAt(p_media, g_media);
+		}
+	}
+}
+
+async function upsert_pfps() {
+	// add new pfps
+	const ks_pfps = await Pfps.read();
+	for(const [p_pfp, g_pfp] of ode(H_STORE_INIT_PFPS)) {
+		if(!ks_pfps.at(p_pfp)) {
+			await Pfps.putAt(p_pfp, g_pfp);
+		}
+	}
+}
+
+async function upsert_providers() {
+	// upgrade providers
+	for(const [p_provider, g_provider] of ode(H_STORE_INIT_PROVIDERS)) {
+		if(g_provider.on) {
+			try {
+				await Providers.putAt(p_provider, g_provider);
+			}
+			catch(e_replace) {}
+		}
+	}
+}
+
+async function upsert_chains() {
+	// upgrade chains
+	for(const [p_chain, g_chain] of ode(H_STORE_INIT_CHAINS)) {
+		if(g_chain.on) {
+			try {
+				await Chains.putAt(p_chain, g_chain);
+			}
+			catch(e_replace) {}
+		}
+	}
+}
 
 async function run_migrations() {
 	const g_seen = await PublicStorage.lastSeen();
@@ -400,6 +458,213 @@ async function run_migrations() {
 					await Chains.putAt(p_chain, g_chain);
 				}
 			}
+		}
+
+		// migrate-able tokens and new snip25s
+		if(precedes(g_seen.version, '1.0.23')) {
+			try {
+				// upgrade secret-4
+				const p_secret4 = '/family.cosmos/chain.secret-4';
+				try {
+					await Chains.putAt(p_secret4, H_STORE_INIT_CHAINS[p_secret4]);
+				}
+				catch(e_merge) {}
+
+				// each entry in init registry
+				for(const [, g_contract] of ode(H_STORE_INIT_CONTRACTS)) {
+					try {
+						// add/overwrite snip25 tokens
+						if(g_contract.interfaces.snip25) {
+							await Contracts.merge(g_contract);
+						}
+						// set migrate on deprecated variants
+						else if(g_contract.interfaces.snip20?.extra?.migrate) {
+							const g_existing = await Contracts.at(Contracts.pathFrom(g_contract));
+
+							// update existing
+							if(g_existing) {
+								// only if it has not yet been updated
+								if(!g_existing.interfaces.snip20?.extra?.migrate) {
+									await Contracts.merge({
+										...g_existing,
+										name: `${g_existing.name} (old)`,
+										interfaces: {
+											...g_existing.interfaces,
+											snip20: {
+												...g_existing.interfaces.snip20!,
+												extra: {
+													...g_existing.interfaces.snip20!.extra,
+													migrate: g_contract.interfaces.snip20.extra.migrate,
+												},
+											},
+										},
+									});
+								}
+							}
+							// add new
+							else {
+								await Contracts.merge(g_contract);
+							}
+						}
+					}
+					catch(e_merge) {}
+				}
+
+				await upsert_agents();
+				await upsert_media();
+				await upsert_pfps();
+			}
+			catch(e_merge) {}
+		}
+
+		if(precedes(g_seen.version, '1.0.25')) {
+			// fix incident times
+			for(const [p_incident, g_incident] of await Incidents.entries()) {
+				if(g_incident.time < 1.2e12) {
+					g_incident.time *= 1e3;
+					await Incidents.putAt(p_incident, g_incident);
+				}
+			}
+		}
+
+		if(precedes(g_seen.version, '1.0.28')) {
+			const p_silk = Contracts.pathFor('/family.cosmos/chain.secret-4', 'secret1fl449muk5yq8dlad7a22nje4p5d2pnsgymhjfd');
+
+			try {
+				await Contracts.merge(H_STORE_INIT_CONTRACTS[p_silk]);
+			}
+			catch(e_merge) {}
+
+			function overlap(s_a: string, s_b: string): string {
+				return s_a.split(' ')[0] === s_b.split(' ')[0]? s_a: s_b;
+			}
+
+			// each entry in init registry
+			for(const [, g_contract] of ode(H_STORE_INIT_CONTRACTS)) {
+				try {
+					const g_existing = await Contracts.at(Contracts.pathFrom(g_contract));
+
+					// update existing
+					if(g_existing) {
+						await Contracts.merge({
+							...g_existing,
+							name: overlap(g_contract.name, g_existing.name),
+							hash: g_contract.hash,
+							interfaces: g_contract.interfaces,
+							pfp: g_contract.pfp,
+						});
+					}
+					// add new
+					else {
+						await Contracts.merge(g_contract);
+					}
+				}
+				catch(e_merge) {}
+			}
+
+			await upsert_providers();
+			await upsert_media();
+			await upsert_pfps();
+
+			// add ibc coins
+			for(const [p_chain, g_chain] of ode(H_STORE_INIT_CHAINS)) {
+				// add enabled flag to existing chain
+				try {
+					await Chains.update(p_chain, g => ({
+						...g,
+						coins: g_chain.coins,
+					}));
+				}
+				catch(e_merge) {}
+			}
+		}
+
+		if(precedes(g_seen.version, '1.0.31')) {
+			// fix shade decimals
+			const a_shade_tokens = [
+				'secret1qfql357amn448duf5gvp9gr48sxx9tsnhupu3d',
+				'secret153wu605vvp934xhd4k9dtd640zsep5jkesstdm',
+			] as const;
+
+			// fix decimals
+			for(const sa_token of a_shade_tokens) {
+				const p_token = Contracts.pathFor('/family.cosmos/chain.secret-4', sa_token);
+				const g_existing = await Contracts.at(p_token);
+				if(!g_existing) continue;
+
+				try {
+					await Contracts.merge({
+						...g_existing,
+						interfaces: {
+							...g_existing.interfaces,
+							snip20: {
+								...g_existing.interfaces.snip20!,
+								decimals: H_STORE_INIT_CONTRACTS[p_token].interfaces.snip20!.decimals,
+							},
+						},
+					});
+				}
+				catch(e_merge) {}
+			}
+
+			// fix coingeckoId
+			const a_secret_tokens = [
+				'secret1k6u0cy4feepm6pehnz804zmwakuwdapm69tuc4',
+				'secret16zfat8th6hvzhesj8f6rz3vzd7ll69ys580p2t',
+				'secret1dtdgpn0v8vzt2zz2an0anawxj26llne3ugl9ek',
+			] as const;
+
+			// fix coingeckoId
+			for(const sa_token of a_secret_tokens) {
+				const p_token = Contracts.pathFor('/family.cosmos/chain.secret-4', sa_token);
+				const g_existing = await Contracts.at(p_token);
+				if(!g_existing) continue;
+
+				try {
+					await Contracts.merge({
+						...g_existing,
+						interfaces: {
+							...g_existing.interfaces,
+							snip20: {
+								...g_existing.interfaces.snip20!,
+								extra: {
+									...g_existing.interfaces.snip20!.extra,
+									coingeckoId: H_STORE_INIT_CONTRACTS[p_token].interfaces.snip20!.extra!.coingeckoId!,
+								},
+							},
+						},
+					});
+				}
+				catch(e_merge) {}
+			}
+		}
+
+		if(precedes(g_seen.version, '1.0.33')) {
+			// change block explorer
+			for(const [p_chain, g_chain] of ode(H_STORE_INIT_CHAINS)) {
+				try {
+					await Chains.update(p_chain, g => ({
+						...g,
+						blockExplorer: g_chain.blockExplorer,
+					}));
+				}
+				catch(e_merge) {}
+			}
+		}
+
+		// pulsar-3
+		if(precedes(g_seen.version, '1.0.34')) {
+			// update chains
+			try {
+				await upsert_chains();
+			}
+			catch(e_merge) {}
+
+			// update provider(s)
+			try {
+				await upsert_providers();
+			}
+			catch(e_upsert) {}
 		}
 	}
 

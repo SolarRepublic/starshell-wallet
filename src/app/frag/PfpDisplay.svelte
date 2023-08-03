@@ -1,3 +1,7 @@
+<script lang="ts" context="module">
+	export type PfpFilter = ''|'testnet'|'hardware'|'obsolete'|'locked';
+</script>
+
 <script lang="ts">
 	import type {Nameable, Pfpable} from '#/meta/able';
 	import type {Nilable} from '#/meta/belt';
@@ -18,6 +22,8 @@
 	import Put from '../ui/Put.svelte';
 	
 	import SX_ICON_HARDWARE from '#/icon/usb.svg?raw';
+
+	import SX_ICON_LOCKED from '#/icon/lock.svg?raw';
 
 
 	const dispatch = createEventDispatcher();
@@ -52,7 +58,7 @@
 
 	export let updates = 0;
 
-	export let filter: ''|'testnet'|'hardware' = '';
+	export let filter: PfpFilter = '';
 	
 
 	function filter_for(g_res: typeof resource) {
@@ -60,6 +66,8 @@
 			if(g_res['testnet']) return 'testnet';
 
 			if(g_res['extra']?.device) return 'hardware';
+
+			if(g_res['interfaces']?.['snip20']?.['extra']?.['migrate']) return 'obsolete';
 		}
 
 		return '';
@@ -249,6 +257,61 @@
 		}
 	}
 
+	// brightness(0.55) contrast(0.7)
+	.filter-locked {
+		>.original,>.overlay {
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+		}
+
+		>.overlay {
+			filter: blur(1.25px) contrast(2.5);
+			opacity: 0.5;
+
+			clip-path: polygon(
+				0% 60%,
+				60% 60%,
+				60% 100%,
+				0% 100%
+			);
+		}
+
+		>.badge {
+			// position: absolute;
+			// bottom: 0;
+			// left: 0;
+			// width: 50%;
+			// height: 50%;
+
+			// >svg {
+			// 	width: 100%;
+			// 	height: 100%;
+			// 	margin-top: 12%;
+			// }
+
+			position: absolute;
+			bottom: 0;
+			left: 0;
+			width: 70%;
+			height: 0;
+
+			>.global_svg-icon {
+				width: 100%;
+				height: auto;
+				margin-top: -40%;
+				background-color: rgba(0,0,0,0.6);
+				padding: 0 15%;
+				box-sizing: border-box;
+				margin-left: -20%;
+				border-radius: 20%;
+				--icon-diameter: 100%;
+			}
+		}
+	}
+
 	.filter-hardware {
 		>.original,>.overlay {
 			position: absolute;
@@ -302,6 +365,10 @@
 			}
 		}
 	}
+
+	.filter-obsolete {
+		filter: grayscale(0.75) brightness(1.25);
+	}
 </style>
 
 <!-- class:default={!k_icon}  -->
@@ -309,6 +376,7 @@
 	<span class="global_pfp tile {s_classes}"
 		class:satin={'satin' === si_style_bg}
 		class:circular={circular}
+		class:filter-obsolete={[filter, s_autofilter].includes('obsolete')}
 		style={sx_style_root}
 		data-path={path}
 	>
@@ -343,6 +411,17 @@
 					<span class="badge">
 						<span class="global_svg-icon">
 							{@html SX_ICON_HARDWARE}
+						</span>
+					</span>
+				</span>
+			{:else if [filter, s_autofilter].includes('locked')}
+				<span class="filter filter-locked" style="width:{dim}px; height:{dim}px;">
+					<span class="original">
+						<Put element={dm_pfp} />
+					</span>
+					<span class="badge">
+						<span class="global_svg-icon">
+							{@html SX_ICON_LOCKED}
 						</span>
 					</span>
 				</span>

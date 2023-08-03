@@ -383,13 +383,13 @@ export namespace Snip20 {
 					? O.Merge<h_group['message'], h_base['message']>
 					: h_base['message']
 				: never;
-			
+
 			query: h_base extends {query:object}
 				? h_group extends {query:object}
 					? O.Merge<h_group['query'], h_base['query']>
 					: h_base['query']
 				: undefined;
-			
+
 			response: h_base extends {response:object}
 				? h_group extends {response:object}
 					? O.Merge<h_group['response'], h_base['response']>

@@ -175,7 +175,6 @@ export const H_SNIP_HANDLERS: Partial<SnipHandlers> = wrap_handlers<Snip2x.AnyMe
 
 	increase_allowance(h_args) {
 		// TODO: implement
-b
 		return {
 			apply: () => ({
 				title: '🔺 Increased Allowance',
@@ -196,6 +195,15 @@ b
 		g_snip20,
 		g_snip721,
 	}) => ({
+		// as soon as a viewing key tx is signed
+		approve(si_txn) {
+			console.log({
+				approved_viewing_key: true,
+				g_contract,
+				si_txn,
+			});
+		},
+
 		async apply() {
 			// whether this is a new token for the account
 			let b_new_token = false;

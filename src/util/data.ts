@@ -7,12 +7,13 @@ import {createHash} from 'sha256-uint8array';
 
 import {is_dict, is_dict_es, ode} from './belt';
 
-import {Ripemd160 as Ripemd160Js} from '../crypto/ripemd160';
+import {ripemd160} from '../crypto/ripemd160';
 import SensitiveBytes from '../crypto/sensitive-bytes';
 
 
 const S_UUID_V4 = 'xxxxxxxx_xxxx_4xxx_yxxx_xxxxxxxxxxxx';
 const R_UUID_V4 = /[xy]/g;
+
 
 // @ts-expect-error in case crypto global is not defined
 export const uuid_v4 = globalThis.crypto?.randomUUID? () => crypto.randomUUID(): (): string => {
@@ -84,7 +85,7 @@ export const sha256_sync = (atu8_data: Uint8Array): Uint8Array => y_sha256.hash(
 * @param atu8_data data to hash
 * @returns the hash digest
 */
-export const ripemd160_sync_insecure = (atu8_data: Uint8Array): Uint8Array => new Ripemd160Js().update(atu8_data).digest();
+export const ripemd160_sync_insecure = ripemd160;
 
 let y_ripemd: Ripemd160;
 void instantiateRipemd160().then(y => y_ripemd = y).catch((e_instantiate) => {

@@ -17,10 +17,12 @@ window.addEventListener('error', (d_event) => {
 	console.error(d_event.error);
 });
 
-import {B_LOCALHOST, XT_SECONDS, P_STARSHELL_DEFAULTS, R_CAIP_2, B_IOS_WEBKIT} from '#/share/constants';
+import {B_LOCALHOST, XT_SECONDS, P_STARSHELL_DEFAULTS, R_CAIP_2, B_IOS_WEBKIT, B_ANDROID_NATIVE} from '#/share/constants';
 
-import {do_webkit_polyfill} from '#/script/webkit-polyfill';
+import {do_android_polyfill} from '#/native/android-polyfill';
+import {do_webkit_polyfill} from '#/native/webkit-polyfill';
 
+do_android_polyfill();
 do_webkit_polyfill();
 /* eslint-enable */
 
@@ -35,6 +37,7 @@ import BlankSvelte from '#/app/screen/Blank.svelte';
 import HardwareController from '#/app/screen/HardwareController.svelte';
 import ImportMnemonicSvelte from '#/app/screen/ImportMnemonic.svelte';
 import JsonPreviewDemo from '#/app/screen/JsonPreviewDemo.svelte';
+import KeystoneTest from '#/app/screen/KeystoneTest.svelte';
 import LedgerLinkAccounts from '#/app/screen/LedgerLinkAccounts.svelte';
 import PreRegisterSvelte from '#/app/screen/PreRegister.svelte';
 import RestrictedSvelte from '#/app/screen/Restricted.svelte';
@@ -54,7 +57,6 @@ import {Settings} from '#/store/settings';
 import {WebResourceCache} from '#/store/web-resource-cache';
 import {F_NOOP, ode, timeout, timeout_exec} from '#/util/belt';
 import {parse_params, qs} from '#/util/dom';
-import KeystoneTest from '#/app/screen/KeystoneTest.svelte';
 
 
 const debug = true? (s: string, ...a: any[]) => console.debug(`StarShell.popup: ${s}`, ...a): () => {};
@@ -275,7 +277,7 @@ async function reload(b_override_restriction=false) {
 						b_mandatory: true,
 					},
 				};
-	
+
 				// set complete function in context
 				h_context.completed = reload;
 			}
@@ -487,7 +489,7 @@ async function reload(b_override_restriction=false) {
 
 			i_service_health = window.setTimeout(async() => {
 				// in webkit view
-				if(B_IOS_WEBKIT) {
+				if(B_IOS_WEBKIT || B_ANDROID_NATIVE) {
 					console.warn(`Idle service worker`);
 
 // 					debugger;

@@ -17,7 +17,7 @@
 	import {yw_navigator, yw_progress} from '../mem';
 	import {load_flow_context} from '../svelte';
 	
-	import {B_DESKTOP, B_RELEASE_BETA, R_BECH32, R_UR} from '#/share/constants';
+	import {B_ANDROID_NATIVE, B_DESKTOP, B_RELEASE_BETA, R_BECH32, R_UR} from '#/share/constants';
 	import {timeout} from '#/util/belt';
 	import {open_external_link, qs} from '#/util/dom';
 	
@@ -27,6 +27,7 @@
 	
 	import SX_ICON_SCAN from '#/icon/scan.svg?raw';
 	import Header from '../ui/Header.svelte';
+	import { uuid_v4 } from '#/util/data';
 	
 	type UrCallback<y_methods> = (y_methods: y_methods, k_page_prg: Page) => Promisable<void>;
 
@@ -63,7 +64,7 @@
 
 	let dm_scanner: HTMLDivElement;
 
-	let si_scanner = `qrcode-scanner-${crypto.randomUUID().slice(-7)}`;
+	let si_scanner = `qrcode-scanner-${uuid_v4().slice(-7)}`;
 
 	function finish(b_answer: boolean) {
 		k_page.pop();
@@ -246,7 +247,7 @@
 
 		// exec callback
 		try {
-			await h_ur_types[y_ur.type](y_instance, k_page);
+			await h_ur_types?.[y_ur.type]?.(y_instance, k_page);
 		}
 		catch(e_handle) {
 			throw syserr(e_handle as Error);
@@ -280,7 +281,7 @@
 		await timeout(100);
 
 		// on desktop, assume front-facing camera and flip
-		if(B_DESKTOP) {
+		if(B_DESKTOP || B_ANDROID_NATIVE) {
 			// qs(document.body, '#qrcode-scanner')?.classList.add('flipped');
 			dm_scanner.classList.add('flipped');
 		}
@@ -418,6 +419,8 @@
 <Screen>
 	{#if b_poppable}
 		<Header pops title="Scan QR Code" />
+	{:else}
+		<Header exits title="Scan QR Code" on:close={exit} />
 	{/if}
 
 	{#if b_ready}
@@ -430,14 +433,31 @@
 				</div>
 			{/if}
 
-			{#if a_cameras.length > 1}
+			<div class="actions-line">
+				{#if a_cameras.length > 1}
+					<button disabled={b_cycling} on:click={() => {
+						b_cycling = true;
+						i_camera++;
+					}}>
+						{2 === a_cameras.length? 'Other': 'Next'} Camera
+					</button>
+				{/if}
+
+				<button on:click={() => {
+					dm_scanner.classList.toggle('flipped');
+				}}>
+					Flip/Mirror View
+				</button>
+			</div>
+
+			<!-- {#if a_cameras.length > 1}
 				<div class="cameras">
 					<ActionsLine noPrimary confirm={[`${2 === a_cameras.length? 'Other': 'Next'} Camera`, () => {
 						b_cycling = true;
 						i_camera++;
 					}, b_cycling]} />
 				</div>
-			{/if}
+			{/if} -->
 			<div class="status">
 				<div class="error-text" class:visibility_hidden={!s_error}>
 					{s_error}

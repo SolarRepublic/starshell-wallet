@@ -1,9 +1,9 @@
-import type {Chain} from './chain';
+import type {Bech32, Chain, MigrationStruct} from './chain';
 import type {Cw} from './cosm-wasm';
 import type {L, N} from 'ts-toolbelt';
 import type {Merge} from 'ts-toolbelt/out/Object/Merge';
 
-import type {Dict} from '#/meta/belt';
+import type {Dict, JsonObject} from '#/meta/belt';
 
 
 export type TokenSpecRegistry = {
@@ -84,6 +84,7 @@ export type TokenSpecRegistry = {
 	snip22: {};
 	snip23: {};
 	snip24: {};
+	snip25: {};
 	snip721: {
 		// chains: KnownChain.SecretNetwork;
 	};
@@ -173,7 +174,8 @@ export type TokenStructRegistry = {
 			decimals: L.UnionOf<N.Range<0, 18>>;
 			extra?: {
 				coingeckoId?: string;
-			} & Dict;
+				migrate?: MigrationStruct | {};
+			};
 		};
 	};
 
@@ -190,6 +192,10 @@ export type TokenStructRegistry = {
 	};
 
 	snip24: {
+		struct: {};
+	};
+
+	snip25: {
 		struct: {};
 	};
 

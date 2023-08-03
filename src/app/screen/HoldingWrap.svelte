@@ -23,6 +23,7 @@
 	import AmountInput from '../frag/AmountInput.svelte';
 	import ActionsLine from '../ui/ActionsLine.svelte';
 	import Field from '../ui/Field.svelte';
+	import { Chains } from '#/store/chains';
 	
 
 	const {k_page} = load_page_context();
@@ -66,6 +67,8 @@
 		// TODO: use simulation data
 		[si_coin]: BigNumber(15_000n+''),
 	}));
+
+	const b_fee_coin = !!Chains.allFeeCoins($yw_chain).find(([si]) => si_coin === si);
 
 	(async function load() {
 		[g_contract] = await Contracts.filterTokens({
@@ -136,9 +139,15 @@
 		subtitle={s_chain}
 	/>
 
-	<p>
-		{si_coin} is the native gas coin for {s_chain}, its balances and transfer histories are not private.
-	</p>
+	{#if b_fee_coin}
+		<p>
+			{si_coin} is the native gas coin for {s_chain}, its balances and transfer histories are not private.
+		</p>
+	{:else}
+		<p>
+			{si_coin} is an IBC asset from another chain, its balances and transfer histories are not private.
+		</p>
+	{/if}
 	
 	<p>
 		In order to take advantage of Secret's privacy features, you can wrap {si_coin} by converting it 1:1 to the s{si_coin} token.

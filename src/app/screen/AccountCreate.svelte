@@ -22,7 +22,7 @@
 	import {Chains} from '#/store/chains';
 	import {Secrets} from '#/store/secrets';
 	import {microtask, ode} from '#/util/belt';
-	import {buffer_to_base64, serialize_private_key} from '#/util/data';
+	import {buffer_to_base64, serialize_private_key, uuid_v4} from '#/util/data';
 	
 	import AccountEdit from './AccountEdit.svelte';
 	import WalletCreate from './WalletCreate.svelte';
@@ -202,7 +202,7 @@
 		// create private key secret
 		const p_secret_node = await Secrets.put(atu8_xor_node, {
 			type: 'bip32_node',
-			uuid: crypto.randomUUID(),
+			uuid: uuid_v4(),
 			mnemonic: p_secret_mnemonic,
 			bip44: sx_bip44_path,
 			name: `${g_secret_mnemonic.name}: Private key at ${sx_bip44_path}`,

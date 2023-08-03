@@ -26,6 +26,7 @@ import {pubkey_to_bech32} from './bech32';
 
 import {buffer_to_base64, buffer_to_hex, buffer_to_text, concat, text_to_buffer} from '#/util/data';
 import { Devices } from '#/store/devices';
+import { B_DEVELOPMENT } from '#/share/constants';
 
 
 // export async function 
@@ -623,7 +624,7 @@ export class LedgerApp {
 
 	async sign(a_path: HdPath, atu8_data: Uint8Array, atu8_txkey?: Uint8Array|undefined) {
 		// mode
-		// const xc_ins = atu8_txkey? INS_APP.SIGN_SECP256K1_TRANSPARENT: INS_APP.SIGN_SECP256K1;
+		// const xc_ins = atu8_txkey && B_DEVELOPMENT? INS_APP.SIGN_SECP256K1_TRANSPARENT: INS_APP.SIGN_SECP256K1;
 		const xc_ins = INS_APP.SIGN_SECP256K1;
 
 		// initial frame

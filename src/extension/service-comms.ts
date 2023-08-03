@@ -2,7 +2,7 @@ import type {Dict, JsonValue, Promisable} from '#/meta/belt';
 import type {Vocab} from '#/meta/vocab';
 
 import type {IntraExt, TypedMessage} from '#/script/messages';
-import { B_IOS_WEBKIT } from '#/share/constants';
+import { B_DESKTOP, B_IOS_WEBKIT } from '#/share/constants';
 import {ode, timeout} from '#/util/belt';
 
 import {buffer_to_base93, uuid_v4} from '#/util/data';
@@ -633,7 +633,7 @@ export class ServiceHost {
 		};
 
 		// chrome desktop will silently kill background; get ahead of it by self-expiring
-		if(!B_IOS_WEBKIT) {
+		if(B_DESKTOP) {
 			this._i_expire = (globalThis as typeof window).setTimeout(f_expire, XT_SERVICE_WORKER_LIFETIME_TIMEOUT);
 		}
 	}

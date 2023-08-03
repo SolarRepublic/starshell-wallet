@@ -24,6 +24,7 @@
 	import {Secrets} from '#/store/secrets';
 	import {ode} from '#/util/belt';
 	
+	import ContractView from './ContractView.svelte';
 	import QueryPermitEdit from './QueryPermitEdit.svelte';
 	import QueryPermitShare from './QueryPermitShare.svelte';
 	import RequestSignature from './RequestSignature.svelte';
@@ -38,7 +39,6 @@
 	
 	import SX_ICON_BAN from '#/icon/ban.svg?raw';
 	import SX_ICON_EXPAND from '#/icon/expand.svg?raw';
-    import ContractView from './ContractView.svelte';
 	
 	
 

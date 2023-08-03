@@ -19,6 +19,7 @@ import {
 	B_IOS_NATIVE,
 	H_PARAMS,
 	B_IOS_WEBKIT,
+	B_ANDROID_NATIVE,
 } from '#/share/constants';
 
 import {F_NOOP, timeout_exec} from '#/util/belt';
@@ -196,7 +197,7 @@ export async function open_window(p_url: string, gc_open?: OpenWindowConfig): Pr
 	}
 
 	// use popover
-	if(gc_open?.popover && !B_FIREFOX_ANDROID && !B_IOS_NATIVE && !B_IOS_WEBKIT) {
+	if(gc_open?.popover && !B_FIREFOX_ANDROID && !B_IOS_NATIVE && !B_IOS_WEBKIT && !B_ANDROID_NATIVE) {
 		// update url with extended search params
 		const d_url_popover = new URL(p_url);
 		d_url_popover.search = stringify_params({
@@ -396,7 +397,7 @@ export async function open_window(p_url: string, gc_open?: OpenWindowConfig): Pr
 	// open as link
 	else {
 		// within iOS native
-		if(B_IOS_NATIVE) {
+		if(B_IOS_NATIVE || B_ANDROID_NATIVE) {
 			// extend search params by copying `within` query parameter
 			h_params.within = H_PARAMS.within;
 

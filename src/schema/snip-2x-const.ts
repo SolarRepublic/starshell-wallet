@@ -7,7 +7,7 @@ import type {L, N} from 'ts-toolbelt';
 
 import type {AccountStruct} from '#/meta/account';
 import type {Dict, JsonObject} from '#/meta/belt';
-import type {Bech32, ChainPath, ChainStruct, ContractStruct} from '#/meta/chain';
+import type {Bech32, ChainPath, ChainStruct, ContractStruct, MigrationStruct} from '#/meta/chain';
 import type {Cw} from '#/meta/cosm-wasm';
 
 import type {SecretStruct} from '#/meta/secret';
@@ -67,8 +67,8 @@ type TokenInfoResponse = Snip20.BaseQueryResponse<'token_info'>;
 export class ViewingKeyError extends Error {}
 
 export class ContractQueryError extends Error {
-	constructor(protected _sx_plaintext: string) {
-		super(`Contract returned error while attempting query: ${_sx_plaintext}`);
+	constructor(protected _sx_plaintext: string, protected _sa_contract: string, protected _g_query) {
+		super(`Contract ${_sa_contract} returned error while attempting query: ${_sx_plaintext}\n${JSON.stringify(_g_query)}`);
 	}
 
 	get data(): JsonObject {
@@ -278,6 +278,26 @@ export const Snip2xMessageConstructor = {
 		// prep snip-20 exec
 		return await k_network.encodeExecuteContract(g_account, g_token.bech32, g_msg, g_token.hash);
 	},
+
+	async send(
+		g_account: AccountStruct,
+		g_token: {bech32: Bech32; hash: string; chain: ChainPath},
+		k_network: SecretNetwork,
+		sa_recipient: Cw.Bech32,
+		s_amount: Cw.Uint128
+	): Promise<PortableMessage> {
+		// prep snip-20 message
+		const g_msg: Snip20.BaseMessageParameters<'send'> = {
+			send: {
+				recipient: sa_recipient,
+				amount: s_amount,
+			},
+		};
+
+		// prep snip-20 exec
+		return await k_network.encodeExecuteContract(g_account, g_token.bech32, g_msg, g_token.hash);
+	},
+
 };
 
 export type Snip2xQueryRes<si_key extends Snip2x.AnyQueryKey=Snip2x.AnyQueryKey> = Promise<Snip2x.AnyQueryResponse<si_key>>;
@@ -294,7 +314,7 @@ const h_limiters: Dict<RateLimitingPool> = {};
 /**
  * Queries the given snip
  */
-async function query_snip<si_key extends Snip2x.AnyQueryKey=Snip2x.AnyQueryKey>(
+export async function query_snip<si_key extends Snip2x.AnyQueryKey=Snip2x.AnyQueryKey>(
 	g_query: Snip2x.AnyQueryParameters<si_key>,
 	g_contract: ContractStruct,
 	k_network: SecretNetwork,
@@ -343,7 +363,7 @@ async function query_snip<si_key extends Snip2x.AnyQueryKey=Snip2x.AnyQueryKey>(
 				const sx_plaintext = buffer_to_text(atu8_plaintext);
 
 				// throw decrypted error
-				throw new ContractQueryError(sx_plaintext);
+				throw new ContractQueryError(sx_plaintext, g_contract.bech32, g_query);
 			}
 		}
 
@@ -354,16 +374,16 @@ async function query_snip<si_key extends Snip2x.AnyQueryKey=Snip2x.AnyQueryKey>(
 	}
 }
 
-type DeductionConfig = {
+type DeductionConfig<as_exclude extends TokenStructKey|''=''> = {
 	queries: string[];
-	extensions?: Partial<Record<TokenStructKey, DeductionConfig>>;
+	extensions?: Partial<Record<Exclude<TokenStructKey, as_exclude>, DeductionConfig<'snip20' | 'snip721' | 'snip1155'>>>;
 };
 
 const H_DEDUCTIONS: NonNullable<DeductionConfig['extensions']> = {
 	snip20: {
 		queries: [
 			'token_info',
-			'exchange_rate',
+			// 'exchange_rate',
 			'allowance',
 			'balance',
 			'transfer_history',
@@ -378,6 +398,13 @@ const H_DEDUCTIONS: NonNullable<DeductionConfig['extensions']> = {
 			snip24: {
 				queries: [
 					'with_permit',
+				],
+			},
+
+			snip25: {
+				queries: [
+					'allowances_given',
+					'allowances_received',
 				],
 			},
 		},
@@ -424,6 +451,7 @@ const H_DEDUCTIONS: NonNullable<DeductionConfig['extensions']> = {
 		],
 	},
 };
+
 
 /**
  * Attempt to deduce which interfaces the contract implements
@@ -485,7 +513,7 @@ export async function deduce_token_interfaces(
 	}
 	catch(e_info) {
 		if(e_info instanceof Error) {
-			const m_queries = /unknown variant `([^`]+)`, expected one of ([^"]+)"/.exec(e_info.message);
+			const m_queries = /unknown variant `([^`]+)`, expected one of ([^"\n]+)["\n]/.exec(e_info.message);
 			if(m_queries) {
 				if(si_foreign !== m_queries[1]) {
 					throw new Error(`Contract returned suspicious error`);
@@ -493,6 +521,7 @@ export async function deduce_token_interfaces(
 
 				// get accepted query ids
 				const a_queries = m_queries[2].split(/,\s+/g).map(s => s.replace(/^`|`$/g, ''));
+				console.debug(`Query deductions for ${g_contract.bech32}: ${a_queries.join(', ')}`);
 
 				// each deductable interface
 				DEDUCTIONS:
@@ -513,7 +542,7 @@ export async function deduce_token_interfaces(
 						}
 					}
 
-					// contract implements all queries in spec (snip20 needs extra data)
+					// snip20 needs extra data
 					if('snip20' === si_interface) {
 						try {
 							await Snip2xToken.promoteSnip20(g_contract, k_network, g_account, b_update_store);
@@ -524,6 +553,28 @@ export async function deduce_token_interfaces(
 						await _promote(si_interface);
 					}
 
+					// check extensions
+					for(const [si_extension, g_extension] of ode(g_deduction?.extensions || {})) {
+						// each query in extension spec
+						for(const si_query of g_extension!.queries) {
+							// query not present in contract
+							if(!a_queries.includes(si_query)) {
+								// exclude this extension from now on for this contract
+								await _demote(si_extension);
+
+								// continue checking other extensions
+								continue;
+							}
+						}
+
+						// extension passed; promote in contract
+						await _promote(si_extension);
+
+						// add to deduction list
+						a_deductions.push(si_extension);
+					}
+
+					// contract implements all queries in spec
 					a_deductions.push(si_interface);
 				}
 			}
@@ -654,7 +705,11 @@ export class Snip2xToken {
 		return this._g_snip20.extra?.coingeckoId || null;
 	}
 
-	get snip20(): TokenStructDescriptor['snip21'] {
+	get migrate(): MigrationStruct | {} | null {
+		return this._g_snip20.extra?.migrate || null;
+	}
+
+	get snip20(): TokenStructDescriptor['snip20'] {
 		return this._g_snip20;
 	}
 
@@ -672,6 +727,10 @@ export class Snip2xToken {
 
 	get snip24(): TokenStructDescriptor['snip24'] | null {
 		return this._g_contract.interfaces.snip24 || null;
+	}
+
+	get snip25(): TokenStructDescriptor['snip25'] | null {
+		return this._g_contract.interfaces.snip25 || null;
 	}
 
 	protected async _viewing_key_plaintext(): Promise<Cw.ViewingKey> {
@@ -825,10 +884,13 @@ export class Snip2xToken {
 			// query for latest
 			const g_response = await this.query({
 				transfer_history: {
-					address: this._sa_owner,
+					address: this._sa_owner as Cw.Bech32,
 					key: await this._viewing_key_plaintext(),
 					page_size: nl_page_size as Cw.WholeNumber,
 					page: i_page as Cw.WholeNumber,
+					...this.snip25? {
+						should_filter_decoys: false,
+					}: {},
 				},
 			});
 
@@ -931,6 +993,9 @@ export class Snip2xToken {
 					key: await this._viewing_key_plaintext(),
 					page_size: nl_page_size as Cw.WholeNumber,
 					page: i_page as Cw.WholeNumber,
+					...this.snip25? {
+						should_filter_decoys: false,
+					}: {},
 				},
 			});
 
@@ -1035,7 +1100,7 @@ export class Snip2xToken {
 					bech32: _g_contract.bech32,
 					hash: si_tx,
 				},
-				time: g_transfer.block_time || Date.now(),
+				time: g_transfer.block_time? +g_transfer.block_time*1e3: Date.now(),
 			});
 
 			// broadcast event

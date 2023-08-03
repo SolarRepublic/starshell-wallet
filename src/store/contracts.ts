@@ -183,7 +183,7 @@ export const Contracts = create_store_class({
 
 			const g_existing = this._w_cache[p_contract];
 			if(g_existing) {
-				Object.assign(g_existing, g_contract);
+				g_contract = Object.assign(g_existing, g_contract);
 			}
 
 			this._w_cache[p_contract] = g_contract;

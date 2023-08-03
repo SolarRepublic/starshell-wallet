@@ -12,9 +12,9 @@
 	import type {WebKitMessageHandlerRegsitry} from '#/env';
 	import type {ExtToNative} from '#/script/messages';
 	
-	import type {WebKitMessenger} from '#/script/webkit-polyfill';
+	import type {WebKitMessenger} from '#/native/webkit-polyfill';
 	
-	import {Apps, G_APP_EXTERNAL, G_APP_NOT_FOUND} from '#/store/apps';
+	import {Apps, G_APP_EXTERNAL, G_APP_NOT_FOUND, G_APP_NULL} from '#/store/apps';
 	
 	import {ode, timeout} from '#/util/belt';
 	
@@ -30,6 +30,7 @@
 	import SX_ICON_RELOAD from '#/icon/reload-thin.svg?raw';
 	import SX_ICON_SEARCH from '#/icon/search.svg?raw';
 	import SX_ICON_WARNING from '#/icon/warning.svg?raw';
+    import { B_ANDROID_NATIVE, B_IPHONE_IOS } from '#/share/constants';
 
 
 	$: p_account = $yw_nav_state?.account || '' as AccountPath;
@@ -55,6 +56,7 @@
 		p_url = g_model.url || '';
 		s_app_title = g_model.title || '';
 		s_stage = g_model.stage || 'unknown';
+		console.log(`Updated model to stage: ${s_stage} vs ${$yw_nav_state.stage}`);
 	});
 
 	let p_app_prev = '';
@@ -69,9 +71,9 @@
 		}
 	}
 	
-	$: d_url = parse_url(p_url);
+	$: d_url = parse_url(p_url) ?? new URL('about:blank');
 	$: s_protocol = d_url?.protocol.replace(/:$/, '') || null;
-	$: s_host = d_url?.host || null;
+	$: s_host = d_url?.host || '';
 
 	// propagate url changes to input
 	$: s_input = p_url;
@@ -107,7 +109,9 @@
 	}
 
 	async function reload_page_app_state() {
-		const p_app = Apps.pathFor((d_url as URL).host, (d_url as URL).protocol.replace(/:$/, '') as 'https');
+		const p_app = ('about:blank' === d_url.href)
+			? Apps.pathFrom(G_APP_NULL)
+			: Apps.pathFor((d_url as URL).host, (d_url as URL).protocol.replace(/:$/, '') as 'https');
 
 		// same app as previous
 		if(p_app_prev === p_app) return;
@@ -331,11 +335,13 @@
 			if(!dm_controls.classList.contains('display_none')) {
 				dm_input.select();
 
-				const i_interval = (globalThis as typeof window).setInterval(clear_ios_toolip, 150);
+				if(B_IPHONE_IOS || B_ANDROID_NATIVE) {
+					const i_interval = (globalThis as typeof window).setInterval(clear_ios_toolip, 150);
 
-				setTimeout(() => {
-					clearInterval(i_interval);
-				}, 1.5e3);
+					setTimeout(() => {
+						clearInterval(i_interval);
+					}, 1.5e3);
+				}
 			}
 		});
 
@@ -683,7 +689,7 @@
 		</span>
 
 		<form class="url" action="" on:submit|preventDefault={submit_input}>
-			<input type="text" spellcheck="false" autocorrect="false" autocapitalize="false" autocomplete="false"
+			<input type="text" spellcheck="false" autocorrect="false" autocapitalize="false" autocomplete="off"
 				bind:this={dm_input}
 				bind:value={s_input}
 			>

@@ -31,7 +31,7 @@
 	 * Sets the confirmation label and optionally its action and disabled state
 	 */
 	export let confirm: readonly [string, PromisableIgnoreFunction?, boolean?] = ['Done', F_NOOP, false];
-	const [s_confirm, f_confirm] = confirm;
+	const f_confirm = confirm[1];
 
 	export let allowDisabledClicks = false;
 
@@ -44,7 +44,7 @@
 	let s_confirm_append = '';
 
 	// reactive confirmation text
-	$: s_confirm_final = s_confirm+s_confirm_append;
+	$: s_confirm_final = confirm[0]+s_confirm_append;
 
 	/**
 	 * Force the user to wait for some duration
@@ -155,7 +155,7 @@
 </script>
 
 <style lang="less">
-	div.actions-line {
+	:global(div.actions-line) {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-evenly;

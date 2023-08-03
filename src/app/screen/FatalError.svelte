@@ -16,7 +16,9 @@
 </script>
 
 <style lang="less">
-
+	pre {
+		overflow: scroll;
+	}
 </style>
 
 <Screen>

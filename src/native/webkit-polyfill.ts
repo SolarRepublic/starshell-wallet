@@ -1,5 +1,4 @@
-import type {ExtToNative, IntraExt, IntraView} from './messages';
-import type {F} from 'ts-toolbelt';
+import type {ExtToNative, IntraExt, IntraView} from '../script/messages';
 
 import type {AsJson, Dict, JsonValue, Nilable, Promisable} from '#/meta/belt';
 import type {Store, StoreKey} from '#/meta/store';
@@ -11,6 +10,8 @@ import {B_DEFINED_WINDOW, B_IOS_NATIVE, B_IOS_WEBEXT, B_IOS_WEBKIT, B_MOBILE_WEB
 
 import {defer, timeout, timeout_exec} from '#/util/belt';
 import {dd} from '#/util/dom';
+import { Listener } from './listener';
+import { uuid_v4 } from '#/util/data';
 
 let debug = (s: string, ...a_args: any[]) => console.debug(`StarShell?foreground: ${s}`, ...a_args);
 
@@ -29,7 +30,7 @@ const B_STARSHELL_APP_BG_HOST = B_MOBILE_WEBKIT_VIEW && ((d_frames) => {
 	return !!globalThis['STARSHELL_IS_BACKGROUND_HOST'];
 })(globalThis.window?.top?.frames || []);
 
-const SI_FRAME = crypto.randomUUID();
+const SI_FRAME = uuid_v4();
 
 export class WebKitMessenger<
 	si_handler extends WebKitMessageHandlerKey=WebKitMessageHandlerKey,
@@ -99,49 +100,6 @@ const G_SENDER_SELF: chrome.runtime.MessageSender = {
 	origin: 'null',
 };
 
-type ListenerCallbackFromEvent<
-	y_event extends chrome.events.Event<Function>,
-> = F.Parameters<y_event['addListener']>[0] extends infer fk_listener
-	? fk_listener extends Function
-		? fk_listener
-		: never
-	: never;
-
-class Listener<
-	y_event extends chrome.events.Event<Function>,
-	fk_listener extends ListenerCallbackFromEvent<y_event>=ListenerCallbackFromEvent<y_event>,
-> {
-	protected _as_listeners = new Set<fk_listener>();
-	protected _s_debug: string;
-
-	constructor(protected _s_prefix: string='') {
-		this._s_debug = _s_prefix+':'+crypto.randomUUID().slice(0, 16);
-	}
-
-	polyfill(): y_event {
-		const k_self = this;
-
-		// @ts-expect-error shallow introspection
-		return {
-			addListener(fk_listener: fk_listener): void {
-				console.log(`Adding listener to ${k_self._s_debug}`);
-				k_self._as_listeners.add(fk_listener);
-			},
-
-			removeListener(fk_listener: fk_listener): void {
-				console.log(`Removing listener from ${k_self._s_debug}`);
-				k_self._as_listeners.delete(fk_listener);
-			},
-		};
-	}
-
-	dispatch(...a_args: F.Parameters<fk_listener>) {
-		// console.log(`Dispatching listeners on ${this._s_debug}`);
-		for(const fk_listener of [...this._as_listeners]) {
-			fk_listener(...a_args);
-		}
-	}
-}
 
 // how to rewrite urls
 function rewrite_url(p_remote: string): string {
@@ -258,7 +216,7 @@ function do_native_bridge_polyfill() {
 		onClicked: kl_notification_click.polyfill(),
 
 		async create(si_notification: string, gc_notification: chrome.notifications.NotificationOptions, fk_created?: (si_confirmed: string) => void): Promise<void> {
-			if(!si_notification) si_notification = crypto.randomUUID();
+			if(!si_notification) si_notification = uuid_v4();
 
 			await post_notification({
 				type: 'create',
@@ -745,7 +703,7 @@ export function do_webkit_polyfill(f_debug?: typeof debug, g_extend?: Partial<ty
 
 				// @ts-expect-error overloaded
 				connect(gc_connect?: chrome.runtime.ConnectInfo): chrome.runtime.Port {
-					const si_name = gc_connect?.name || crypto.randomUUID();
+					const si_name = gc_connect?.name || uuid_v4();
 
 					const {
 						g_port,
@@ -878,7 +836,7 @@ export function do_webkit_polyfill(f_debug?: typeof debug, g_extend?: Partial<ty
 				onClicked: kl_notification_click.polyfill(),
 
 				async create(si_notification: string, gc_notification: chrome.notifications.NotificationOptions, fk_created?: (si_confirmed: string) => void): Promise<void> {
-					if(!si_notification) si_notification = crypto.randomUUID();
+					if(!si_notification) si_notification = uuid_v4();
 
 					await k_notification.post({
 						type: 'create',

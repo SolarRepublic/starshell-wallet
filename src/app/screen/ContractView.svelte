@@ -1,29 +1,37 @@
 <script lang="ts">
 	import type {AppStruct, AppPath} from '#/meta/app';
 	import type {Dict, Promisable} from '#/meta/belt';
-	import type {Bech32, ChainStruct, ChainPath, ContractStruct, ContractPath} from '#/meta/chain';
+	import type {Bech32, ChainStruct, ChainPath, ContractStruct, ContractPath, MigrationStruct} from '#/meta/chain';
+	import type {Cw} from '#/meta/cosm-wasm';
 	import type {Incident, IncidentStruct} from '#/meta/incident';
 	import type {SecretStruct, SecretPath} from '#/meta/secret';
 	
-	import {Snip2xToken} from '#/schema/snip-2x-const';
+	import {Snip2xMessageConstructor, Snip2xToken} from '#/schema/snip-2x-const';
+	
+	import type {PortableMessage} from '#/schema/snip-2x-def';
 	
 	import {Screen} from './_screens';
-	import {yw_account, yw_chain_ref, yw_network, yw_owner} from '../mem';
+	import {yw_account, yw_account_ref, yw_chain_ref, yw_navigator, yw_network, yw_owner} from '../mem';
 	
 	import {load_page_context} from '../svelte';
 	
 	import type {SecretNetwork} from '#/chain/secret-network';
 	import {token_balance} from '#/chain/token';
 	
+	import {H_STORE_INIT_CONTRACTS} from '#/store/_init';
+	import {Accounts} from '#/store/accounts';
+	import {G_APP_EXTERNAL, G_APP_STARSHELL} from '#/store/apps';
 	import {Chains} from '#/store/chains';
 	import {ContractRole, Contracts} from '#/store/contracts';
 	import {Incidents} from '#/store/incidents';
+	import {QueryCache} from '#/store/query-cache';
 	import {Secrets} from '#/store/secrets';
 	import {fold, forever, ode} from '#/util/belt';
 	
 	import ContractEdit from './ContractEdit.svelte';
 	import ContractInspect from './ContractInspect.svelte';
 	import HoldingWrap from './HoldingWrap.svelte';
+	import RequestSignature from './RequestSignature.svelte';
 	import Send from './Send.svelte';
 	import TokenAllowances from './TokenAllowances.svelte';
 	import TokensAdd from './TokensAdd.svelte';
@@ -110,6 +118,116 @@
 					creator: ContractEdit,
 					props: {
 						p_contract,
+					},
+				});
+			},
+		},
+
+		migrate: {
+			label: 'Migrate',
+			async trigger() {
+				const k_token = Snip2xToken.from(g_contract, $yw_network as SecretNetwork, $yw_account)!;
+
+				const g_migrate = k_token?.migrate as MigrationStruct;
+				if(!g_migrate.via) return;
+
+				const sa_original = g_contract.bech32;
+
+				let s_balance = '0' as Cw.Uint128;
+
+				const g_cache = await QueryCache.get(g_contract.chain, sa_original, 'balance');
+				if(g_cache && Date.now() - g_cache.timestamp < 10e3) {
+					s_balance = g_cache.data.amount;
+				}
+				else {
+					const g_balance = await k_token.balance();
+					s_balance = g_balance.balance.amount;
+				}
+
+				// build messages
+				const a_msgs: PortableMessage['proto'][] = [];
+				let xg_fee_limit = 0n;
+
+				const g_limits = g_chain.features.secretwasm!.snip20GasLimits;
+
+				// ibc migration
+				if('ibc' === g_migrate.via) {
+					const si_asset = `ibc/${g_migrate.asset}`;
+
+					// unwrap old
+					const g_redeem = await Snip2xMessageConstructor.redeem($yw_account, g_contract, $yw_network as SecretNetwork, s_balance, si_asset as Cw.String);
+					a_msgs.push(g_redeem.proto);
+					xg_fee_limit += BigInt(g_limits.redeem);
+
+					// locate migration target
+					const sa_target = g_migrate.expect;
+					const g_target = H_STORE_INIT_CONTRACTS[Contracts.pathFor(g_contract.chain, sa_target)];
+					if(!g_target) {
+						console.warn(`Failed to find migration target ${sa_target}`);
+						return;
+					}
+
+					// then re-wrap to new
+					const g_deposit = await Snip2xMessageConstructor.deposit($yw_account, g_target, $yw_network as SecretNetwork, [
+						{
+							amount: s_balance,
+							denom: si_asset,
+						},
+					]);
+					a_msgs.push(g_deposit.proto);
+					xg_fee_limit += BigInt(g_limits.deposit);
+				}
+				// send migration
+				else if('send' === g_migrate.via) {
+					const g_send = await Snip2xMessageConstructor.send($yw_account, g_contract, $yw_network as SecretNetwork, g_migrate.recipient as Cw.Bech32, s_balance);
+					a_msgs.push(g_send.proto);
+					xg_fee_limit += BigInt(g_limits.send);
+				}
+
+				// only if migrated token does not yet have vk
+				const g_migrated = await Contracts.at(Contracts.pathFor(g_contract.chain, g_migrate.expect));
+				if(!g_migrated) {
+					const g_gvk = await Snip2xMessageConstructor.generate_viewing_key($yw_account, g_contract, $yw_network as SecretNetwork);
+					a_msgs.push(g_gvk.proto);
+					xg_fee_limit += BigInt(g_limits.set_viewing_key);
+				}
+
+				k_page.push({
+					creator: RequestSignature,
+					props: {
+						protoMsgs: a_msgs,
+						fee: {
+							limit: xg_fee_limit,
+						},
+						broadcast: {},
+						local: true,
+					},
+					context: {
+						app: G_APP_STARSHELL,
+						chain: g_chain,
+						accountPath: $yw_account_ref,
+						async completed(b_success) {
+							if(b_success) {
+								// hide original token for this account
+								await Accounts.update($yw_account_ref, g_latest => ({
+									assets: {
+										...g_latest.assets,
+										[p_chain]: {
+											...g_latest.assets[p_chain],
+											data: {
+												...g_latest.assets[p_chain]?.data,
+												[sa_original]: {
+													...g_latest.assets[p_chain]?.data?.[sa_original],
+													hidden: true,
+												},
+											},
+										},
+									},
+								}));
+							}
+
+							$yw_navigator.activePage.reset();
+						},
 					},
 				});
 			},
@@ -217,6 +335,15 @@
 								.then(([s_fiat, s_worth]) => s_fiat? `${s_fiat} (${s_worth} per token)`: '');
 
 							b_cache_reloading = false;
+
+							// migrate-able
+							const s_via = k_token.migrate?.['via'] as string;
+							if('0' !== g_balance.s_amount && s_via && ['send', 'ibc'].includes(s_via)) {
+								gc_actions = {
+									...gc_actions,
+									migrate: GC_ACTION_OPTIONS.migrate,
+								};
+							}
 						}
 						else {
 							s_main_title = 'Unable to fetch balance';

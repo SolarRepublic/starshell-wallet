@@ -20,7 +20,7 @@ const debug = (s: string, ...a_args: (string | number | object)[]) => console.de
 
 const H_OFFSCREEN_CONFIGS = {
 	clipboard: {
-		reasons: [chrome.offscreen.Reason.CLIPBOARD],
+		reasons: [chrome.offscreen?.Reason?.CLIPBOARD],
 		justification: 'Read data from clipboard during user import',
 	},
 };
@@ -30,6 +30,9 @@ async function send_offscreen<
 	w_response extends Vocab.Response<g_vocab>=Vocab.Response<g_vocab>,
 >(si_reason: 'clipboard', g_msg: Vocab.Message<g_vocab>): Promise<w_response | null> {
 	let w_response: w_response | null = null;
+
+	// no offscreen capability
+	if(!chrome.offscreen) return null;
 
 	// acquire and then release offscreen lock
 	await navigator.locks.request('chrome:offscreen', async() => {

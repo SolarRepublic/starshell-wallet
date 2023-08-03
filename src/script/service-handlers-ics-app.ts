@@ -26,6 +26,7 @@ import {Providers} from '#/store/providers';
 import {Secrets} from '#/store/secrets';
 import {is_dict, ode} from '#/util/belt';
 import {base93_to_buffer, buffer_to_base93, buffer_to_json, text_to_buffer, uuid_v4} from '#/util/data';
+import type { CompletedProtoSignature } from '#/chain/signature';
 
 
 interface Resolved {
@@ -395,25 +396,53 @@ export const H_HANDLERS_ICS_APP: Vocab.HandlersChrome<IcsToService.AppVocab, any
 	},
 
 	async requestCosmosSignatureDirect(g_request, g_resolved, g_sender) {
-		// const {answer:b_approved} = await open_flow({
-		// 	flow: {
-		// 		type: 'signTransaction',
-		// 		value: {
-		// 			accountPath: g_request.accountPath,
-		// 			doc: g_request.doc,
-		// 		},
-		// 		page: page_info_from_sender(g_sender),
-		// 	},
-			// ...B_DESKTOP && g_sender.tab? {
-			// 	open: await position_widow_over_tab(g_sender.tab.id!),
-			// }: {},
-		// });
+		const p_chain = Chains.pathFor('cosmos', g_request.doc.chainId);
 
-		// console.log(g_request);
-		// debugger;
+		if(g_request.chainPath !== p_chain) {
+			throw validation_error(`Mismatched chainId and connection chain`);
+		}
 
-		// temporarily disabled
-		throw new Error(`Direct protobuf signing temporarily unsupported`);
+		const g_chain = await Chains.at(p_chain);
+
+		if(!g_chain) {
+			throw new Error(`Missing chain`);
+		}
+
+		const p_account = g_request.accountPath;
+
+		const {
+			answer: b_approved,
+			data: g_result,
+		} = await open_flow({
+			flow: {
+				type: 'signTransaction',
+				value: {
+					doc: g_request.doc,
+					props: {
+						keplrSignOptions: g_request.keplrSignOptions,
+					},
+					appPath: g_resolved.appPath,
+					chainPath: p_chain,
+					accountPath: p_account,
+				},
+				page: page_info_from_sender(g_sender),
+			},
+			...B_DESKTOP && g_sender.tab? {
+				open: await position_widow_over_tab(g_sender.tab.id!),
+			}: {},
+		});
+
+		// signature was approved
+		if(b_approved) {
+			const g_completed = g_result as unknown as CompletedProtoSignature;
+			return {
+				signed: g_completed.proto.doc,
+				signature: {
+					pub_key: g_completed.pub_key,
+					signature: g_completed.proto.signature,
+				},
+			};
+		}
 	},
 
 
@@ -509,5 +538,9 @@ export const H_HANDLERS_ICS_APP: Vocab.HandlersChrome<IcsToService.AppVocab, any
 			return buffer_to_base93(atu8_plaintext);
 		});
 	},
+
+	// disconnect(a_chains: ChainPath[]) {
+	// 	return Promise.resolve(void 0);
+	// },
 };
 

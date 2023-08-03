@@ -339,6 +339,7 @@ const GC_APP = {
 							returnAssign: false,
 							enforceForNewInMemberExpressions: false,
 							enforceForFunctionPrototypeMethods: false,
+							enforceForSequenceExpressions: false,
 						}],
 
 						'use-before-define': ['error', {

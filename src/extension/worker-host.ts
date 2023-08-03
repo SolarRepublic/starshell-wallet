@@ -4,7 +4,7 @@ import type {Vocab} from '#/meta/vocab';
 import type {Argon2Config, Argon2Worker, AttackConfig} from '#/crypto/argon2';
 import type {Workers} from '#/script/messages';
 import {locate_script} from '#/script/utils';
-import {concat} from '#/util/data';
+import {concat, uuid_v4} from '#/util/data';
 
 type ResponseHandler = [(atu8_hash: Uint8Array) => void, (e_reject: Error) => void];
 
@@ -104,7 +104,7 @@ export class WorkerHost implements Argon2Worker {
 			].filter(atu8 => atu8).map(atu8 => concat([atu8!]).buffer);
 
 			// create unique request id
-			const si_request = crypto.randomUUID();
+			const si_request = uuid_v4();
 
 			// set handler
 			this._h_response_handlers[si_request] = [fk_resolve, fe_reject];
@@ -134,7 +134,7 @@ export class WorkerHost implements Argon2Worker {
 			].filter(atu8 => atu8).map(atu8 => concat([atu8!]).buffer);
 
 			// create unique request id
-			const si_request = crypto.randomUUID();
+			const si_request = uuid_v4();
 
 			// set handler
 			this._h_response_handlers[si_request] = [fk_resolve, fe_reject];

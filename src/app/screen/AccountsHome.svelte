@@ -11,13 +11,11 @@
 	import {load_page_context} from '../svelte';
 	
 	import {is_hwa, parse_hwa} from '#/crypto/hardware-signing';
-	import {B_IPHONE_IOS} from '#/share/constants';
 	import {Accounts} from '#/store/accounts';
 	import {Chains} from '#/store/chains';
 	import {Devices} from '#/store/devices';
 	import {Secrets} from '#/store/secrets';
 	
-	import AccountCreate from './AccountCreate.svelte';
 	import AccountView from './AccountView.svelte';
 	import WalletCreate from './WalletCreate.svelte';
 	import Address from '../frag/Address.svelte';
@@ -67,16 +65,9 @@
 	<SubHeader
 		title="Accounts"
 		on:add_new={() => {
-			if(B_IPHONE_IOS) {
-				k_page.push({
-					creator: AccountCreate,
-				});
-			}
-			else {
-				k_page.push({
-					creator: WalletCreate,
-				});
-			}
+			k_page.push({
+				creator: WalletCreate,
+			});
 		}}
 	>
 		<svelte:fragment slot="add-new">

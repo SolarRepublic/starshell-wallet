@@ -8,7 +8,7 @@ import {open_flow} from './msg-flow';
 import {Vault} from '#/crypto/vault';
 import type {PositionConfig} from '#/extension/browser';
 import {SessionStorage} from '#/extension/session-storage';
-import {B_IOS_WEBKIT, B_MOBILE, R_DOMAIN_LOCALHOST} from '#/share/constants';
+import {B_ANDROID_NATIVE, B_IOS_WEBKIT, B_MOBILE, R_DOMAIN_LOCALHOST} from '#/share/constants';
 import type {AppProfile} from '#/store/apps';
 import {Apps} from '#/store/apps';
 import type {AppPolicyResult} from '#/store/policies';
@@ -356,7 +356,7 @@ export async function request_advertisement(g_profile: AppProfile | undefined, g
 	REQUEST_ADVERTISEMENT:
 	if(!b_registered && !g_policy.trusted) {
 		// in-app browser is unconditional polyfill
-		if(B_IOS_WEBKIT) break REQUEST_ADVERTISEMENT;
+		if(B_IOS_WEBKIT || B_ANDROID_NATIVE) break REQUEST_ADVERTISEMENT;
 
 		// request is via keplr polyfill
 		if(b_keplr) {

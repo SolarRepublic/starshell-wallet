@@ -42,7 +42,7 @@
 	import SX_ICON_ARROW_DOWN from '#/icon/expand_more.svg?raw';
 	
 	import SX_ICON_VISIBILITY from '#/icon/visibility.svg?raw';
-    import { B_MOBILE_WEBKIT_VIEW } from '#/share/constants';
+	import { B_MOBILE_WEBKIT_VIEW } from '#/share/constants';
 	
 	
 	export let g_app: AppStruct;
@@ -297,6 +297,14 @@
 			`.replace(/\s+/g, ' ')}>
 				<button class="pill" on:click|stopPropagation={() => unblock()}>
 					Unblock
+				</button>
+			</div>
+		{:else if !g_app.on}
+			<div style={`
+				display: flex;
+			`.replace(/\s+/g, ' ')}>
+				<button class="pill" on:click|stopPropagation={() => enable_keplr_api()}>
+					Enable
 				</button>
 			</div>
 		{:else if !b_registered}

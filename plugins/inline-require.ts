@@ -6,10 +6,11 @@ import type {
 	ResolvedConfig,
 } from 'vite';
 
+import type {Dict} from '#/meta/belt';
+
 import path from 'path';
 
 import commonjs from '@rollup/plugin-commonjs';
-import nodeExternals from 'rollup-plugin-node-externals';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import typescript from '@rollup/plugin-typescript';
 import {createFilter} from '@rollup/pluginutils';
@@ -18,6 +19,7 @@ import MagicString from 'magic-string';
 import {
 	rollup,
 } from 'rollup';
+import nodeExternals from 'rollup-plugin-node-externals';
 
 interface Options {
 	include?: string[];
@@ -66,6 +68,7 @@ export function inlineRequire(gc_import: Options={}) {
 		return hm_cache.get(si_cache);
 	}
 
+	const h_cached: Dict = {};
 
 	return {
 		name: 'inline-require',
@@ -175,63 +178,74 @@ export function inlineRequire(gc_import: Options={}) {
 					si_load = (g_resolve.id || '').replace(/\?.*$/, '');
 				}
 
-				let y_bundle: RollupBuild;
-				try {
-					y_bundle = await rollup({
-						input: si_load.replace(/\?commonjs-entry$/, ''),
-						external: ['fs', 'path', 'crypto'],
-						output: {
+				// attempt to use already built bundle from cache
+				let sx_inlined_code = h_cached[si_load];
+
+				// not yet built
+				if(!sx_inlined_code) {
+					let y_bundle: RollupBuild;
+					try {
+						y_bundle = await rollup({
+							input: si_load.replace(/\?commonjs-entry$/, ''),
+							external: ['fs', 'path', 'crypto'],
+							output: {
+								format: 'iife',
+								inlineDynamicImports: true,
+								chunkFileNames: 'assets/[name].js',
+								assetFileNames: 'assets/[name][extname]',
+							},
+							plugins: [
+								nodeExternals({
+									builtins: false,
+									deps: false,
+								}),
+								commonjs({
+									ignore: ['fs', 'path', 'crypto'],
+								}),
+								nodeResolve({
+									browser: true,
+									// preferBuiltins: false,
+								}),
+
+								// apply the `inline_require()` substitution
+								inlineRequire({
+									// only on extensions scripts
+									include: [
+										'./src/script/*',
+									],
+								}),
+
+								typescript({
+									tsconfig: path.join(__dirname, '../tsconfig.json'),
+									compilerOptions: {
+										target: 'es2022',
+										module: 'es2022',
+										lib: ['es2022', 'dom'],
+									},
+								}),
+							],
+						});
+					}
+					catch(e_bundle) {
+						throw new Error(`While trying to bundle ${si_load}: ${e_bundle?.stack || e_bundle?.message || e_bundle}`);
+					}
+
+					let g_gen: RollupOutput;
+					try {
+						g_gen = await y_bundle.generate({
 							format: 'iife',
 							inlineDynamicImports: true,
-						},
-						plugins: [
-							nodeExternals({
-								builtins: false,
-								deps: false,
-							}),
-							commonjs({
-								ignore: ['fs', 'path', 'crypto'],
-							}),
-							nodeResolve({
-								browser: true,
-								// preferBuiltins: false,
-							}),
+						});
+					}
+					catch(e_generate) {
+						throw new Error(`While trying to generate ${si_load}: ${e_generate?.message || e_generate}`);
+					}
 
-							// apply the `inline_require()` substitution
-							inlineRequire({
-								// only on extensions scripts
-								include: [
-									'./src/script/*',
-								],
-							}),
-
-							typescript({
-								tsconfig: path.join(__dirname, '../tsconfig.json'),
-								compilerOptions: {
-									target: 'es2022',
-									module: 'es2022',
-									lib: ['es2022', 'dom'],
-								},
-							}),
-						],
-					});
-				}
-				catch(e_bundle) {
-					throw new Error(`While trying to bundle ${si_load}: ${e_bundle?.stack || e_bundle?.message || e_bundle}`);
+					// set code and save to cache
+					h_cached[si_load] = sx_inlined_code = g_gen.output[0].code;
 				}
 
-				let g_gen: RollupOutput;
-				try {
-					g_gen = await y_bundle.generate({
-						format: 'iife',
-						inlineDynamicImports: true,
-					});
-				}
-				catch(e_generate) {
-					throw new Error(`While trying to generate ${si_load}: ${e_generate?.message || e_generate}`);
-				}
-
-				y_magic.overwrite(g_node.start, g_node.end, g_gen.output[0].code);
+				y_magic.overwrite(g_node.start, g_node.end, sx_inlined_code);
 			}
 
 			return {

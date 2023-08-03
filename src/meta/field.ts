@@ -6,6 +6,8 @@ import type {PfpTarget} from './pfp';
 import type {SecretPath} from './secret';
 import type {Merge} from 'ts-toolbelt/out/Object/Merge';
 
+import type {AbbreviationLevel} from '#/util/format';
+
 export type ResourceFieldRegistry = {
 	app: {
 		path: AppPath;
@@ -77,6 +79,7 @@ export type FieldConfigRegistry = {
 		bech32s: Bech32[];
 		g_chain: ChainStruct;
 		short?: boolean;
+		abbrv?: AbbreviationLevel;
 	};
 
 	accounts: {
@@ -94,6 +97,8 @@ export type FieldConfigRegistry = {
 	contracts: {
 		label?: string;
 		bech32s: Promisable<Bech32[] | Record<Bech32, any>>;
+		short?: boolean;
+		abbrv?: AbbreviationLevel;
 		g_chain: ChainStruct;
 		g_app?: AppStruct;
 		g_account?: AccountStruct;

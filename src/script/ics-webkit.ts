@@ -1,4 +1,4 @@
-import type * as WebkitPolyfillImport from './webkit-polyfill';
+import type * as WebkitPolyfillImport from '../native/webkit-polyfill';
 
 /**
  * The spotter's sole purpose is to silently forward advertisement requests from the page to the service.

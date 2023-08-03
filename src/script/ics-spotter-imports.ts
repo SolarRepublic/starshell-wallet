@@ -43,4 +43,4 @@ export {
 
 export {
 	WebKitMessenger,
-} from '#/script/webkit-polyfill';
+} from '#/native/webkit-polyfill';

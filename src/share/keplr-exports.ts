@@ -62,6 +62,55 @@ export const A_TESTNETS = [
 	},
 	{
 		testnet: 1,
+		rpc: 'https://grpc.pulsar3.scrttestnet.com',
+		rpcConfig: void 0,
+		rest: '',
+		restConfig: void 0,
+		chainId: 'pulsar-3',
+		chainName: 'Secret Pulsar 3',
+		stakeCurrency: {
+			coinDenom: 'SCRT',
+			coinMinimalDenom: 'uscrt',
+			coinDecimals: 6,
+			coinGeckoId: 'secret',
+		},
+		walletUrl: 'https://wallet.keplr.app/chains/secret-network',
+		walletUrlForStaking: 'https://wallet.keplr.app/chains/secret-network',
+		bip44: {
+			coinType: 529,
+		},
+		alternativeBIP44s: [
+			{
+				coinType: 118,
+			},
+		],
+		bech32Config: defaultBech32Config('secret'),
+		currencies: [
+			{
+				coinDenom: 'SCRT',
+				coinMinimalDenom: 'uscrt',
+				coinDecimals: 6,
+				coinGeckoId: 'secret',
+			},
+		],
+		feeCurrencies: [
+			{
+				coinDenom: 'SCRT',
+				coinMinimalDenom: 'uscrt',
+				coinDecimals: 6,
+				coinGeckoId: 'secret',
+			},
+		],
+		coinType: 529,
+		gasPriceStep: {
+			low: .0125,
+			average: .1,
+			high: .25,
+		},
+		features: ['secretwasm', 'ibc-go', 'ibc-transfer'],
+	},
+	{
+		testnet: 1,
 		rpc: 'https://rpc-cosmoshub.keplr.app',
 		rpcConfig: void 0,
 		rest: 'https://lcd-cosmoshub.keplr.app',

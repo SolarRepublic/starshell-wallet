@@ -7,15 +7,15 @@ import {G_APP_STARSHELL} from '#/store/apps';
 import RequestSignature from '../screen/RequestSignature.svelte';
 
 
-export function starshell_transaction(a_msgs_proto: Any[], s_gas_limit: `${bigint}` | ''=''): void {
+export function starshell_transaction(a_msgs_proto: Any[], z_gas_limit: bigint|`${bigint}` | ''=''): void {
 	yw_navigator.get().activePage.push({
 		creator: RequestSignature,
 		props: {
 			protoMsgs: a_msgs_proto,
 			fee: {
-				limit: s_gas_limit || '',
+				limit: `${z_gas_limit}` || '',
 			},
-			broadcast: true,
+			broadcast: {},
 			local: true,
 		},
 		context: {

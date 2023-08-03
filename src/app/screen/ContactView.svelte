@@ -18,6 +18,7 @@
 	import Send from '##/screen/Send.svelte';
 	
 	import ContactEdit from './ContactEdit.svelte';
+	import Grant from './Grant.svelte';
 	import IncidentsList from '../frag/IncidentsList.svelte';
 	
 
@@ -55,6 +56,17 @@
 				});
 			},
 		},
+		// auth: {
+		// 	label: 'Auth',
+		// 	trigger() {
+		// 		k_page.push({
+		// 			creator: Grant,
+		// 			props: {
+		// 				address: Agents.addressFor(g_contact, $yw_chain),
+		// 			},
+		// 		});
+		// 	},
+		// },
 		// delete: {
 		// 	label: 'Delete',
 		// 	trigger() {

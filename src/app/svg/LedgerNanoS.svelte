@@ -1,10 +1,11 @@
 <script lang="ts">
+    import { uuid_v4 } from '#/util/data';
 	import { scale } from "svelte/transition";
 
 
 	export let sx_body = '#d4ad00';
 
-	let si_svg = `ledger-nano-s_${crypto.randomUUID().slice(-8)}`;
+	let si_svg = `ledger-nano-s_${uuid_v4().slice(-8)}`;
 
 	const H_DIMS = {
 		closed: [326, 99],

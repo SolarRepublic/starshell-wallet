@@ -7,14 +7,15 @@ import {fold, F_IDENTITY} from './belt';
 
 import type {CoinGeckoFiat} from '#/store/web-apis';
 
+const A_DEFAULT_LOCALES = [navigator.language, 'en-US'];
 
-const D_INTL_USD = new Intl.NumberFormat('en-US', {
+const D_INTL_USD = new Intl.NumberFormat(A_DEFAULT_LOCALES, {
 	style: 'currency',
 	currency: 'USD',
 	currencyDisplay: 'symbol',
 });
 
-const D_INTL_USD_LT1 = new Intl.NumberFormat('en-US', {
+const D_INTL_USD_LT1 = new Intl.NumberFormat(A_DEFAULT_LOCALES, {
 	style: 'currency',
 	currency: 'USD',
 	currencyDisplay: 'symbol',
@@ -118,22 +119,22 @@ const A_NUMERIC_LT1 = [
 	},
 ];
 
-const D_INTL_AMOUNT_LT1 = new Intl.NumberFormat('en-US', {
+const D_INTL_AMOUNT_LT1 = new Intl.NumberFormat(A_DEFAULT_LOCALES, {
 	notation: 'standard',
 	maximumSignificantDigits: 3,
 });
 
-const D_INTL_AMOUNT_GT1 = new Intl.NumberFormat('en-US', {
+const D_INTL_AMOUNT_GT1 = new Intl.NumberFormat(A_DEFAULT_LOCALES, {
 	notation: 'standard',
 	maximumFractionDigits: 3,
 });
 
-const D_INTL_AMOUNT_GT1E3 = new Intl.NumberFormat('en-US', {
+const D_INTL_AMOUNT_GT1E3 = new Intl.NumberFormat(A_DEFAULT_LOCALES, {
 	notation: 'standard',
 	maximumSignificantDigits: 6,
 });
 
-const D_INTL_AMOUNT_I1E3 = new Intl.NumberFormat('en-US', {
+const D_INTL_AMOUNT_I1E3 = new Intl.NumberFormat(A_DEFAULT_LOCALES, {
 	notation: 'standard',
 	maximumSignificantDigits: 4,
 });
@@ -223,7 +224,7 @@ export function abbreviate_addr(sa_addr: Bech32, xc_level=AbbreviationLevel.MOST
 	}
 }
 
-const D_INTL_DATE = new Intl.DateTimeFormat('en-US', {
+const D_INTL_DATE = new Intl.DateTimeFormat(A_DEFAULT_LOCALES, {
 	month: 'short',
 	day: 'numeric',
 	year: 'numeric',
@@ -231,15 +232,17 @@ const D_INTL_DATE = new Intl.DateTimeFormat('en-US', {
 	minute: 'numeric',
 });
 
-const timestamp_to_parts = (xt_timestamp=Date.now()) => fold(D_INTL_DATE.formatToParts(), g_part => ({
+const timestamp_to_parts = (xt_timestamp=Date.now()) => fold(D_INTL_DATE.formatToParts(xt_timestamp), g_part => ({
 	[g_part.type]: g_part.value,
 }));
 
 export function format_time(xt_timestamp: number): string {
-	const g_now = timestamp_to_parts();
 	const g_then = timestamp_to_parts(xt_timestamp);
 
 	let s_out = `${g_then.month} ${g_then.day}`;
+
+	// occurred in a different year
+	const g_now = timestamp_to_parts();
 	if(g_now.year !== g_then.year) {
 		s_out += `, ${g_then.year}`;
 	}
@@ -248,7 +251,7 @@ export function format_time(xt_timestamp: number): string {
 }
 
 export function format_date_long(xt_timestamp: number): string {
-	return new Intl.DateTimeFormat('en-US', {
+	return new Intl.DateTimeFormat(A_DEFAULT_LOCALES, {
 		year: 'numeric',
 		month: 'numeric',
 		day: 'numeric',
@@ -256,7 +259,8 @@ export function format_date_long(xt_timestamp: number): string {
 		minute: 'numeric',
 		second: 'numeric',
 		hour12: false,
-		timeZone: 'America/Los_Angeles',
+		timeZoneName: 'short',
+		timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 	}).format(new Date(xt_timestamp));
 }
 
@@ -282,7 +286,7 @@ export function phrase_to_hyphenated(s_phrase: string): string {
 
 TimeAgo.setDefaultLocale(english_locale.locale);
 TimeAgo.addLocale(english_locale);
-const y_ago = new TimeAgo('en-US');
+const y_ago = new TimeAgo(A_DEFAULT_LOCALES);
 
 export function format_time_ago(xt_when: number): string {
 	return y_ago.format(xt_when, 'twitter');

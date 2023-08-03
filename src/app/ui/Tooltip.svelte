@@ -4,7 +4,11 @@
 
 	import {yw_curtain} from '../mem';
 	
+	import {qs} from '#/util/dom';
+	
 	import SX_ICON_INFO from '#/icon/info.svg?raw';
+
+	const B_DEBUG_TOOLTIP_LEFT = true;
 
 	export let showing = false;
 
@@ -12,16 +16,21 @@
 
 	let x_left_overlay = 0;
 
+	let dm_tooltip!: HTMLElement;
+
 	// automatically re-center
-	let dm_overlay!: HTMLDivElement;
-	$: if(showing && dm_overlay) {
-		const xl_width_overlay = dm_overlay.getBoundingClientRect().width;
-
-		const xl_x_toooltip = dm_overlay.closest('.tooltip')!.getBoundingClientRect().x;
-
-		const xl_width_viewport = dm_overlay.closest('main.viewport')!.getBoundingClientRect().width;
-
-		x_left_overlay = ((xl_width_viewport - xl_width_overlay) / 2) - xl_x_toooltip;
+	$: if(showing) {
+		queueMicrotask(() => {
+			const dm_overlay = qs(dm_tooltip, '.tooltip-overlay')!;
+	
+			const xl_width_overlay = dm_overlay.getBoundingClientRect().width;
+	
+			const xl_x_toooltip = dm_overlay.closest('.tooltip')!.getBoundingClientRect().x;
+	
+			const xl_width_viewport = dm_overlay.closest('main.viewport')!.getBoundingClientRect().width;
+	
+			x_left_overlay = ((xl_width_viewport - xl_width_overlay) / 2) - xl_x_toooltip;
+		});
 	}
 </script>
 
@@ -72,15 +81,15 @@
 
 </style>
 
-<span class="tooltip">
+<span class="tooltip" bind:this={dm_tooltip}>
 	<span class="global_svg-icon icon-diameter_20px" on:click={() => showing = !showing} class:highlight={showing}>
 		{@html SX_ICON_INFO}
 	</span>
 
 	{#if showing}
-		<div class="tooltip-overlay" style={x_left_overlay >= 0? `
+		<div class="tooltip-overlay" style={x_left_overlay >= 0 || B_DEBUG_TOOLTIP_LEFT? `
 			left: ${x_left_overlay}px;
-		`: ''} bind:this={dm_overlay} transition:fade={{duration:300, easing:quintOut}}>
+		`: ''} transition:fade={{duration:300, easing:quintOut}}>
 			<slot />
 		</div>
 	{/if}
